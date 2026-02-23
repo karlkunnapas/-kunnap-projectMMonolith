@@ -1,0 +1,57 @@
+@using App.Domain.Identity
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.EntityFrameworkCore
+@model List<App.Domain.Identity.AppUser>
+@inject UserManager<AppUser> UserManager
+@inject RoleManager<AppRole> RoleManager
+
+@{
+    ViewData["Title"] = "Users";
+
+    var allRoles = await RoleManager.Roles.OrderBy(r => r.Name).ToListAsync();
+}
+
+<h1>Users</h1>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model[0].UserName)
+        </th>
+        <th>Roles</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model)
+    {
+        var userRoles = await UserManager.GetRolesAsync(item);
+        <tr>
+            <td>@Html.DisplayFor(modelItem => item.UserName)</td>
+            <td>
+                <ul>
+                    @foreach (var role in allRoles)
+                    {
+                        <li>
+                            @role.Name
+                            @if (userRoles.Any(r => r == role.Name))
+                            {
+                                <a asp-action="RoleRemove" asp-route-userId="@item.Id" asp-route-role="@role">Remove</a>
+                            }
+                            else
+                            {
+                                <a asp-action="RoleAdd" asp-route-userId="@item.Id" asp-route-role="@role">Add</a>
+                            }
+                        </li>
+                    }
+                </ul>
+            </td>
+            <td>
+                <a asp-action="PasswordLink" asp-route-id="@item.Id">Reset PWD</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
