@@ -1,0 +1,335 @@
+<svg viewBox="0 0 1400 1650" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1400" height="1650" fill="#f0f2f5"/>
+
+  <!-- Header -->
+  <rect width="1400" height="80" fill="#1a1a1a"/>
+  <text x="30" y="55" font-size="28" font-weight="bold" fill="#00d9ff" font-family="Arial">⚡ ChargeHub Operator</text>
+  <text x="700" y="55" font-size="18" fill="#fff" text-anchor="middle" font-family="Arial">Analytics Dashboard</text>
+  <text x="1350" y="55" font-size="20" fill="#fff" text-anchor="end" font-family="Arial">👤 Operator Name</text>
+
+  <!-- Sidebar navigation -->
+  <rect x="0" y="80" width="200" height="1570" fill="#222"/>
+
+  <text x="20" y="120" font-size="13" font-weight="bold" fill="#00d9ff" font-family="Arial">📊 Dashboard</text>
+  <text x="20" y="150" font-size="12" fill="#999" font-family="Arial">📍 Stations</text>
+  <text x="20" y="175" font-size="12" fill="#999" font-family="Arial">📅 Reservations</text>
+  <text x="20" y="200" font-size="12" fill="#999" font-family="Arial">📈 Analytics</text>
+  <text x="20" y="225" font-size="12" fill="#999" font-family="Arial">🔧 Maintenance</text>
+  <text x="20" y="250" font-size="12" fill="#999" font-family="Arial">⚙️ Settings</text>
+
+  <!-- Main content area -->
+  <!-- Section 1: Network Overview Cards -->
+  <text x="220" y="130" font-size="18" font-weight="bold" fill="#333" font-family="Arial">Network Overview</text>
+
+  <!-- KPI Card 1: Total Stations -->
+  <rect x="220" y="150" width="260" height="140" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <rect x="220" y="150" width="260" height="8" fill="#00d9ff" rx="8"/>
+  <text x="350" y="185" font-size="14" fill="#666" text-anchor="middle" font-family="Arial">Total Stations</text>
+  <text x="350" y="225" font-size="42" fill="#00d9ff" text-anchor="middle" font-weight="bold" font-family="Arial">24</text>
+  <text x="350" y="270" font-size="12" fill="#999" text-anchor="middle" font-family="Arial">↑ 2 new this month</text>
+
+  <!-- KPI Card 2: Utilization Rate -->
+  <rect x="495" y="150" width="260" height="140" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <rect x="495" y="150" width="260" height="8" fill="#4ecdc4" rx="8"/>
+  <text x="625" y="185" font-size="14" fill="#666" text-anchor="middle" font-family="Arial">Avg Utilization</text>
+  <text x="625" y="225" font-size="42" fill="#4ecdc4" text-anchor="middle" font-weight="bold" font-family="Arial">68%</text>
+  <text x="625" y="270" font-size="12" fill="#999" text-anchor="middle" font-family="Arial">↑ +5% from last week</text>
+
+  <!-- KPI Card 3: Peak Demand Hours -->
+  <rect x="770" y="150" width="260" height="140" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <rect x="770" y="150" width="260" height="8" fill="#95e1d3" rx="8"/>
+  <text x="900" y="185" font-size="14" fill="#666" text-anchor="middle" font-family="Arial">Peak Hours</text>
+  <text x="900" y="225" font-size="36" fill="#95e1d3" text-anchor="middle" font-weight="bold" font-family="Arial">17:00-19:00</text>
+  <text x="900" y="270" font-size="12" fill="#999" text-anchor="middle" font-family="Arial">Avg 82% occupancy</text>
+
+  <!-- KPI Card 4: Revenue This Month -->
+  <rect x="1045" y="150" width="330" height="140" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <rect x="1045" y="150" width="330" height="8" fill="#ffc107" rx="8"/>
+  <text x="1210" y="185" font-size="14" fill="#666" text-anchor="middle" font-family="Arial">Revenue (This Month)</text>
+  <text x="1210" y="225" font-size="42" fill="#ffc107" text-anchor="middle" font-weight="bold" font-family="Arial">€12,450</text>
+  <text x="1210" y="270" font-size="12" fill="#999" text-anchor="middle" font-family="Arial">↑ 18% vs last month</text>
+
+  <!-- Section 2: Station Performance Grid -->
+  <text x="220" y="340" font-size="16" font-weight="bold" fill="#333" font-family="Arial">Station Performance Overview</text>
+
+  <rect x="220" y="360" width="1160" height="400" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+
+  <!-- Table header -->
+  <rect x="220" y="360" width="1160" height="50" fill="#f8f9fa" stroke="#ddd" stroke-width="1"/>
+
+  <text x="240" y="393" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Station Name</text>
+  <text x="450" y="393" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Status</text>
+  <text x="560" y="393" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Utilization</text>
+  <text x="740" y="393" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Active Sessions</text>
+  <text x="930" y="393" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Revenue (Today)</text>
+  <text x="1130" y="393" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Actions</text>
+
+  <!-- Table row 1 -->
+  <line x1="220" y1="410" x2="1380" y2="410" stroke="#eee" stroke-width="1"/>
+  <text x="240" y="440" font-size="12" fill="#333" font-family="Arial">Downtown Hub</text>
+  <circle cx="455" cy="430" r="8" fill="#00aa44"/>
+  <text x="480" y="440" font-size="12" fill="#333" font-family="Arial">Active</text>
+
+  <!-- Utilization bar 1 -->
+  <rect x="560" y="425" width="130" height="20" fill="#f0f0f0" stroke="#ddd" stroke-width="1" rx="3"/>
+  <rect x="560" y="425" width="120" height="20" fill="#00d9ff" rx="3"/>
+  <text x="700" y="440" font-size="11" fill="#333" font-family="Arial">92%</text>
+
+  <text x="740" y="440" font-size="12" fill="#333" font-family="Arial">4 of 4</text>
+  <text x="930" y="440" font-size="12" fill="#00aa44" font-weight="bold" font-family="Arial">€245.60</text>
+  <text x="1130" y="440" font-size="11" fill="#00d9ff" font-family="Arial">View ></text>
+
+  <!-- Table row 2 -->
+  <line x1="220" y1="460" x2="1380" y2="460" stroke="#eee" stroke-width="1"/>
+  <text x="240" y="490" font-size="12" fill="#333" font-family="Arial">North Side Station</text>
+  <circle cx="455" cy="480" r="8" fill="#00aa44"/>
+  <text x="480" y="490" font-size="12" fill="#333" font-family="Arial">Active</text>
+
+  <!-- Utilization bar 2 -->
+  <rect x="560" y="475" width="130" height="20" fill="#f0f0f0" stroke="#ddd" stroke-width="1" rx="3"/>
+  <rect x="560" y="475" width="65" height="20" fill="#4ecdc4" rx="3"/>
+  <text x="700" y="490" font-size="11" fill="#333" font-family="Arial">50%</text>
+
+  <text x="740" y="490" font-size="12" fill="#333" font-family="Arial">1 of 2</text>
+  <text x="930" y="490" font-size="12" fill="#00aa44" font-weight="bold" font-family="Arial">€89.20</text>
+  <text x="1130" y="490" font-size="11" fill="#00d9ff" font-family="Arial">View ></text>
+
+  <!-- Table row 3 -->
+  <line x1="220" y1="510" x2="1380" y2="510" stroke="#eee" stroke-width="1"/>
+  <text x="240" y="540" font-size="12" fill="#333" font-family="Arial">Airport Charging Point</text>
+  <circle cx="455" cy="530" r="8" fill="#ff9900"/>
+  <text x="480" y="540" font-size="12" fill="#333" font-family="Arial">Maintenance</text>
+
+  <!-- Utilization bar 3 -->
+  <rect x="560" y="525" width="130" height="20" fill="#f0f0f0" stroke="#ddd" stroke-width="1" rx="3"/>
+  <rect x="560" y="525" width="26" height="20" fill="#ff9900" rx="3"/>
+  <text x="700" y="540" font-size="11" fill="#333" font-family="Arial">20%</text>
+
+  <text x="740" y="540" font-size="12" fill="#999" font-family="Arial">0 of 1</text>
+  <text x="930" y="540" font-size="12" fill="#999" font-family="Arial">€0.00</text>
+  <text x="1130" y="540" font-size="11" fill="#00d9ff" font-family="Arial">View ></text>
+
+  <!-- Table row 4 -->
+  <line x1="220" y1="560" x2="1380" y2="560" stroke="#eee" stroke-width="1"/>
+  <text x="240" y="590" font-size="12" fill="#333" font-family="Arial">East End Fast Charger</text>
+  <circle cx="455" cy="580" r="8" fill="#00aa44"/>
+  <text x="480" y="590" font-size="12" fill="#333" font-family="Arial">Active</text>
+
+  <!-- Utilization bar 4 -->
+  <rect x="560" y="575" width="130" height="20" fill="#f0f0f0" stroke="#ddd" stroke-width="1" rx="3"/>
+  <rect x="560" y="575" width="91" height="20" fill="#4ecdc4" rx="3"/>
+  <text x="700" y="590" font-size="11" fill="#333" font-family="Arial">70%</text>
+
+  <text x="740" y="590" font-size="12" fill="#333" font-family="Arial">3 of 3</text>
+  <text x="930" y="590" font-size="12" fill="#00aa44" font-weight="bold" font-family="Arial">€156.80</text>
+  <text x="1130" y="590" font-size="11" fill="#00d9ff" font-family="Arial">View ></text>
+
+  <!-- Table row 5 -->
+  <line x1="220" y1="610" x2="1380" y2="610" stroke="#eee" stroke-width="1"/>
+  <text x="240" y="640" font-size="12" fill="#333" font-family="Arial">Central Plaza Station</text>
+  <circle cx="455" cy="630" r="8" fill="#00aa44"/>
+  <text x="480" y="640" font-size="12" fill="#333" font-family="Arial">Active</text>
+
+  <!-- Utilization bar 5 -->
+  <rect x="560" y="625" width="130" height="20" fill="#f0f0f0" stroke="#ddd" stroke-width="1" rx="3"/>
+  <rect x="560" y="625" width="104" height="20" fill="#00d9ff" rx="3"/>
+  <text x="700" y="640" font-size="11" fill="#333" font-family="Arial">80%</text>
+
+  <text x="740" y="640" font-size="12" fill="#333" font-family="Arial">2 of 2</text>
+  <text x="930" y="640" font-size="12" fill="#00aa44" font-weight="bold" font-family="Arial">€201.40</text>
+  <text x="1130" y="640" font-size="11" fill="#00d9ff" font-family="Arial">View ></text>
+
+  <!-- Section 3: Usage Pattern Charts -->
+  <text x="220" y="840" font-size="16" font-weight="bold" fill="#333" font-family="Arial">Usage Patterns &amp; Demand Forecasting</text>
+
+  <!-- Daily trend chart -->
+  <rect x="220" y="860" width="570" height="350" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <text x="240" y="890" font-size="13" font-weight="bold" fill="#333" font-family="Arial">Daily Usage Pattern (Last 7 Days)</text>
+
+  <!-- Chart area -->
+  <rect x="240" y="910" width="530" height="270" fill="#f9f9f9" stroke="#eee" stroke-width="1" rx="4"/>
+
+  <!-- Y-axis labels -->
+  <text x="230" y="920" font-size="10" fill="#999" text-anchor="end" font-family="Arial">100%</text>
+  <text x="230" y="975" font-size="10" fill="#999" text-anchor="end" font-family="Arial">75%</text>
+  <text x="230" y="1030" font-size="10" fill="#999" text-anchor="end" font-family="Arial">50%</text>
+  <text x="230" y="1085" font-size="10" fill="#999" text-anchor="end" font-family="Arial">25%</text>
+  <text x="230" y="1140" font-size="10" fill="#999" text-anchor="end" font-family="Arial">0%</text>
+
+  <!-- X-axis labels -->
+  <text x="260" y="1200" font-size="10" fill="#999" text-anchor="middle" font-family="Arial">Mon</text>
+  <text x="315" y="1200" font-size="10" fill="#999" text-anchor="middle" font-family="Arial">Tue</text>
+  <text x="370" y="1200" font-size="10" fill="#999" text-anchor="middle" font-family="Arial">Wed</text>
+  <text x="425" y="1200" font-size="10" fill="#999" text-anchor="middle" font-family="Arial">Thu</text>
+  <text x="480" y="1200" font-size="10" fill="#999" text-anchor="middle" font-family="Arial">Fri</text>
+  <text x="535" y="1200" font-size="10" fill="#999" text-anchor="middle" font-family="Arial">Sat</text>
+  <text x="590" y="1200" font-size="10" fill="#999" text-anchor="middle" font-family="Arial">Sun</text>
+
+  <!-- Chart bars -->
+  <rect x="250" y="1080" width="20" height="90" fill="#00d9ff" rx="3"/>
+  <rect x="305" y="1020" width="20" height="150" fill="#00d9ff" rx="3"/>
+  <rect x="360" y="1050" width="20" height="120" fill="#00d9ff" rx="3"/>
+  <rect x="415" y="980" width="20" height="190" fill="#00d9ff" rx="3"/>
+  <rect x="470" y="910" width="20" height="260" fill="#00d9ff" rx="3"/>
+  <rect x="525" y="1000" width="20" height="170" fill="#4ecdc4" rx="3"/>
+  <rect x="580" y="1040" width="20" height="130" fill="#95e1d3" rx="3"/>
+
+  <!-- Demand heatmap -->
+  <rect x="810" y="860" width="570" height="350" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <text x="830" y="890" font-size="13" font-weight="bold" fill="#333" font-family="Arial">Peak Demand Heatmap (Day × Hour)</text>
+
+  <!-- Heatmap grid -->
+  <rect x="870" y="920" width="480" height="250" fill="#f9f9f9" stroke="#eee" stroke-width="1" rx="4"/>
+
+  <!-- Heatmap day labels (left side) -->
+  <text x="865" y="945" font-size="9" fill="#666" text-anchor="end" font-family="Arial" font-weight="bold">Mon</text>
+  <text x="865" y="980" font-size="9" fill="#666" text-anchor="end" font-family="Arial" font-weight="bold">Tue</text>
+  <text x="865" y="1015" font-size="9" fill="#666" text-anchor="end" font-family="Arial" font-weight="bold">Wed</text>
+  <text x="865" y="1050" font-size="9" fill="#666" text-anchor="end" font-family="Arial" font-weight="bold">Thu</text>
+  <text x="865" y="1085" font-size="9" fill="#666" text-anchor="end" font-family="Arial" font-weight="bold">Fri</text>
+  <text x="865" y="1120" font-size="9" fill="#666" text-anchor="end" font-family="Arial" font-weight="bold">Sat</text>
+  <text x="865" y="1155" font-size="9" fill="#666" text-anchor="end" font-family="Arial" font-weight="bold">Sun</text>
+
+  <!-- Heatmap hours (top) -->
+  <text x="890" y="910" font-size="8" fill="#666" text-anchor="middle" font-family="Arial">08:00</text>
+  <text x="935" y="910" font-size="8" fill="#666" text-anchor="middle" font-family="Arial">12:00</text>
+  <text x="980" y="910" font-size="8" fill="#666" text-anchor="middle" font-family="Arial">16:00</text>
+  <text x="1025" y="910" font-size="8" fill="#666" text-anchor="middle" font-family="Arial">17:00</text>
+  <text x="1070" y="910" font-size="8" fill="#666" text-anchor="middle" font-family="Arial">18:00</text>
+  <text x="1115" y="910" font-size="8" fill="#666" text-anchor="middle" font-family="Arial">19:00</text>
+  <text x="1160" y="910" font-size="8" fill="#666" text-anchor="middle" font-family="Arial">22:00</text>
+
+  <!-- Heatmap colors - Monday row -->
+  <rect x="870" y="925" width="30" height="30" fill="#d4f1f4" rx="2"/>
+  <rect x="905" y="925" width="30" height="30" fill="#b8e6e6" rx="2"/>
+  <rect x="940" y="925" width="30" height="30" fill="#a0dce0" rx="2"/>
+  <rect x="975" y="925" width="30" height="30" fill="#6ecfd8" rx="2"/>
+  <rect x="1010" y="925" width="30" height="30" fill="#4ecdc4" rx="2"/>
+  <rect x="1045" y="925" width="30" height="30" fill="#3db8b3" rx="2"/>
+  <rect x="1080" y="925" width="30" height="30" fill="#90d8d8" rx="2"/>
+
+  <!-- Heatmap colors - Tuesday row -->
+  <rect x="870" y="960" width="30" height="30" fill="#a8dede" rx="2"/>
+  <rect x="905" y="960" width="30" height="30" fill="#78d2d2" rx="2"/>
+  <rect x="940" y="960" width="30" height="30" fill="#48c6c6" rx="2"/>
+  <rect x="975" y="960" width="30" height="30" fill="#ffc700" rx="2"/>
+  <rect x="1010" y="960" width="30" height="30" fill="#ff9700" rx="2"/>
+  <rect x="1045" y="960" width="30" height="30" fill="#ff5c5c" rx="2"/>
+  <rect x="1080" y="960" width="30" height="30" fill="#60cccc" rx="2"/>
+
+  <!-- Heatmap colors - Wednesday row -->
+  <rect x="870" y="995" width="30" height="30" fill="#c0e8ec" rx="2"/>
+  <rect x="905" y="995" width="30" height="30" fill="#90d8d8" rx="2"/>
+  <rect x="940" y="995" width="30" height="30" fill="#6ecfd8" rx="2"/>
+  <rect x="975" y="995" width="30" height="30" fill="#48c6c6" rx="2"/>
+  <rect x="1010" y="995" width="30" height="30" fill="#ffb700" rx="2"/>
+  <rect x="1045" y="995" width="30" height="30" fill="#ff8700" rx="2"/>
+  <rect x="1080" y="995" width="30" height="30" fill="#78d2d2" rx="2"/>
+
+  <!-- Heatmap colors - Thursday row -->
+  <rect x="870" y="1030" width="30" height="30" fill="#b8e6e6" rx="2"/>
+  <rect x="905" y="1030" width="30" height="30" fill="#6ecfd8" rx="2"/>
+  <rect x="940" y="1030" width="30" height="30" fill="#4ecdc4" rx="2"/>
+  <rect x="975" y="1030" width="30" height="30" fill="#ffd700" rx="2"/>
+  <rect x="1010" y="1030" width="30" height="30" fill="#ff8700" rx="2"/>
+  <rect x="1045" y="1030" width="30" height="30" fill="#fc0000" rx="2"/>
+  <rect x="1080" y="1030" width="30" height="30" fill="#48c6c6" rx="2"/>
+
+  <!-- Heatmap colors - Friday row (peak day) -->
+  <rect x="870" y="1065" width="30" height="30" fill="#a0dce0" rx="2"/>
+  <rect x="905" y="1065" width="30" height="30" fill="#4ecdc4" rx="2"/>
+  <rect x="940" y="1065" width="30" height="30" fill="#3db8b3" rx="2"/>
+  <rect x="975" y="1065" width="30" height="30" fill="#ffa700" rx="2"/>
+  <rect x="1010" y="1065" width="30" height="30" fill="#ff7707" rx="2"/>
+  <rect x="1045" y="1065" width="30" height="30" fill="#e80000" rx="2"/>
+  <rect x="1080" y="1065" width="30" height="30" fill="#60cccc" rx="2"/>
+
+  <!-- Heatmap colors - Saturday row -->
+  <rect x="870" y="1100" width="30" height="30" fill="#d4f1f4" rx="2"/>
+  <rect x="905" y="1100" width="30" height="30" fill="#a8dede" rx="2"/>
+  <rect x="940" y="1100" width="30" height="30" fill="#78d2d2" rx="2"/>
+  <rect x="975" y="1100" width="30" height="30" fill="#ffb700" rx="2"/>
+  <rect x="1010" y="1100" width="30" height="30" fill="#ff9700" rx="2"/>
+  <rect x="1045" y="1100" width="30" height="30" fill="#ff4444" rx="2"/>
+  <rect x="1080" y="1100" width="30" height="30" fill="#90d8d8" rx="2"/>
+
+  <!-- Heatmap colors - Sunday row -->
+  <rect x="870" y="1135" width="30" height="30" fill="#e8f7f9" rx="2"/>
+  <rect x="905" y="1135" width="30" height="30" fill="#c0e8ec" rx="2"/>
+  <rect x="940" y="1135" width="30" height="30" fill="#90d8d8" rx="2"/>
+  <rect x="975" y="1135" width="30" height="30" fill="#6ecfd8" rx="2"/>
+  <rect x="1010" y="1135" width="30" height="30" fill="#ffc700" rx="2"/>
+  <rect x="1045" y="1135" width="30" height="30" fill="#ff8700" rx="2"/>
+  <rect x="1080" y="1135" width="30" height="30" fill="#b8e6e6" rx="2"/>
+
+  <!-- Heatmap legend -->
+  <text x="830" y="1190" font-size="9" fill="#666" font-family="Arial" font-weight="bold">Legend:</text>
+  <rect x="890" y="1178" width="15" height="15" fill="#e8f7f9" stroke="#999" stroke-width="0.5"/>
+  <text x="910" y="1188" font-size="9" fill="#666" font-family="Arial">Low</text>
+  
+  <rect x="950" y="1178" width="15" height="15" fill="#4ecdc4" stroke="#999" stroke-width="0.5"/>
+  <text x="970" y="1188" font-size="9" fill="#666" font-family="Arial">Medium</text>
+  
+  <rect x="1050" y="1178" width="15" height="15" fill="#ffb700" stroke="#999" stroke-width="0.5"/>
+  <text x="1070" y="1188" font-size="9" fill="#666" font-family="Arial">High</text>
+  
+  <rect x="1120" y="1178" width="15" height="15" fill="#fc0000" stroke="#999" stroke-width="0.5"/>
+  <text x="1140" y="1188" font-size="9" fill="#666" font-family="Arial">Peak</text>
+
+  <!-- Section 4: Booking Analytics & Maintenance -->
+  <text x="220" y="1280" font-size="16" font-weight="bold" fill="#333" font-family="Arial">Analytics &amp; Operations</text>
+
+  <!-- Booking analysis card -->
+  <rect x="220" y="1300" width="570" height="300" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+
+  <text x="240" y="1330" font-size="13" font-weight="bold" fill="#333" font-family="Arial">Reservation Analytics (Last 30 Days)</text>
+
+  <rect x="240" y="1360" width="530" height="200" fill="#f9f9f9" stroke="#eee" stroke-width="1" rx="4"/>
+
+  <!-- Analytics metrics -->
+  <text x="260" y="1390" font-size="11" fill="#333" font-family="Arial">Total Reservations: 1,247</text>
+  <text x="260" y="1415" font-size="11" fill="#333" font-family="Arial">Completed Sessions: 1,156 (92.7%)</text>
+  <text x="260" y="1440" font-size="11" fill="#333" font-family="Arial">Avg Reservation Duration: 42 minutes</text>
+  <text x="260" y="1465" font-size="11" fill="#333" font-family="Arial">Peak Booking Day: Friday (189 reservations)</text>
+  <text x="260" y="1490" font-size="11" fill="#333" font-family="Arial">Cancellation Rate: 7.3% (↓ 2% vs prev month)</text>
+
+  <!-- Occupancy trend -->
+  <text x="260" y="1520" font-size="10" fill="#666" font-family="Arial" font-weight="bold">Network Occupancy Rate:</text>
+  <rect x="260" y="1532" width="480" height="20" fill="#f0f0f0" stroke="#ddd" stroke-width="1" rx="3"/>
+  <rect x="260" y="1532" width="336" height="20" fill="#00d9ff" rx="3"/>
+  <text x="750" y="1549" font-size="11" fill="#333" font-family="Arial" font-weight="bold">70%</text>
+
+  <!-- Section 5: Maintenance Scheduling (Right Side) -->
+  <rect x="810" y="1300" width="570" height="300" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+
+  <text x="830" y="1330" font-size="13" font-weight="bold" fill="#333" font-family="Arial">Maintenance &amp; Performance</text>
+
+  <!-- Upcoming Maintenance -->
+  <rect x="830" y="1360" width="260" height="120" fill="#fff3cd" stroke="#ffe082" stroke-width="1" rx="4"/>
+  <text x="850" y="1380" font-size="11" font-weight="bold" fill="#333" font-family="Arial">🔧 Upcoming</text>
+  <text x="850" y="1400" font-size="9" fill="#333" font-family="Arial">• Airport: Connector</text>
+  <text x="850" y="1415" font-size="9" fill="#333" font-family="Arial">  replacement (Feb 28)</text>
+  <text x="850" y="1435" font-size="9" fill="#333" font-family="Arial">• Central Plaza: Battery</text>
+  <text x="850" y="1450" font-size="9" fill="#333" font-family="Arial">  service (Mar 3)</text>
+
+  <!-- Completed Maintenance -->
+  <rect x="1110" y="1360" width="260" height="120" fill="#e8f5e9" stroke="#81c784" stroke-width="1" rx="4"/>
+  <text x="1130" y="1380" font-size="11" font-weight="bold" fill="#333" font-family="Arial">✓ Completed</text>
+  <text x="1130" y="1400" font-size="9" fill="#333" font-family="Arial">Downtown:</text>
+  <text x="1130" y="1415" font-size="9" fill="#333" font-family="Arial">Power check</text>
+  <text x="1130" y="1435" font-size="9" fill="#333" font-family="Arial">East End:</text>
+  <text x="1130" y="1450" font-size="9" fill="#333" font-family="Arial">Software update</text>
+
+  <!-- Performance metrics -->
+  <rect x="830" y="1500" width="540" height="80" fill="#f8f9fa" stroke="#bdbdbd" stroke-width="1" rx="4"/>
+  <text x="850" y="1520" font-size="11" font-weight="bold" fill="#333" font-family="Arial">Performance (Last 30 Days)</text>
+  <text x="850" y="1540" font-size="9" fill="#333" font-family="Arial">Uptime: 99.8% | Avg Response: 45ms | Resolution: 2.3h avg</text>
+
+  <!-- Title -->
+  <text x="700" y="40" font-size="22" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">Figure 4: Station Operator Analytics Dashboard</text>
+</svg>
+
+
+
+

@@ -1,0 +1,159 @@
+erDiagram
+    AppUser {
+        Guid Id PK
+        string UserName
+        string Email
+        string PhoneNumber
+    }
+
+    AppRole {
+        Guid Id PK
+        string Name
+    }
+
+    AppRefreshToken {
+        Guid Id PK
+        string RefreshToken
+        DateTime Expiration
+        string PreviousRefreshToken
+        DateTime PreviousExpiration
+        Guid UserId FK
+    }
+
+    Company {
+        Guid Id PK
+        LangStr Name
+        string ContactEmail
+        string ContactPhone
+        bool IsActive
+    }
+
+    ChargingStation {
+        Guid Id PK
+        LangStr Name
+        string Location
+        EStationStatus Status
+        decimal PricePerHour
+        decimal MaxPower
+        bool IsActive
+        Guid CompanyId FK
+    }
+
+    Connector {
+        Guid Id PK
+        LangStr Name
+        bool IsActive
+    }
+
+    Vehicle {
+        Guid Id PK
+        Guid UserId FK
+        string Make
+        string Model
+        decimal BatteryCapacity
+    }
+
+    Reservation {
+        Guid Id PK
+        Guid UserId FK
+        Guid ChargingStationId FK
+        DateTime StartTime
+        DateTime EndTime
+        EReservationStatus Status
+    }
+
+    ChargingSession {
+        Guid Id PK
+        Guid UserId FK
+        Guid ChargingStationId FK
+        Guid ReservationId FK
+        DateTime StartTime
+        DateTime EndTime
+        decimal EnergyConsumed
+        decimal Cost
+    }
+
+    Maintenance {
+        Guid Id PK
+        Guid ChargingStationId FK
+        Guid ReportedByUserId FK
+        string IssueDescription
+        EMaintenanceStatus Status
+        DateTime ReportedAt
+        DateTime ResolvedAt
+        Guid AssignedToUserId FK
+        string Notes
+    }
+
+    Promotion {
+        Guid Id PK
+        string Code
+        decimal DiscountValue
+        DateTime ValidFrom
+        DateTime ValidTo
+        bool IsActive
+        Guid CompanyId FK
+    }
+
+    AppUserCompany {
+        Guid Id PK
+        Guid AppUserId FK
+        Guid CompanyId FK
+    }
+
+    AppUserRole {
+        Guid Id PK
+        Guid AppUserId FK
+        Guid AppRoleId FK
+    }
+
+    ChargingStationConnector {
+        Guid Id PK
+        Guid ChargingStationId FK
+        Guid ConnectorId FK
+    }
+
+    VehicleConnector {
+        Guid Id PK
+        Guid VehicleId FK
+        Guid ConnectorId FK
+    }
+
+    UserPromotion {
+        Guid Id PK
+        Guid UserId FK
+        Guid PromotionId FK
+        DateTime AddedAt
+    }
+
+
+    AppUser ||--o{ AppRefreshToken : has
+    AppUser ||--o{ Reservation : makes
+    AppUser ||--o{ ChargingSession : participates_in
+    AppUser ||--o{ Vehicle : owns
+    AppUser ||--o{ Maintenance : reports
+    AppUser ||--o{ UserPromotion : has
+    AppUser ||--o{ AppUserCompany : associated_with
+    AppUser ||--o{ AppUserRole : has_roles
+
+    Company ||--o{ ChargingStation : owns
+    Company ||--o{ Promotion : offers
+    Company ||--o{ AppUserCompany : has_employees
+
+    ChargingStation ||--o{ Reservation : accepts
+    ChargingStation ||--o{ ChargingSession : hosts
+    ChargingStation ||--o{ Maintenance : requires
+    ChargingStation ||--o{ ChargingStationConnector : has
+
+    Connector ||--o{ ChargingStationConnector : connects_to_station
+    Connector ||--o{ VehicleConnector : compatible_with
+
+    Vehicle ||--o{ VehicleConnector : has
+
+    Reservation ||--o| ChargingSession : leads_to
+
+    Promotion ||--o{ UserPromotion : gets_added_to
+
+    Maintenance }o--|| AppUser : assigned_to
+
+    AppRole ||--o{ AppUserRole : assigned_to_users

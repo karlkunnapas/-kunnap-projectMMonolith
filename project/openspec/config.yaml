@@ -1,0 +1,52 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Project: Electric car charging stations management system that enables the management of multiple charging stations within a unified network, supporting user reservations, charging sessions, billing, and maintenance. 
+  The system monitors the real-time status of the stations and their pricing.
+  
+  This system is a centralized electric vehicle charging management platform that enables multiple charging stations to operate within a unified network. 
+  It connects end users, physical charging stations, and a central backend system into a single coordinated environment. 
+  The purpose of the system is to support user registration and authentication, charging station discovery and management, reservation handling, charging session control, fixed pricing visibility, real-time monitoring, and maintenance operations.
+  
+  At the core of the system is a central backend service that manages all logic and data. 
+  End users interact with the system through a web or mobile application. 
+  Through this interface, users can create accounts, log in securely, manage their profiles, search for available charging stations, make reservations, start and stop charging sessions, and view their charging history.
+  
+  Each charging station is a network-connected physical device with a unique identifier and a defined status, such as available, reserved, charging, or out of service. 
+  Charging stations continuously communicate with the central system, sending real-time updates about their operational status, availability, and potential faults.
+  The central system can also send control commands to the stations, such as initiating or terminating a charging session.
+  
+  The reservation subsystem allows users to view station availability over time and reserve a charging slot for a specific time window. 
+  The system validates availability to prevent scheduling conflicts and updates the station’s status accordingly. 
+  Reservations can be modified or canceled, and expired reservations automatically release the station back to available status. 
+  
+  The system includes real-time monitoring and administrative management capabilities. 
+  Administrators can view station statuses, active reservations, ongoing charging sessions, and overall network usage. 
+  If a station reports a fault, the system marks it as unavailable and can notify maintenance personnel. 
+  A maintenance component supports issue logging and tracking of service history.
+  
+  Tech stack:
+    - ASP.NET Core 10 (MVC + Razor Pages)
+    - Entity Framework Core 10 with SQLite
+    - ASP.NET Core Identity (authentication/authorization)
+    - X.PagedList for pagination
+    - Bootstrap (via wwwroot libs)
+  
+  Code Style:
+    - Nullable reference types enabled, warnings treated as errors
+    - Primary constructors for classes
+    - File-scoped namespaces
+    - `default!` for required string properties in entities
+    - Use ViewModels when the view needs more data than a direct domain entity or `IEnumerable<Entity>` (e.g., Create/Edit views needing `SelectList` for foreign-key dropdowns, or Index views with pagination/filter state). Simple views that only need the entity itself can use the domain entity directly.
+    - All interfaces **MUST** be marked with `I` prefix
+    - All enums **MUST** be marked with `E` prefix
+  
+  Architecture Patterns:
+    - Layered architecture: WebApp → App.BLL → App.DAL.EF → App.Domain
+    - Domain entities inherit from `BaseEntity` (provides `Guid Id`)
+    - Cascade delete disabled globally; manage relationships explicitly
+    - All DateTime values auto-converted to UTC in EF Core
+    - Areas support for admin/user separation (Admin area planned)

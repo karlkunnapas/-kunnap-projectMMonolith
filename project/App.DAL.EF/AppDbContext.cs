@@ -1,4 +1,5 @@
-﻿using App.Domain.Identity;
+﻿using App.Domain;
+using App.Domain.Identity;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
     public DbSet<AppRefreshToken> RefreshTokens { get; set; }
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
+
+    public DbSet<ChargingStation> ChargingStations { get; set; }
+    public DbSet<Reservation> Reservations { get; set; }
+    public DbSet<ChargingSession> ChargingSessions { get; set; }
+    public DbSet<Maintenance> Maintenances { get; set; }
+    public DbSet<Vehicle> Vehicles { get; set; }
+    public DbSet<Connector> Connectors { get; set; }
+    public DbSet<Company> Companies { get; set; }
+    public DbSet<Promotion> Promotions { get; set; }
+    public DbSet<VehicleConnector> VehicleConnectors { get; set; }
+    public DbSet<ChargingStationConnector> ChargingStationConnectors { get; set; }
+    public DbSet<AppUserCompany> AppUserCompanies { get; set; }
+    public DbSet<UserPromotion> UserPromotions { get; set; }
     
     protected override void OnModelCreating(ModelBuilder builder)
     {

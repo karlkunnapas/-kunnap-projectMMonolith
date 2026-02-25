@@ -1,0 +1,177 @@
+<svg viewBox="0 0 1280 1350" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1280" height="1350" fill="#f8f9fa"/>
+  
+  <!-- Header -->
+  <rect width="1280" height="70" fill="#1a1a1a"/>
+  <text x="20" y="48" font-size="24" font-weight="bold" fill="#00d9ff" font-family="Arial">⚡ ChargeHub</text>
+  <text x="1250" y="50" font-size="16" fill="#ffffff" font-family="Arial" text-anchor="end">👤 Profile</text>
+  
+  <!-- Sidebar navigation -->
+  <rect x="0" y="70" width="200" height="1280" fill="#222"/>
+
+  <text x="20" y="110" font-size="13" font-weight="bold" fill="#00d9ff" font-family="Arial">🏠 Home</text>
+  <text x="20" y="140" font-size="12" fill="#999" font-family="Arial">📍 Find Stations</text>
+  <text x="20" y="165" font-size="12" fill="#999" font-family="Arial">📅 My Reservations</text>
+  <text x="20" y="190" font-size="12" fill="#999" font-family="Arial">🚗 My Vehicles</text>
+  <text x="20" y="215" font-size="12" fill="#999" font-family="Arial">💳 Payment Methods</text>
+  <text x="20" y="240" font-size="12" fill="#999" font-family="Arial">⚙️ Settings</text>
+  
+  <!-- Station Info Card -->
+  <rect x="220" y="90" width="1040" height="140" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  
+  <!-- Station status badge -->
+  <rect x="240" y="110" width="80" height="30" fill="#00aa44" rx="4"/>
+  <text x="280" y="132" font-size="12" fill="#fff" text-anchor="middle" font-family="Arial">✓ AVAILABLE</text>
+  
+  <!-- Station name -->
+  <text x="240" y="155" font-size="18" font-weight="bold" fill="#333" font-family="Arial">Downtown Charger</text>
+  
+  <!-- Station details -->
+  <text x="240" y="180" font-size="12" fill="#666" font-family="Arial">📍 123 Main Street, Downtown District</text>
+  <text x="240" y="205" font-size="12" fill="#666" font-family="Arial">💰 €0.40/kWh | ⚡ 350kW max</text>
+  
+  <!-- Connector types section -->
+  <text x="220" y="270" font-size="14" font-weight="bold" fill="#333" font-family="Arial">Supported Connector Types</text>
+  
+  <!-- Supported Connector Types -->
+  <rect x="220" y="290" width="160" height="80" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="6"/>
+  <text x="300" y="315" font-size="14" font-weight="bold" fill="#333" text-anchor="middle" font-family="Arial">Type 2 (AC)</text>
+  <text x="300" y="340" font-size="11" fill="#666" text-anchor="middle" font-family="Arial">7-11 kW</text>
+  <text x="300" y="358" font-size="11" fill="#00aa44" text-anchor="middle" font-family="Arial">✓ Select</text>
+  
+  <rect x="400" y="290" width="160" height="80" fill="#e3f2fd" stroke="#00d9ff" stroke-width="2" rx="6"/>
+  <text x="480" y="315" font-size="14" font-weight="bold" fill="#333" text-anchor="middle" font-family="Arial">CCS (DC Fast)</text>
+  <text x="480" y="340" font-size="11" fill="#666" text-anchor="middle" font-family="Arial">100-350 kW</text>
+  <text x="480" y="358" font-size="11" fill="#00aa44" text-anchor="middle" font-family="Arial">✓ Selected</text>
+  
+  <rect x="580" y="290" width="160" height="80" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="6"/>
+  <text x="660" y="315" font-size="14" font-weight="bold" fill="#333" text-anchor="middle" font-family="Arial">Tesla Supercharger</text>
+  <text x="660" y="340" font-size="11" fill="#666" text-anchor="middle" font-family="Arial">150-250 kW</text>
+  <text x="660" y="358" font-size="11" fill="#00aa44" text-anchor="middle" font-family="Arial">✓ Select</text>
+  
+  <!-- Charging Calculator Section -->
+  <text x="220" y="410" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Charging Time Calculator</text>
+  
+  <!-- increased calculator box height to accommodate vehicle selection and result box -->
+  <rect x="220" y="430" width="1040" height="320" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="6"/>
+  
+  <!-- Vehicle Selection -->
+  <text x="240" y="455" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Select Your Vehicle</text>
+  
+  <rect x="240" y="470" width="150" height="80" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="6"/>
+  <text x="315" y="495" font-size="13" font-weight="bold" fill="#333" text-anchor="middle" font-family="Arial">Tesla Model 3</text>
+  <text x="315" y="515" font-size="10" fill="#666" text-anchor="middle" font-family="Arial">82 kWh</text>
+  <text x="315" y="533" font-size="11" fill="#00aa44" text-anchor="middle" font-family="Arial">✓ Select</text>
+  
+  <rect x="410" y="470" width="150" height="80" fill="#e3f2fd" stroke="#00d9ff" stroke-width="2" rx="6"/>
+  <text x="485" y="495" font-size="13" font-weight="bold" fill="#333" text-anchor="middle" font-family="Arial">VW ID.4</text>
+  <text x="485" y="515" font-size="10" fill="#666" text-anchor="middle" font-family="Arial">62 kWh</text>
+  <text x="485" y="533" font-size="11" fill="#00aa44" text-anchor="middle" font-family="Arial">✓ Selected</text>
+  
+  <rect x="580" y="470" width="150" height="80" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="6"/>
+  <text x="655" y="495" font-size="13" font-weight="bold" fill="#333" text-anchor="middle" font-family="Arial">BMW i7</text>
+  <text x="655" y="515" font-size="10" fill="#666" text-anchor="middle" font-family="Arial">111.5 kWh</text>
+  <text x="655" y="533" font-size="11" fill="#00aa44" text-anchor="middle" font-family="Arial">✓ Select</text>
+  
+  <!-- Battery info -->
+  <text x="240" y="575" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Current and Desired Battery Level</text>
+  
+  <!-- Battery slider background (visual dual-thumb slider) -->
+  <rect x="240" y="590" width="1000" height="25" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="4"/>
+  
+  <!-- Battery slider track -->
+  <rect x="245" y="595" width="990" height="15" fill="#e0e0e0" rx="3"/>
+  
+  <!-- Filled portion: highlight only between current (25%) and desired (80%) -->
+  <!-- Track start: x=245, width=990. Current_x = 245 + 0.25*990 = 492, width = (0.80-0.25)*990 = 544 -->
+  <rect x="492" y="595" width="544" height="15" fill="#00d9ff" rx="3"/>
+  
+  <!-- Battery slider thumbs (dual handles) positioned at current (25%) and desired (80%) -->
+  <circle cx="492" cy="602" r="12" fill="#00d9ff" stroke="#0099cc" stroke-width="2"/>
+  <circle cx="1036" cy="602" r="12" fill="#00d9ff" stroke="#0099cc" stroke-width="2"/>
+  
+  <!-- Battery percentage labels -->
+  <text x="240" y="630" font-size="11" fill="#666" font-family="Arial">0%</text>
+  <text x="1245" y="630" font-size="11" fill="#666" text-anchor="end" font-family="Arial">100%</text>
+  <text x="740" y="630" font-size="12" fill="#333" text-anchor="middle" font-weight="bold" font-family="Arial">Current: 25% | Desired: 80%</text>
+  
+  <!-- Calculation results -->
+  <text x="240" y="660" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Estimated Charging Time</text>
+  
+  <!-- green result box fitted inside calculator -->
+  <rect x="240" y="675" width="1000" height="55" fill="#e8f5e9" stroke="#4caf50" stroke-width="2" rx="4"/>
+  
+  <text x="260" y="693" font-size="12" fill="#333" font-family="Arial">From 25% → 80% (55% of 62 kWh = 34.1 kWh)</text>
+  <text x="260" y="712" font-size="12" font-weight="bold" fill="#00aa44" font-family="Arial">⚡ CCS DC Fast (200 kW avg): ⏱️ 10 minutes | Cost: €13.64</text>
+  
+  <!-- Availability Calendar -->
+  <text x="220" y="800" font-size="14" font-weight="bold" fill="#333" font-family="Arial">Real-Time Availability Calendar (Next 7 Days)</text>
+  
+  <rect x="220" y="820" width="1040" height="130" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="6"/>
+  
+  <!-- Calendar header -->
+  <text x="240" y="850" font-size="12" font-weight="bold" fill="#666" font-family="Arial">Today</text>
+  <text x="400" y="850" font-size="12" font-weight="bold" fill="#666" font-family="Arial">Tomorrow</text>
+  <text x="560" y="850" font-size="12" font-weight="bold" fill="#666" font-family="Arial">Thu</text>
+  <text x="700" y="850" font-size="12" font-weight="bold" fill="#666" font-family="Arial">Fri</text>
+  <text x="840" y="850" font-size="12" font-weight="bold" fill="#666" font-family="Arial">Sat</text>
+  <text x="980" y="850" font-size="12" font-weight="bold" fill="#666" font-family="Arial">Sun</text>
+  <text x="1120" y="850" font-size="12" font-weight="bold" fill="#666" font-family="Arial">Mon</text>
+  
+  <!-- Time slots for today -->
+  <rect x="240" y="870" width="120" height="25" fill="#00aa44" rx="3"/>
+  <text x="300" y="888" font-size="10" fill="#fff" text-anchor="middle" font-family="Arial">14:00-18:00</text>
+  
+  <rect x="240" y="900" width="120" height="25" fill="#ff9900" rx="3"/>
+  <text x="300" y="918" font-size="10" fill="#fff" text-anchor="middle" font-family="Arial">18:00-22:00</text>
+  
+  <!-- Reservation Form Section -->
+  <text x="220" y="980" font-size="14" font-weight="bold" fill="#333" font-family="Arial">Make a Reservation</text>
+  
+  <rect x="220" y="1000" width="1040" height="280" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="6"/>
+  
+  <!-- Date selection -->
+  <text x="240" y="1030" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Select Date</text>
+  <rect x="240" y="1045" width="220" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="350" y="1072" font-size="13" fill="#999" text-anchor="middle" font-family="Arial">Feb 24, 2025</text>
+  
+  <!-- Time selection -->
+  <text x="490" y="1030" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Start Time</text>
+  <rect x="490" y="1045" width="220" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="600" y="1072" font-size="13" fill="#999" text-anchor="middle" font-family="Arial">14:00</text>
+  
+  <!-- End time selection -->
+  <text x="740" y="1030" font-size="12" font-weight="bold" fill="#333" font-family="Arial">End Time</text>
+  <rect x="740" y="1045" width="220" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="4"/>
+  <text x="850" y="1072" font-size="13" fill="#999" text-anchor="middle" font-family="Arial">14:20</text>
+  
+  <!-- Pricing info -->
+  <text x="240" y="1130" font-size="12" font-weight="bold" fill="#333" font-family="Arial">Estimated Cost</text>
+  <text x="240" y="1155" font-size="14" fill="#00aa44" font-family="Arial">€13.64 (34.1 kWh × €0.40/kWh)</text>
+  
+  <!-- Terms checkbox -->
+  <rect x="240" y="1180" width="20" height="20" fill="#ffffff" stroke="#ccc" stroke-width="1" rx="2"/>
+  <text x="245" y="1195" font-size="12" fill="#333" font-family="Arial">✓</text>
+  <text x="270" y="1195" font-size="12" fill="#666" font-family="Arial">I agree to the terms and conditions</text>
+  
+  <!-- Reserve Button -->
+  <rect x="240" y="1230" width="1000" height="50" fill="#00d9ff" stroke="#0099cc" stroke-width="2" rx="6"/>
+  <text x="740" y="1263" font-size="16" fill="#fff" text-anchor="middle" font-weight="bold" font-family="Arial">Reserve</text>
+  
+  <!-- Title -->
+  <text x="640" y="30" font-size="20" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">Figure 2: Station Details &amp; Reservation Page</text>
+</svg>
+
+
+
+
+
+
+
+
+
+
+
+
+

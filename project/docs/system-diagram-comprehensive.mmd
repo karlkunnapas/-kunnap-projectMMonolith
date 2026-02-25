@@ -1,0 +1,209 @@
+classDiagram
+    class IBaseEntity {
+        +Guid Id
+    }
+
+    class BaseEntity {
+        +Guid Id
+    }
+
+    class AppUser {
+        +Guid Id
+        +string UserName
+        +string Email
+        +string PhoneNumber
+    }
+
+    class AppRole {
+        +Guid Id
+        +string Name
+    }
+
+    class AppRefreshToken {
+        +Guid Id
+        +string RefreshToken
+        +DateTime Expiration
+        +string? PreviousRefreshToken
+        +DateTime PreviousExpiration
+        +Guid UserId
+    }
+
+    class Company {
+        +Guid Id
+        +LangStr Name
+        +string ContactEmail
+        +string ContactPhone
+        +bool IsActive
+    }
+
+    class ChargingStation {
+        +Guid Id
+        +LangStr Name
+        +string Location
+        +EStationStatus Status
+        +decimal PricePerHour
+        +decimal MaxPower
+        +bool IsActive
+        +Guid? CompanyId
+    }
+
+    class Connector {
+        +Guid Id
+        +LangStr Name
+        +bool IsActive
+    }
+
+    class Vehicle {
+        +Guid Id
+        +Guid UserId
+        +string Make
+        +string Model
+        +decimal? BatteryCapacity
+    }
+
+    class Reservation {
+        +Guid Id
+        +Guid UserId
+        +Guid ChargingStationId
+        +DateTime StartTime
+        +DateTime EndTime
+        +EReservationStatus Status
+    }
+
+    class ChargingSession {
+        +Guid Id
+        +Guid UserId
+        +Guid ChargingStationId
+        +Guid? ReservationId
+        +DateTime StartTime
+        +DateTime? EndTime
+        +decimal EnergyConsumed
+        +decimal Cost
+    }
+
+    class Maintenance {
+        +Guid Id
+        +Guid ChargingStationId
+        +Guid? ReportedByUserId
+        +string IssueDescription
+        +EMaintenanceStatus Status
+        +DateTime ReportedAt
+        +DateTime? ResolvedAt
+        +Guid? AssignedToUserId
+        +string? Notes
+    }
+
+    class Promotion {
+        +Guid Id
+        +string Code
+        +decimal DiscountValue
+        +DateTime ValidFrom
+        +DateTime ValidTo
+        +bool IsActive
+        +Guid? CompanyId
+    }
+
+    class AppUserCompany {
+        +Guid Id
+        +Guid AppUserId
+        +Guid CompanyId
+    }
+
+    class AppUserRole {
+        +Guid Id
+        +Guid AppUserId
+        +Guid AppRoleId
+    }
+
+    class ChargingStationConnector {
+        +Guid Id
+        +Guid ChargingStationId
+        +Guid ConnectorId
+    }
+
+    class VehicleConnector {
+        +Guid Id
+        +Guid VehicleId
+        +Guid ConnectorId
+    }
+
+    class UserPromotion {
+        +Guid Id
+        +Guid UserId
+        +Guid PromotionId
+        +DateTime AddedAt
+    }
+
+    class EStationStatus {
+        Available
+        Reserved
+        InUse
+        Maintenance
+    }
+
+    class EReservationStatus {
+        Active
+        Cancelled
+        Expired
+    }
+
+    class EMaintenanceStatus {
+        Reported
+        InProgress
+        Resolved
+    }
+
+    %% Inheritance relationships
+    IBaseEntity <|-- BaseEntity
+    BaseEntity <|-- AppRefreshToken
+    BaseEntity <|-- Company
+    BaseEntity <|-- ChargingStation
+    BaseEntity <|-- Connector
+    BaseEntity <|-- Vehicle
+    BaseEntity <|-- Reservation
+    BaseEntity <|-- ChargingSession
+    BaseEntity <|-- Maintenance
+    BaseEntity <|-- Promotion
+    BaseEntity <|-- AppUserCompany
+    BaseEntity <|-- ChargingStationConnector
+    BaseEntity <|-- VehicleConnector
+    BaseEntity <|-- UserPromotion
+    BaseEntity <|-- AppUserRole
+    IBaseEntity <|.. AppUser
+    IBaseEntity <|.. AppRole
+
+    %% Core business relationships
+    AppUser --> AppRefreshToken : has
+    AppUser --> Reservation : makes
+    AppUser --> ChargingSession : participates in
+    AppUser --> Vehicle : owns
+    AppUser --> Maintenance : reports
+    Maintenance --> AppUser : assigned to
+
+    Company --> ChargingStation : owns
+    Company --> Promotion : offers
+
+    ChargingStation --> Reservation : accepts
+    ChargingStation --> ChargingSession : hosts
+    ChargingStation --> Maintenance : requires
+    ChargingStation --> ChargingStationConnector : has
+
+    Connector --> ChargingStationConnector : connects to station
+    VehicleConnector --> Connector : compatible with
+
+    Vehicle --> VehicleConnector : has
+
+    Reservation --> ChargingSession : leads to
+
+    %% Many-to-many relationships
+    AppUser --> AppUserCompany : associated with
+    Company --> AppUserCompany : has employees
+    AppUser --> UserPromotion : has
+    Promotion --> UserPromotion : gets added to
+    AppUser --> AppUserRole : has roles
+    AppRole --> AppUserRole : assigned to users
+
+    %% Enum relationships
+    ChargingStation --> EStationStatus : status
+    Reservation --> EReservationStatus : status
+    Maintenance --> EMaintenanceStatus : status

@@ -1,0 +1,109 @@
+<svg viewBox="0 0 1280 1200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1280" height="1200" fill="#f8f9fa"/>
+  
+  <!-- Header/Navigation -->
+  <rect width="1280" height="80" fill="#1a1a1a"/>
+  <text x="20" y="50" font-size="28" font-weight="bold" fill="#00d9ff" font-family="Arial">⚡ ChargeHub</text>
+  <text x="1250" y="50" font-size="16" fill="#ffffff" font-family="Arial" text-anchor="end">👤 Profile</text>
+  
+  <!-- Sidebar navigation -->
+  <rect x="0" y="80" width="200" height="1120" fill="#222"/>
+
+  <text x="20" y="120" font-size="13" font-weight="bold" fill="#00d9ff" font-family="Arial">🏠 Home</text>
+  <text x="20" y="150" font-size="12" fill="#999" font-family="Arial">📍 Find Stations</text>
+  <text x="20" y="175" font-size="12" fill="#999" font-family="Arial">📅 My Reservations</text>
+  <text x="20" y="200" font-size="12" fill="#999" font-family="Arial">🚗 My Vehicles</text>
+  <text x="20" y="225" font-size="12" fill="#999" font-family="Arial">💳 Payment Methods</text>
+  <text x="20" y="250" font-size="12" fill="#999" font-family="Arial">⚙️ Settings</text>
+  
+  <!-- Search bar -->
+  <rect x="220" y="110" width="1040" height="50" fill="#ffffff" stroke="#ccc" stroke-width="1" rx="8"/>
+  <text x="240" y="143" font-size="14" fill="#999" font-family="Arial">🔍 Search location...</text>
+  
+  <!-- Filter section -->
+  <text x="220" y="190" font-size="14" font-weight="bold" fill="#333" font-family="Arial">Filters:</text>
+  
+  <!-- Filter buttons row 1 -->
+  <rect x="220" y="210" width="140" height="40" fill="#00d9ff" stroke="#0099cc" stroke-width="2" rx="6"/>
+  <text x="290" y="240" font-size="13" fill="#fff" text-anchor="middle" font-family="Arial">Available Now</text>
+  
+  <rect x="380" y="210" width="140" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="450" y="240" font-size="13" fill="#333" text-anchor="middle" font-family="Arial">Fast Charging</text>
+  
+  <!-- Filter buttons row 2 - Vehicle based filtering -->
+  <text x="220" y="280" font-size="13" font-weight="bold" fill="#333" font-family="Arial">Compatible with My Vehicle:</text>
+  
+  <rect x="220" y="300" width="160" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="300" y="330" font-size="12" fill="#333" text-anchor="middle" font-family="Arial">Select Vehicle</text>
+  
+  <!-- Vehicle connector filter options - all in boxes -->
+  <rect x="400" y="300" width="110" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="455" y="330" font-size="11" fill="#333" text-anchor="middle" font-family="Arial">Type 2 AC</text>
+  
+  <rect x="530" y="300" width="110" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="585" y="330" font-size="11" fill="#333" text-anchor="middle" font-family="Arial">CCS</text>
+  
+  <rect x="660" y="300" width="110" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="715" y="330" font-size="11" fill="#333" text-anchor="middle" font-family="Arial">Tesla</text>
+  
+  <rect x="790" y="300" width="120" height="40" fill="#f0f0f0" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="850" y="330" font-size="11" fill="#333" text-anchor="middle" font-family="Arial">CHAdeMO</text>
+  
+  <!-- Station list heading -->
+  <text x="220" y="380" font-size="16" font-weight="bold" fill="#333" font-family="Arial">Nearby Stations</text>
+  
+  <!-- Station card 1 -->
+  <rect x="220" y="400" width="1040" height="100" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <circle cx="260" cy="450" r="20" fill="#4ecdc4"/>
+  <text x="260" y="460" font-size="12" fill="#fff" text-anchor="middle" font-family="Arial">📍</text>
+  
+  <text x="300" y="425" font-size="14" font-weight="bold" fill="#333" font-family="Arial">Downtown Charging Charger</text>
+  <text x="300" y="448" font-size="12" fill="#666" font-family="Arial">📍 2.3 km away | Supported: Type 2, CCS, Tesla</text>
+  <text x="300" y="470" font-size="12" fill="#00aa44" font-family="Arial">✓ Available | €0.40/kWh | Max Power: 350kW</text>
+  <text x="300" y="490" font-size="12" fill="#666" font-family="Arial">⭐ 4.5/5 (324 reviews)</text>
+  
+  <!-- Details button for station 1 -->
+  <rect x="1130" y="420" width="100" height="60" fill="#00d9ff" stroke="#0099cc" stroke-width="2" rx="6"/>
+  <text x="1180" y="455" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold" font-family="Arial">Details</text>
+  
+  <!-- Station card 2 -->
+  <rect x="220" y="520" width="1040" height="100" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <circle cx="260" cy="570" r="20" fill="#95e1d3"/>
+  <text x="260" y="580" font-size="12" fill="#fff" text-anchor="middle" font-family="Arial">📍</text>
+  
+  <text x="300" y="545" font-size="14" font-weight="bold" fill="#333" font-family="Arial">North Side Charger</text>
+  <text x="300" y="568" font-size="12" fill="#666" font-family="Arial">📍 3.8 km away | Supported: Type 2, CCS</text>
+  <text x="300" y="590" font-size="12" fill="#ff9900" font-family="Arial">⚠ Limited Availability | €0.40/kWh | Max Power: 150kW</text>
+  <text x="300" y="610" font-size="12" fill="#666" font-family="Arial">⭐ 4.2/5 (189 reviews)</text>
+  
+  <!-- Details button for station 2 -->
+  <rect x="1130" y="540" width="100" height="60" fill="#00d9ff" stroke="#0099cc" stroke-width="2" rx="6"/>
+  <text x="1180" y="575" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold" font-family="Arial">Details</text>
+  
+  <!-- Station card 3 -->
+  <rect x="220" y="640" width="1040" height="100" fill="#ffffff" stroke="#ddd" stroke-width="1" rx="8"/>
+  <circle cx="260" cy="690" r="20" fill="#ff6b6b"/>
+  <text x="260" y="700" font-size="12" fill="#fff" text-anchor="middle" font-family="Arial">📍</text>
+  
+  <text x="300" y="665" font-size="14" font-weight="bold" fill="#333" font-family="Arial">Airport Charging Point</text>
+  <text x="300" y="688" font-size="12" fill="#666" font-family="Arial">📍 5.2 km away | Supported: CCS, Tesla</text>
+  <text x="300" y="710" font-size="12" fill="#cc0000" font-family="Arial">✗ UNAVAILABLE | €0.40/kWh | Max Power: 50kW</text>
+  <text x="300" y="730" font-size="12" fill="#666" font-family="Arial">⭐ 3.8/5 (92 reviews)</text>
+  
+  <!-- Details button for station 3 -->
+  <rect x="1130" y="660" width="100" height="60" fill="#00d9ff" stroke="#0099cc" stroke-width="2" rx="6"/>
+  <text x="1180" y="695" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold" font-family="Arial">Details</text>
+  
+  <!-- Title -->
+  <text x="640" y="30" font-size="20" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">Figure 1: Home Page for EV Driver User</text>
+</svg>
+
+
+
+
+
+
+
+
+

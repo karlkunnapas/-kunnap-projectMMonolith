@@ -1,5 +1,9 @@
 **/bin\\Debug
 
+## IDE and Editor files
+.idea/
+.kilocode/
+
 ## OSX
 # General
 .DS_Store
@@ -67,6 +71,9 @@ ScaffoldingReadMe.txt
 # Others
 ~$*
 *~
+*.bak
+*.swp
+*.swo
 CodeCoverage/
 
 # MSBuild Binary and Structured Log
