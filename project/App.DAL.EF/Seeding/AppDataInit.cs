@@ -56,7 +56,8 @@ public static class AppDataInit
                 var result = userManager.CreateAsync(user, userInfo.password).Result;
                 if (!result.Succeeded)
                 {
-                    throw new ApplicationException("User creation failed!");
+                    var errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+                    throw new ApplicationException($"User creation failed: {errorMessage}");
                 }
             }
 

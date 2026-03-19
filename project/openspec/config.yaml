@@ -45,8 +45,28 @@ context: |
     - All enums **MUST** be marked with `E` prefix
   
   Architecture Patterns:
-    - Layered architecture: WebApp → App.BLL → App.DAL.EF → App.Domain
+    - Clean/Onion architecture: Domain, Repositories (App.DAL.EF, UnitOfWork), Services (App.BLL), Controllers/Pages
+    - Interfaces for repositories and services
+    - DTOs for data transfer with manual mappers
     - Domain entities inherit from `BaseEntity` (provides `Guid Id`)
     - Cascade delete disabled globally; manage relationships explicitly
     - All DateTime values auto-converted to UTC in EF Core
     - Areas support for admin/user separation (Admin area planned)
+    - Thin controllers, all logic in services
+    - Repository pattern for data access, Unit of Work for transaction management
+    - Dependency Injection for all services and repositories
+    - Repository and service interfaces defined in separate projects (App.DAL.Abstractions, App.BLL.Abstractions) from their implementations (App.DAL.EF, App.BLL)
+    - Use of ViewModels for passing data to views, avoiding direct EF Core entity references in views
+    - i18n- 2 language support: English and Estonian
+    - Testing (Unit + Integration + E2E + Mocking)
+      - Unit Testing: Test isolated business logic, validation rules, and data mappers using [Fact]/[Theory] attributes with Moq or NSubstitute for dependency mocking
+      - Integration Testing: Test API endpoints, authentication flows (register, login, logout), and authorization using WebApplicationFactory<T> with in-memory database or test containers
+      - E2E Testing: Test complete user workflows through the UI using Playwright with Page Object Model pattern for reusable page abstractions
+      - Test Structure: Arrange-Act-Assert three-phase pattern for consistent test organization
+      - Test Organization: Per feature grouping
+      - Mock Isolation: Mock external dependencies (BLL services, repositories) in unit tests
+      - WebApplicationFactory<T>: ASP.NET Core integration test foundation for MVC/API testing
+      - Page Object Model: Encapsulate UI interactions and selectors for maintainable E2E tests
+      - Cross-Cutting Concerns: Test global exception handling, ProblemDetails, and logging as shared infrastructure
+  
+  

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
+using WebApp.Helpers;
 
 namespace WebApp.Setup;
 
@@ -44,6 +45,8 @@ public static class DatabaseExtensions
 
         services.AddDatabaseDeveloperPageExceptionFilter();
         services.AddDataProtection().PersistKeysToDbContext<AppDbContext>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<IAuditActorProvider, HttpContextAuditActorProvider>();
 
         return services;
     }

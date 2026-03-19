@@ -3,12 +3,23 @@ using App.Domain.Identity;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Text.Json;
 
 namespace App.DAL.EF;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser, AppRole, Guid>(options), IDataProtectionKeyContext
+public class AppDbContext(
+    DbContextOptions<AppDbContext> options,
+    IAuditActorProvider? auditActorProvider = null)
+    : IdentityDbContext<AppUser, AppRole, Guid>(options), IDataProtectionKeyContext
 {
+    private static readonly JsonSerializerOptions AuditJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = false
+    };
+
+    private readonly IAuditActorProvider? _auditActorProvider = auditActorProvider;
 
     public DbSet<AppRefreshToken> RefreshTokens { get; set; }
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
@@ -25,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<ChargingStationConnector> ChargingStationConnectors { get; set; }
     public DbSet<AppUserCompany> AppUserCompanies { get; set; }
     public DbSet<UserPromotion> UserPromotions { get; set; }
+    public DbSet<AuditLog> AuditLogs { get; set; }
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -39,6 +51,180 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         {
             relationship.DeleteBehavior = DeleteBehavior.Restrict;
         }
+
+        builder.Entity<AuditLog>()
+            .HasIndex(a => new { a.CompanyId, a.AtUtc });
+
+        builder.Entity<AuditLog>()
+            .HasIndex(a => new { a.CompanyId, a.EntityName, a.EntityId });
+    }
+
+    public override int SaveChanges()
+    {
+        return SaveChanges(true);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        AddAuditLogs();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return SaveChangesAsync(true, cancellationToken);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        AddAuditLogs();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void AddAuditLogs()
+    {
+        ChangeTracker.DetectChanges();
+
+        var entries = ChangeTracker
+            .Entries()
+            .Where(e =>
+                e.Entity is not AuditLog
+                && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .ToList();
+
+        if (entries.Count == 0) return;
+
+        var actorUserName = _auditActorProvider?.UserName;
+        var atUtc = DateTime.UtcNow;
+
+        foreach (var entry in entries)
+        {
+            var companyId = ResolveCompanyId(entry);
+            if (companyId == null)
+            {
+                continue;
+            }
+
+            var auditLog = new AuditLog
+            {
+                CompanyId = companyId.Value,
+                UserName = string.IsNullOrWhiteSpace(actorUserName) ? "system" : actorUserName,
+                EntityName = entry.Metadata.ClrType.Name,
+                EntityId = ResolveEntityId(entry),
+                Action = ResolveAction(entry.State),
+                AtUtc = atUtc,
+                ChangesJson = BuildChangesJson(entry)
+            };
+
+            AuditLogs.Add(auditLog);
+        }
+    }
+
+    private static string ResolveAction(EntityState state)
+    {
+        return state switch
+        {
+            EntityState.Added => "Create",
+            EntityState.Modified => "Update",
+            EntityState.Deleted => "Delete",
+            _ => "Unknown"
+        };
+    }
+
+    private Guid? ResolveCompanyId(EntityEntry entry)
+    {
+        if (entry.Entity is Company company)
+        {
+            return company.Id;
+        }
+
+        var companyIdProperty = entry.Properties
+            .FirstOrDefault(p => p.Metadata.Name == nameof(AuditLog.CompanyId));
+
+        if (companyIdProperty == null)
+        {
+            return null;
+        }
+
+        var rawValue = entry.State == EntityState.Deleted
+            ? companyIdProperty.OriginalValue
+            : companyIdProperty.CurrentValue;
+
+        return rawValue is Guid value && value != Guid.Empty ? value : null;
+    }
+
+    private static Guid ResolveEntityId(EntityEntry entry)
+    {
+        var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == nameof(BaseEntity.Id));
+        if (idProperty?.CurrentValue is Guid id && id != Guid.Empty)
+        {
+            return id;
+        }
+
+        if (idProperty?.OriginalValue is Guid originalId && originalId != Guid.Empty)
+        {
+            return originalId;
+        }
+
+        return Guid.Empty;
+    }
+
+    private static string? BuildChangesJson(EntityEntry entry)
+    {
+        var changes = new List<Dictionary<string, object?>>();
+
+        foreach (var property in entry.Properties)
+        {
+            if (property.Metadata.IsPrimaryKey())
+            {
+                continue;
+            }
+
+            var propertyName = property.Metadata.Name;
+
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    changes.Add(new Dictionary<string, object?>
+                    {
+                        ["property"] = propertyName,
+                        ["old"] = null,
+                        ["new"] = property.CurrentValue
+                    });
+                    break;
+
+                case EntityState.Deleted:
+                    changes.Add(new Dictionary<string, object?>
+                    {
+                        ["property"] = propertyName,
+                        ["old"] = property.OriginalValue,
+                        ["new"] = null
+                    });
+                    break;
+
+                case EntityState.Modified:
+                    if (!property.IsModified || Equals(property.OriginalValue, property.CurrentValue))
+                    {
+                        continue;
+                    }
+
+                    changes.Add(new Dictionary<string, object?>
+                    {
+                        ["property"] = propertyName,
+                        ["old"] = property.OriginalValue,
+                        ["new"] = property.CurrentValue
+                    });
+                    break;
+            }
+        }
+
+        if (changes.Count == 0)
+        {
+            return null;
+        }
+
+        return JsonSerializer.Serialize(changes, AuditJsonOptions);
     }
     
     /// <summary>

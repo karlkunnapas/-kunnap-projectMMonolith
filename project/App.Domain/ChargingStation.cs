@@ -1,8 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace App.Domain;
 
 public class ChargingStation : BaseEntity
 {
     public LangStr Name { get; set; } = default!;
+    
+    [StringLength(128, MinimumLength = 1)]
     public string Location { get; set; } = default!;
     public EStationStatus Status { get; set; }
     public decimal PricePerHour { get; set; }
