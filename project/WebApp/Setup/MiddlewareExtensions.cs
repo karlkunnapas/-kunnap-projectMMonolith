@@ -31,7 +31,9 @@ public static class MiddlewareExtensions
 
         app.UseHttpsRedirection();
         app.UseRouting();
-
+        app.UseAuthentication();
+        app.UseMiddleware<TenantResolutionMiddleware>();
+        
         app.UseAuthorization();
 
         return app;

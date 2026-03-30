@@ -57,6 +57,14 @@ public class AppDbContext(
 
         builder.Entity<AuditLog>()
             .HasIndex(a => new { a.CompanyId, a.EntityName, a.EntityId });
+
+        builder.Entity<Company>()
+            .HasIndex(c => c.Slug)
+            .IsUnique();
+
+        builder.Entity<AppUserCompany>()
+            .HasIndex(uc => new { uc.AppUserId, uc.CompanyId })
+            .IsUnique();
     }
 
     public override int SaveChanges()

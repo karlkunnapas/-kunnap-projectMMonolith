@@ -1,4 +1,6 @@
 using App.DAL.EF;
+using App.DAL.EF.Repositories.Implementations;
+using App.DAL.EF.Repositories.Interfaces;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +49,7 @@ public static class DatabaseExtensions
         services.AddDataProtection().PersistKeysToDbContext<AppDbContext>();
         services.AddHttpContextAccessor();
         services.AddScoped<IAuditActorProvider, HttpContextAuditActorProvider>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }

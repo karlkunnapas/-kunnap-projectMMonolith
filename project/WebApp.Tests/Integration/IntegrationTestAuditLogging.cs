@@ -25,6 +25,7 @@ public class IntegrationTestAuditLogging : IClassFixture<CustomWebApplicationFac
             Name = "Integration Audit Company",
             ContactEmail = "integration@company.test",
             ContactPhone = "+3723333333",
+            Slug = "integration-audit-company",
             IsActive = true
         };
 

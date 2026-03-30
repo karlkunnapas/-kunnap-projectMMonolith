@@ -6,6 +6,7 @@ public static class InitialData
         Roles =
         [
             ("Admin", null),
+            ("CompanyOwner", null),
             ("Customer", null),
             ("MaintenancePersonnel", null),
             ("root", null),

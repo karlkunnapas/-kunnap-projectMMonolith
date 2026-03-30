@@ -30,6 +30,7 @@ public class UnitTestAuditLogging
             Name = "Unit Test Company",
             ContactEmail = "unit@company.test",
             ContactPhone = "+3720000000",
+            Slug = "unit-test-company",
             IsActive = true
         };
 
@@ -54,6 +55,7 @@ public class UnitTestAuditLogging
             Name = "Audit Diff Company",
             ContactEmail = "audit@company.test",
             ContactPhone = "+3721111111",
+            Slug = "audit-diff-company",
             IsActive = true
         };
 

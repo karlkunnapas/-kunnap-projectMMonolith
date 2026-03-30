@@ -1,0 +1,9 @@
+@using App.Domain
+@{
+    ViewData["Title"] = (new LangStr { ["en"] = "Logged out", ["et"] = "Valja logitud" }).Translate();
+}
+
+<h1>@ViewData["Title"]</h1>
+<p>@((new LangStr { ["en"] = "You have been signed out.", ["et"] = "Oled valja logitud." }).Translate())</p>
+
+

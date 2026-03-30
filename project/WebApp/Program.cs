@@ -1,3 +1,6 @@
+using App.BLL.Services;
+using App.BLL.Services.Interfaces;
+using App.DAL.EF;
 using WebApp.Helpers;
 using WebApp.Setup;
 
@@ -14,6 +17,8 @@ builder.Services.AddAppCors();
 builder.Services.AddAppApiVersioning();
 builder.Services.AddAppSwagger();
 builder.Services.AddAppLocalization(builder.Configuration);
+builder.Services.AddScoped<ITenantContext, TenantContext>();
+builder.Services.AddScoped<IIdentityService, IdentityService>();
 
 // Build and configure pipeline
 var app = builder.Build();

@@ -1,4 +1,5 @@
-﻿@using App.Domain.Identity
+﻿@using App.Domain
+@using App.Domain.Identity
 @using Microsoft.AspNetCore.Identity
 @inject SignInManager<AppUser> SignInManager
 @inject UserManager<AppUser> UserManager
@@ -18,10 +19,13 @@
 else
 {
     <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">@App.Resources.Views.Shared._Layout.Register</a>
+        <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Register">@App.Resources.Views.Shared._Layout.Register</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">@App.Resources.Views.Shared._Layout.Login</a>
+        <a class="nav-link text-dark" asp-area="Company" asp-controller="Account" asp-action="Register">@((new LangStr { ["en"] = "Register company", ["et"] = "Registreeri ettevote" }).Translate())</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">@App.Resources.Views.Shared._Layout.Login</a>
     </li>
 }
 </ul>

@@ -1,0 +1,9 @@
+@using App.Domain
+@{
+    ViewData["Title"] = (new LangStr { ["en"] = "Access denied", ["et"] = "Ligipaas keelatud" }).Translate();
+}
+
+<h1>@ViewData["Title"]</h1>
+<p>@((new LangStr { ["en"] = "You do not have permission to access this page.", ["et"] = "Sul puudub oigus sellele lehele ligi paaseda." }).Translate())</p>
+
+

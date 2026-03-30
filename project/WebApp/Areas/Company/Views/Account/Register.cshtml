@@ -1,0 +1,68 @@
+@using App.Domain
+@model WebApp.ViewModels.Account.RegisterViewModel
+@{
+    ViewData["Title"] = (new LangStr { ["en"] = "Company registration", ["et"] = "Ettevotte registreerimine" }).Translate();
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<form asp-action="Register" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+    <div class="mb-3">
+        <label asp-for="FirstName" class="form-label">@((new LangStr { ["en"] = "First name", ["et"] = "Eesnimi" }).Translate())</label>
+        <input asp-for="FirstName" class="form-control" />
+        <span asp-validation-for="FirstName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="LastName" class="form-label">@((new LangStr { ["en"] = "Last name", ["et"] = "Perenimi" }).Translate())</label>
+        <input asp-for="LastName" class="form-control" />
+        <span asp-validation-for="LastName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label">@((new LangStr { ["en"] = "Email", ["et"] = "E-post" }).Translate())</label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="PhoneNumber" class="form-label">@((new LangStr { ["en"] = "Phone", ["et"] = "Telefon" }).Translate())</label>
+        <input asp-for="PhoneNumber" class="form-control" />
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CompanyName" class="form-label">@((new LangStr { ["en"] = "Company name", ["et"] = "Ettevotte nimi" }).Translate())</label>
+        <input asp-for="CompanyName" class="form-control" />
+        <span asp-validation-for="CompanyName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CompanySlug" class="form-label">@((new LangStr { ["en"] = "Company slug", ["et"] = "Ettevotte slug" }).Translate())</label>
+        <input asp-for="CompanySlug" class="form-control" />
+        <span asp-validation-for="CompanySlug" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label">@((new LangStr { ["en"] = "Password", ["et"] = "Parool" }).Translate())</label>
+        <input asp-for="Password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="ConfirmPassword" class="form-label">@((new LangStr { ["en"] = "Confirm password", ["et"] = "Kinnita parool" }).Translate())</label>
+        <input asp-for="ConfirmPassword" class="form-control" />
+        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">@((new LangStr { ["en"] = "Register company", ["et"] = "Registreeri ettevote" }).Translate())</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+

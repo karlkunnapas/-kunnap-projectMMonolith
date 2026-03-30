@@ -1,0 +1,26 @@
+@using App.Domain
+@model WebApp.ViewModels.Account.CompanySelectionViewModel
+@{
+    ViewData["Title"] = new LangStr { ["en"] = "Select company", ["et"] = "Vali ettevote" }.Translate();
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+}
+
+<form asp-action="CompanySelection" method="post">
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    <div class="list-group mb-3">
+        @foreach (var company in Model.Companies)
+        {
+            <button type="submit" name="companyId" value="@company.CompanyId" class="list-group-item list-group-item-action">
+                <strong>@company.CompanyName</strong> (@company.CompanySlug) - @company.Role
+            </button>
+        }
+    </div>
+</form>
+
