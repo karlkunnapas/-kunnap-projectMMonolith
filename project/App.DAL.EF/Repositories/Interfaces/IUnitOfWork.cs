@@ -10,7 +10,10 @@ public interface IUnitOfWork : IAsyncDisposable
 {
     // Typed repository properties for all domain entities
     ICompanyRepository Companies { get; }
-    
+
+    IChargingStationRepository ChargingStations { get; }
+    IRepository<ChargingStationConnector> ChargingStationConnectors { get; }
+    IRepository<Connector> Connectors { get; }
     IRepository<AppUserCompany> AppUserCompanies { get; }
     IRepository<AuditLog> AuditLogs { get; }
 

@@ -1,3 +1,5 @@
+using System.Linq;
+using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +10,128 @@ public static class AppDataInit
 {
     public static void SeedAppData(AppDbContext context)
     {
+        if (context.Connectors.Any() || context.ChargingStations.Any())
+        {
+            return;
+        }
+
+        var type2 = new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "Type 2 AC", ["et"] = "Type 2 AC" },
+            IsActive = true
+        };
+
+        var ccs = new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "CCS", ["et"] = "CCS" },
+            IsActive = true
+        };
+
+        var tesla = new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "Tesla", ["et"] = "Tesla" },
+            IsActive = true
+        };
+
+        var chademo = new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "CHAdeMO", ["et"] = "CHAdeMO" },
+            IsActive = true
+        };
+
+        context.Connectors.AddRange(type2, ccs, tesla, chademo);
+
+        var downtownStation = new ChargingStation
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "Downtown Charging Hub", ["et"] = "Kesklinna laadimiskeskus" },
+            Location = "2.3 km away",
+            Status = EStationStatus.Available,
+            PricePerHour = 0.40m,
+            MaxPower = 350m,
+            IsActive = true
+        };
+
+        var northStation = new ChargingStation
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "North Side Charger", ["et"] = "Pohja laadija" },
+            Location = "3.8 km away",
+            Status = EStationStatus.Reserved,
+            PricePerHour = 0.40m,
+            MaxPower = 150m,
+            IsActive = true
+        };
+
+        var airportStation = new ChargingStation
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "Airport Charging Point", ["et"] = "Lennujaama laadimispunkt" },
+            Location = "5.2 km away",
+            Status = EStationStatus.Maintenance,
+            PricePerHour = 0.40m,
+            MaxPower = 50m,
+            IsActive = true
+        };
+
+        context.ChargingStations.AddRange(downtownStation, northStation, airportStation);
+
+        context.ChargingStationConnectors.AddRange(
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = downtownStation.Id,
+                ConnectorId = type2.Id
+            },
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = downtownStation.Id,
+                ConnectorId = ccs.Id
+            },
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = downtownStation.Id,
+                ConnectorId = tesla.Id
+            },
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = northStation.Id,
+                ConnectorId = type2.Id
+            },
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = northStation.Id,
+                ConnectorId = ccs.Id
+            },
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = airportStation.Id,
+                ConnectorId = ccs.Id
+            },
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = airportStation.Id,
+                ConnectorId = tesla.Id
+            },
+            new ChargingStationConnector
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = airportStation.Id,
+                ConnectorId = chademo.Id
+            }
+        );
+
+        context.SaveChanges();
     }
 
 

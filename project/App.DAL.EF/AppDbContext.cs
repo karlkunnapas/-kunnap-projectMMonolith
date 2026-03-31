@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Linq;
 using System.Text.Json;
 
 namespace App.DAL.EF;
@@ -42,8 +43,12 @@ public class AppDbContext(
     {
         base.OnModelCreating(builder);
 
+        builder.Ignore<LangStr>();
+
         // Configure all DateTime properties to use UTC
         ConfigureDateTimeAsUtc(builder);
+
+        ApplyLangStrConversions(builder);
 
         // disable cascade delete
         foreach (var relationship in builder.Model
@@ -65,6 +70,42 @@ public class AppDbContext(
         builder.Entity<AppUserCompany>()
             .HasIndex(uc => new { uc.AppUserId, uc.CompanyId })
             .IsUnique();
+    }
+
+    private static void ApplyLangStrConversions(ModelBuilder builder)
+    {
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            var clrType = entityType.ClrType;
+            var langStrProperties = clrType
+                .GetProperties()
+                .Where(p => p.PropertyType == typeof(LangStr))
+                .ToList();
+
+            if (langStrProperties.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var property in langStrProperties)
+            {
+                builder.Entity(clrType)
+                    .Property(property.PropertyType, property.Name)
+                    .HasConversion(new ValueConverter<LangStr, string>(
+                        v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                        v => string.IsNullOrWhiteSpace(v)
+                            ? new LangStr()
+                            : JsonSerializer.Deserialize<LangStr>(v, (JsonSerializerOptions?)null)!))
+                    .HasColumnType("jsonb")
+                    .Metadata.SetValueComparer(new ValueComparer<LangStr>(
+                        (left, right) => JsonSerializer.Serialize(left, (JsonSerializerOptions?)null) ==
+                                         JsonSerializer.Serialize(right, (JsonSerializerOptions?)null),
+                        value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null).GetHashCode(),
+                        value => JsonSerializer.Deserialize<LangStr>(
+                            JsonSerializer.Serialize(value, (JsonSerializerOptions?)null),
+                            (JsonSerializerOptions?)null)!));
+            }
+        }
     }
 
     public override int SaveChanges()

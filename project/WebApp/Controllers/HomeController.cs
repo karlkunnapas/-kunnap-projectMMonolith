@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
-using App.DAL.EF;
+using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,24 +15,44 @@ namespace WebApp.Controllers;
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private readonly AppDbContext _context;
-    private static int _counter = 0;
+    private readonly IChargingStationService _chargingStationService;
 
-    public HomeController(AppDbContext context, ILogger<HomeController> logger)
+    public HomeController(IChargingStationService chargingStationService, ILogger<HomeController> logger)
     {
         _logger = logger;
-        _context = context;
+        _chargingStationService = chargingStationService;
     }
 
     public async Task<IActionResult> Index()
     {
-        return View();
-    }
+        var result = await _chargingStationService.GetHomePageAsync();
+        if (!result.Success || result.Data == null)
+        {
+            _logger.LogWarning("Home page data load failed: {Errors}",
+                string.Join("; ", result.Errors.Select(error => error.Message)));
 
-    public async Task<string> HtmxClicked()
-    {
-        _counter++;
-        return "Htmx Click Me - " + _counter;
+            return View(new HomeIndexViewModel());
+        }
+
+        var showVehicleFilters = User?.IsInRole("Customer") == true;
+
+        var viewModel = new HomeIndexViewModel
+        {
+            ShowVehicleFilters = showVehicleFilters,
+            ConnectorFilters = showVehicleFilters ? result.Data.ConnectorFilters.ToList() : new List<string>(),
+            Stations = result.Data.Stations.Select(station => new HomeStationViewModel
+            {
+                Id = station.Id,
+                Name = station.Name,
+                Location = station.Location,
+                Status = station.Status,
+                PricePerHour = station.PricePerHour,
+                MaxPower = station.MaxPower,
+                ConnectorNames = station.ConnectorNames
+            }).ToList()
+        };
+
+        return View(viewModel);
     }
 
 

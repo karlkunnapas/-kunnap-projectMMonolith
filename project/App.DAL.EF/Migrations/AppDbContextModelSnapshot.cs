@@ -154,8 +154,9 @@ namespace App.DAL.EF.Migrations
                     b.Property<decimal>("MaxPower")
                         .HasColumnType("numeric");
 
-                    b.Property<Guid>("NameId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<decimal>("PricePerHour")
                         .HasColumnType("numeric");
@@ -166,8 +167,6 @@ namespace App.DAL.EF.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
-
-                    b.HasIndex("NameId");
 
                     b.ToTable("ChargingStations");
                 });
@@ -212,8 +211,9 @@ namespace App.DAL.EF.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid>("NameId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -221,8 +221,6 @@ namespace App.DAL.EF.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("NameId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -239,12 +237,11 @@ namespace App.DAL.EF.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid>("NameId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("NameId");
 
                     b.ToTable("Connectors");
                 });
@@ -368,17 +365,6 @@ namespace App.DAL.EF.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("App.Domain.LangStr", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LangStr");
                 });
 
             modelBuilder.Entity("App.Domain.Maintenance", b =>
@@ -747,15 +733,7 @@ namespace App.DAL.EF.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("App.Domain.LangStr", "Name")
-                        .WithMany()
-                        .HasForeignKey("NameId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Company");
-
-                    b.Navigation("Name");
                 });
 
             modelBuilder.Entity("App.Domain.ChargingStationConnector", b =>
@@ -775,28 +753,6 @@ namespace App.DAL.EF.Migrations
                     b.Navigation("ChargingStation");
 
                     b.Navigation("Connector");
-                });
-
-            modelBuilder.Entity("App.Domain.Company", b =>
-                {
-                    b.HasOne("App.Domain.LangStr", "Name")
-                        .WithMany()
-                        .HasForeignKey("NameId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Name");
-                });
-
-            modelBuilder.Entity("App.Domain.Connector", b =>
-                {
-                    b.HasOne("App.Domain.LangStr", "Name")
-                        .WithMany()
-                        .HasForeignKey("NameId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Name");
                 });
 
             modelBuilder.Entity("App.Domain.Identity.AppRefreshToken", b =>

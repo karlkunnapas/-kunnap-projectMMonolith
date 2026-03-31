@@ -40,7 +40,7 @@ context: |
     - Primary constructors for classes
     - File-scoped namespaces
     - `default!` for required string properties in entities
-    - Use ViewModels when the view needs more data than a direct domain entity or `IEnumerable<Entity>` (e.g., Create/Edit views needing `SelectList` for foreign-key dropdowns, or Index views with pagination/filter state). Simple views that only need the entity itself can use the domain entity directly.
+    - Use ViewModels when the view needs more data than a direct domain entity or `IEnumerable<Entity>` (e.g., Create/Edit views needing `SelectList` for foreign-key dropdowns, or Index views with pagination/filter state). 
     - All interfaces **MUST** be marked with `I` prefix
     - All enums **MUST** be marked with `E` prefix
   

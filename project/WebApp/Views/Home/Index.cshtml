@@ -1,19 +1,81 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model WebApp.ViewModels.HomeIndexViewModel
+@using App.Domain
+@{
+    ViewData["Title"] = (new LangStr { ["en"] = "Home", ["et"] = "Avaleht" }).Translate();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-    
-    <div x-data="{ count: 0 }">
-        <button x-on:click="count++">Alpinejs counter</button>
-        <span x-text="count"></span>
-    </div>
-    
-    <button hx-post="/home/htmxclicked" hx-swap="innerHTML">
-        Click Me
-    </button>
-    
+<div class="home-page">
+    <section class="home-content">
+        <div class="home-search">
+            <input type="text" placeholder="@((new LangStr { ["en"] = "Search location...", ["et"] = "Otsi asukohta..." }).Translate())" />
+        </div>
+
+        <div class="home-filters">
+            <div class="home-filters-title">@((new LangStr { ["en"] = "Filters:", ["et"] = "Filtrid:" }).Translate())</div>
+            <div class="home-filter-row">
+                <button class="filter-chip active" type="button">@((new LangStr { ["en"] = "Available Now", ["et"] = "Hetkel saadaval" }).Translate())</button>
+                <button class="filter-chip" type="button">@((new LangStr { ["en"] = "Fast Charging", ["et"] = "Kiirlaadimine" }).Translate())</button>
+            </div>
+            @if (Model.ShowVehicleFilters)
+            {
+                <div class="home-filters-title">
+                    @((new LangStr { ["en"] = "Compatible with My Vehicle:", ["et"] = "Sobib minu soidukiga:" }).Translate())
+                </div>
+                <div class="home-filter-row">
+                    <button class="filter-chip" type="button">@((new LangStr { ["en"] = "Select Vehicle", ["et"] = "Vali soiduk" }).Translate())</button>
+                    @foreach (var connector in Model.ConnectorFilters)
+                    {
+                        <button class="filter-chip" type="button">@connector</button>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="home-stations">
+            <h2>@((new LangStr { ["en"] = "Nearby Stations", ["et"] = "Lahedal asuvad jaamad" }).Translate())</h2>
+
+            @if (Model.Stations.Count == 0)
+            {
+                <div class="station-empty">
+                    @((new LangStr { ["en"] = "No stations found yet.", ["et"] = "Jaamu ei leitud." }).Translate())
+                </div>
+            }
+            else
+            {
+                foreach (var station in Model.Stations)
+                {
+                    var statusText = station.Status switch
+                    {
+                        EStationStatus.Available => new LangStr { ["en"] = "Available", ["et"] = "Saadaval" },
+                        EStationStatus.Reserved => new LangStr { ["en"] = "Limited Availability", ["et"] = "Piiratud saadavus" },
+                        EStationStatus.InUse => new LangStr { ["en"] = "In Use", ["et"] = "Kasutusel" },
+                        _ => new LangStr { ["en"] = "Unavailable", ["et"] = "Pole saadaval" }
+                    };
+
+                    var statusClass = station.Status switch
+                    {
+                        EStationStatus.Available => "status-ok",
+                        EStationStatus.Reserved => "status-warn",
+                        EStationStatus.InUse => "status-warn",
+                        _ => "status-bad"
+                    };
+
+                    <div class="station-card">
+                        <div class="station-icon">📍</div>
+                        <div class="station-details">
+                            <div class="station-name">@station.Name</div>
+                            <div class="station-meta">📍 @station.Location | @((new LangStr { ["en"] = "Supported", ["et"] = "Toetatud" }).Translate()): @string.Join(", ", station.ConnectorNames)</div>
+                            <div class="station-status @statusClass">
+                                @statusText.Translate() | €@station.PricePerHour.ToString("0.00")/@((new LangStr { ["en"] = "hour", ["et"] = "tund" }).Translate()) | @((new LangStr { ["en"] = "Max Power", ["et"] = "Maksimaalne voimsus" }).Translate()): @station.MaxPower.ToString("0")kW
+                            </div>
+                        </div>
+                        <div class="station-actions">
+                            <button class="station-button" type="button">@((new LangStr { ["en"] = "Details", ["et"] = "Detailid" }).Translate())</button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </section>
 </div>
 

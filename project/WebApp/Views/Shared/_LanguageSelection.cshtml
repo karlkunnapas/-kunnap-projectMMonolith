@@ -1,5 +1,6 @@
 @using Microsoft.Extensions.Options
 @using Microsoft.AspNetCore.Builder
+@using System.Linq
 @using System.Threading
 @inject IOptions<RequestLocalizationOptions> _localizationOptions
 @{
@@ -7,7 +8,7 @@
         .Select(c => new {Value = c.Name, Text = c.NativeName}).ToList();
 }
 
-<li class="nav-item dropdown">
+<li class="nav-item dropdown app-nav-item">
     <a class="nav-link dropdown-toggle" href="javascript:{}" id="navbarLangDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">@App.Resources.Views.Shared._Layout.Lang</a>
     <div class="dropdown-menu" aria-labelledby="navbarLangDropdown">
         @foreach (var item in cultureItems)
