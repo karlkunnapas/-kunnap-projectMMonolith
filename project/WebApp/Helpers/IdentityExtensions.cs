@@ -10,34 +10,31 @@ namespace WebApp.Helpers;
 
 public static class IdentityExtensions
 {
-    extension(ClaimsPrincipal user)
+    public static TKey UserId<TKey>(this ClaimsPrincipal user)
+        where TKey : struct
     {
-        public TKey UserId<TKey>()
-            where TKey : struct
+        var stringId = user.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value.Trim();
+        if (typeof(TKey) == typeof(string))
         {
-            var stringId = user.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value.Trim();
-            if (typeof(TKey) == typeof(string))
-            {
-                return (TKey) Convert.ChangeType(stringId, typeof(TKey));
-            }
-
-            if (typeof(TKey) == typeof(int) || typeof(TKey) == typeof(long))
-            {
-                return (TKey) Convert.ChangeType(stringId, typeof(TKey));
-            }
-
-            if (typeof(TKey) == typeof(Guid))
-            {
-                return (TKey) Convert.ChangeType(new Guid(stringId), typeof(TKey));
-            }
-
-            throw new Exception("invalid type provided");
+            return (TKey) Convert.ChangeType(stringId, typeof(TKey));
         }
 
-        public Guid UserId()
+        if (typeof(TKey) == typeof(int) || typeof(TKey) == typeof(long))
         {
-            return user.UserId<Guid>();
+            return (TKey) Convert.ChangeType(stringId, typeof(TKey));
         }
+
+        if (typeof(TKey) == typeof(Guid))
+        {
+            return (TKey) Convert.ChangeType(new Guid(stringId), typeof(TKey));
+        }
+
+        throw new Exception("invalid type provided");
+    }
+
+    public static Guid UserId(this ClaimsPrincipal user)
+    {
+        return user.UserId<Guid>();
     }
 
 

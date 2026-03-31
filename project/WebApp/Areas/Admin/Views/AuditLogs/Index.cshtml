@@ -1,0 +1,65 @@
+@model IEnumerable<App.Domain.AuditLog>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Company)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EntityName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EntityId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Action)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.AtUtc)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ChangesJson)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @(item?.Company?.ContactEmail ?? string.Empty)
+            </td>
+            <td>
+                @(item?.UserName ?? string.Empty)
+            </td>
+            <td>
+                @(item?.EntityName ?? string.Empty)
+            </td>
+            <td>
+                @(item?.EntityId.ToString() ?? string.Empty)
+            </td>
+            <td>
+                @(item?.Action ?? string.Empty)
+            </td>
+            <td>
+                @(item?.AtUtc.ToString() ?? string.Empty)
+            </td>
+            <td>
+                @(item?.ChangesJson ?? string.Empty)
+            </td>
+            <td>
+                <a asp-action="Details" asp-route-id="@item?.Id">Details</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

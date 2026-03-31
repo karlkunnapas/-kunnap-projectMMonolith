@@ -24,6 +24,29 @@
                 <li class="app-nav-item">
                     <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
                 </li>
+                @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Admin") || User.IsInRole("root")))
+                {
+                    <li class="app-nav-item app-admin-group">
+                        <details>
+                            <summary>Admin</summary>
+                            <ul class="app-admin-list">
+                                <li><a asp-area="Admin" asp-controller="Companies" asp-action="Index">Companies</a></li>
+                                <li><a asp-area="Admin" asp-controller="AppUserCompanies" asp-action="Index">App User Companies</a></li>
+                                <li><a asp-area="Admin" asp-controller="ChargingStations" asp-action="Index">Charging Stations</a></li>
+                                <li><a asp-area="Admin" asp-controller="ChargingStationConnectors" asp-action="Index">Station Connectors</a></li>
+                                <li><a asp-area="Admin" asp-controller="ChargingSessions" asp-action="Index">Charging Sessions</a></li>
+                                <li><a asp-area="Admin" asp-controller="Connectors" asp-action="Index">Connectors</a></li>
+                                <li><a asp-area="Admin" asp-controller="Vehicles" asp-action="Index">Vehicles</a></li>
+                                <li><a asp-area="Admin" asp-controller="VehicleConnectors" asp-action="Index">Vehicle Connectors</a></li>
+                                <li><a asp-area="Admin" asp-controller="Reservations" asp-action="Index">Reservations</a></li>
+                                <li><a asp-area="Admin" asp-controller="Promotions" asp-action="Index">Promotions</a></li>
+                                <li><a asp-area="Admin" asp-controller="UserPromotions" asp-action="Index">User Promotions</a></li>
+                                <li><a asp-area="Admin" asp-controller="Maintenances" asp-action="Index">Maintenances</a></li>
+                                <li><a asp-area="Admin" asp-controller="AuditLogs" asp-action="Index">Audit Logs</a></li>
+                            </ul>
+                        </details>
+                    </li>
+                }
                 <li class="app-nav-item">
                     <a href="#">@((new App.Domain.LangStr { ["en"] = "Find Stations", ["et"] = "Leia jaamad" }).Translate())</a>
                 </li>
