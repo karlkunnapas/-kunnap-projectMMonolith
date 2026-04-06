@@ -1,7 +1,6 @@
-@using App.Domain
 @model WebApp.ViewModels.Account.CompanySelectionViewModel
 @{
-    ViewData["Title"] = new LangStr { ["en"] = "Select company", ["et"] = "Vali ettevote" }.Translate();
+    ViewData["Title"] = App.Resources.Views.Account.CompanySelection.Title;
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -23,4 +22,3 @@
         }
     </div>
 </form>
-

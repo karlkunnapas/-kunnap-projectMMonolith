@@ -11,6 +11,30 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>_Layout.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Views\Home\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Account\Login.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Login.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Account\Register.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Register.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Account\AccessDenied.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>AccessDenied.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Account\LoggedOut.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>LoggedOut.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Account\CompanySelection.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>CompanySelection.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
@@ -18,6 +42,36 @@
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>_Layout.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Home\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Account\Login.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Login.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Account\Register.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Register.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Account\AccessDenied.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>AccessDenied.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Account\LoggedOut.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>LoggedOut.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Account\CompanySelection.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>CompanySelection.resx</DependentUpon>
       </Compile>
     </ItemGroup>
 

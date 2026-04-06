@@ -33,4 +33,11 @@
       <ProjectReference Include="..\App.Resources\App.Resources.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="bin/**;obj/**;bin\**;obj\**" />
+      <Content Remove="bin/**;obj/**;bin\**;obj\**" />
+      <EmbeddedResource Remove="bin/**;obj/**;bin\**;obj\**" />
+      <None Remove="bin/**;obj/**;bin\**;obj\**" />
+    </ItemGroup>
+
 </Project>

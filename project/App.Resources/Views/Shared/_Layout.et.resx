@@ -12,7 +12,7 @@
         <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
     <data name="Home" xml:space="preserve">
-        <value>Algus</value>
+        <value>Kodu</value>
     </data>
     <data name="Lang" xml:space="preserve">
         <value>Keel</value>
@@ -31,5 +31,47 @@
     </data>
     <data name="Login" xml:space="preserve">
         <value>Sisene</value>
+    </data>
+    <data name="Admin" xml:space="preserve">
+        <value>Haldus</value>
+    </data>
+    <data name="AdminCompanies" xml:space="preserve">
+        <value>Ettevõtted</value>
+    </data>
+    <data name="AdminAppUserCompanies" xml:space="preserve">
+        <value>Rakenduse kasutaja ettevõtted</value>
+    </data>
+    <data name="AdminChargingStations" xml:space="preserve">
+        <value>Laadimisjaamad</value>
+    </data>
+    <data name="AdminStationConnectors" xml:space="preserve">
+        <value>Jaama pistikud</value>
+    </data>
+    <data name="AdminChargingSessions" xml:space="preserve">
+        <value>Laadimissessioonid</value>
+    </data>
+    <data name="AdminConnectors" xml:space="preserve">
+        <value>Pistikud</value>
+    </data>
+    <data name="AdminVehicles" xml:space="preserve">
+        <value>Sõidukid</value>
+    </data>
+    <data name="AdminVehicleConnectors" xml:space="preserve">
+        <value>Sõiduki pistikud</value>
+    </data>
+    <data name="AdminReservations" xml:space="preserve">
+        <value>Broneeringud</value>
+    </data>
+    <data name="AdminPromotions" xml:space="preserve">
+        <value>Kampaaniad</value>
+    </data>
+    <data name="AdminUserPromotions" xml:space="preserve">
+        <value>Kasutaja kampaaniad</value>
+    </data>
+    <data name="AdminMaintenances" xml:space="preserve">
+        <value>Hooldused</value>
+    </data>
+    <data name="AdminAuditLogs" xml:space="preserve">
+        <value>Auditilogid</value>
     </data>
 </root>

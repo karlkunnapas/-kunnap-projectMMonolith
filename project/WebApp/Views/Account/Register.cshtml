@@ -1,17 +1,16 @@
-@using App.Domain
 @model WebApp.ViewModels.Account.CustomerRegisterViewModel
 @{
-    ViewData["Title"] = (new LangStr { ["en"] = "Customer registration", ["et"] = "Kliendi registreerimine" }).Translate();
+    ViewData["Title"] = App.Resources.Views.Account.Register.Title;
     var companyRegisterUrl = ViewData["CompanyRegisterUrl"] as string;
 }
 
 <h1>@ViewData["Title"]</h1>
 
 <p>
-    @((new LangStr { ["en"] = "Need a company account?", ["et"] = "Kas vajad ettevotte kontot?" }).Translate())
+    @App.Resources.Views.Account.Register.NeedCompanyAccount
     @if (!string.IsNullOrWhiteSpace(companyRegisterUrl))
     {
-        <a href="@companyRegisterUrl">@((new LangStr { ["en"] = "Register your company", ["et"] = "Registreeri oma ettevote" }).Translate())</a>
+        <a href="@companyRegisterUrl">@App.Resources.Views.Account.Register.RegisterCompany</a>
     }
 </p>
 
@@ -20,46 +19,44 @@
     <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
 
     <div class="mb-3">
-        <label asp-for="FirstName" class="form-label">@((new LangStr { ["en"] = "First name", ["et"] = "Eesnimi" }).Translate())</label>
+        <label asp-for="FirstName" class="form-label">@App.Resources.Views.Account.Register.FirstName</label>
         <input asp-for="FirstName" class="form-control" />
         <span asp-validation-for="FirstName" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="LastName" class="form-label">@((new LangStr { ["en"] = "Last name", ["et"] = "Perenimi" }).Translate())</label>
+        <label asp-for="LastName" class="form-label">@App.Resources.Views.Account.Register.LastName</label>
         <input asp-for="LastName" class="form-control" />
         <span asp-validation-for="LastName" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="Email" class="form-label">@((new LangStr { ["en"] = "Email", ["et"] = "E-post" }).Translate())</label>
+        <label asp-for="Email" class="form-label">@App.Resources.Views.Account.Register.Email</label>
         <input asp-for="Email" class="form-control" />
         <span asp-validation-for="Email" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="PhoneNumber" class="form-label">@((new LangStr { ["en"] = "Phone", ["et"] = "Telefon" }).Translate())</label>
+        <label asp-for="PhoneNumber" class="form-label">@App.Resources.Views.Account.Register.Phone</label>
         <input asp-for="PhoneNumber" class="form-control" />
         <span asp-validation-for="PhoneNumber" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="Password" class="form-label">@((new LangStr { ["en"] = "Password", ["et"] = "Parool" }).Translate())</label>
+        <label asp-for="Password" class="form-label">@App.Resources.Views.Account.Register.Password</label>
         <input asp-for="Password" class="form-control" />
         <span asp-validation-for="Password" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="ConfirmPassword" class="form-label">@((new LangStr { ["en"] = "Confirm password", ["et"] = "Kinnita parool" }).Translate())</label>
+        <label asp-for="ConfirmPassword" class="form-label">@App.Resources.Views.Account.Register.ConfirmPassword</label>
         <input asp-for="ConfirmPassword" class="form-control" />
         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
     </div>
 
-    <button type="submit" class="btn btn-primary">@((new LangStr { ["en"] = "Register", ["et"] = "Registreeri" }).Translate())</button>
+    <button type="submit" class="btn btn-primary">@App.Resources.Views.Account.Register.Submit</button>
 </form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }
-
-
