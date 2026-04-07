@@ -1,0 +1,43 @@
+@model WebApp.Areas.Root.ViewModels.VehicleListViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.Vehicle.Index.Title;
+}
+
+<div class="home-page vehicle-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Root.Vehicle.Index.Heading</h2>
+            <a class="station-button" asp-action="Create">@App.Resources.Views.Root.Vehicle.Index.AddVehicle</a>
+        </div>
+
+        @if (!Model.Vehicles.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Root.Vehicle.Index.NoVehicles</div>
+        }
+        else
+        {
+            @foreach (var vehicle in Model.Vehicles)
+            {
+                <div class="station-card vehicle-card">
+                    <div class="station-icon">EV</div>
+                    <div class="station-details">
+                        <div class="station-name">@vehicle.Make @vehicle.Model</div>
+                        <div class="station-meta">
+                            @App.Resources.Views.Root.Vehicle.Index.BatteryCapacity: @(vehicle.BatteryCapacity?.ToString("0.##") ?? "-")
+                        </div>
+                        <div class="station-status status-ok">
+                            @App.Resources.Views.Root.Vehicle.Index.CompatibleConnectors: @vehicle.CompatibleConnectorCount
+                        </div>
+                    </div>
+                    <div class="station-actions vehicle-actions">
+                        <a class="filter-chip" asp-action="Edit" asp-route-id="@vehicle.Id">@App.Resources.Views.Root.Vehicle.Index.Edit</a>
+                        <form asp-action="Delete" asp-route-id="@vehicle.Id" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Root.Vehicle.Index.Delete</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

@@ -21,6 +21,17 @@ public class ChargingStationService : IChargingStationService
             .GetStationsForHome(filters?.Status, null)
             .ToListAsync();
 
+        HashSet<Guid>? vehicleConnectorIds = null;
+        if (filters?.VehicleId is Guid vehicleId)
+        {
+            var connectorIds = await _unitOfWork.VehicleConnectors.GetCompatibleConnectorIdsAsync(vehicleId);
+            vehicleConnectorIds = connectorIds.ToHashSet();
+            stations = stations
+                .Where(station => station.ChargingStationConnectors != null
+                                  && station.ChargingStationConnectors.Any(link => vehicleConnectorIds.Contains(link.ConnectorId)))
+                .ToList();
+        }
+
         if (!string.IsNullOrWhiteSpace(filters?.Location))
         {
             var locationOrNameFilter = filters.Location.Trim();
@@ -69,7 +80,11 @@ public class ChargingStationService : IChargingStationService
                     .Select(link => link.Connector!.Name.Translate() ?? link.Connector.Name.ToString() ?? string.Empty)
                     .Where(name => !string.IsNullOrWhiteSpace(name))
                     .Distinct()
-                    .ToList() ?? new List<string>()
+                    .ToList() ?? new List<string>(),
+                IsCompatibleWithSelectedVehicle = vehicleConnectorIds == null
+                    ? null
+                    : station.ChargingStationConnectors != null
+                      && station.ChargingStationConnectors.Any(link => vehicleConnectorIds.Contains(link.ConnectorId))
             })
             .ToList();
 

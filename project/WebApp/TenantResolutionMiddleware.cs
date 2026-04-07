@@ -23,7 +23,8 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         "_content",
         "favicon.ico",
         "Vendor",
-        "swagger"
+        "swagger",
+        "root"
     };
 
     public async Task InvokeAsync(HttpContext context, AppDbContext db, ITenantContext tenantContext)

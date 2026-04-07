@@ -19,6 +19,8 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<Connector>? _connectors;
     private IRepository<AppUserCompany>? _appUserCompanies;
     private IRepository<AuditLog>? _auditLogs;
+    private IVehicleRepository? _vehicles;
+    private IVehicleConnectorRepository? _vehicleConnectors;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -33,6 +35,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<Connector> Connectors => _connectors ??= new Repository<Connector>(_context);
     public IRepository<AppUserCompany> AppUserCompanies => _appUserCompanies ??= new Repository<AppUserCompany>(_context);
     public IRepository<AuditLog> AuditLogs => _auditLogs ??= new Repository<AuditLog>(_context);
+    public IVehicleRepository Vehicles => _vehicles ??= new App.DAL.EF.Repositories.VehicleRepository(_context);
+    public IVehicleConnectorRepository VehicleConnectors => _vehicleConnectors ??= new App.DAL.EF.Repositories.VehicleConnectorRepository(_context);
 
     /// <summary>
     /// Commits all tracked changes to the database.

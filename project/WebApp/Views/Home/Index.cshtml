@@ -5,7 +5,8 @@
     ViewData["Title"] = App.Resources.Views.Home.Index.Title;
     var hasActiveFilters = !string.IsNullOrWhiteSpace(Model.SelectedStatus)
                            || !string.IsNullOrWhiteSpace(Model.SelectedConnector)
-                           || !string.IsNullOrWhiteSpace(Model.LocationQuery);
+                           || !string.IsNullOrWhiteSpace(Model.LocationQuery)
+                           || Model.SelectedVehicleId.HasValue;
 }
 
 <div class="home-page">
@@ -20,6 +21,10 @@
             {
                 <input type="hidden" name="connector" value="@Model.SelectedConnector" />
             }
+            @if (Model.SelectedVehicleId.HasValue)
+            {
+                <input type="hidden" name="vehicleId" value="@Model.SelectedVehicleId" />
+            }
         </form>
 
         <div class="home-filters">
@@ -30,7 +35,8 @@
                    asp-action="Index"
                    asp-route-status="@EStationStatus.Available"
                    asp-route-location="@Model.LocationQuery"
-                   asp-route-connector="@Model.SelectedConnector">
+                   asp-route-connector="@Model.SelectedConnector"
+                   asp-route-vehicleId="@Model.SelectedVehicleId">
                     @App.Resources.Views.Home.Index.AvailableNow
                 </a>
                 @if (hasActiveFilters)
@@ -48,9 +54,31 @@
                     @App.Resources.Views.Home.Index.CompatibleWithMyVehicle
                 </div>
                 <div class="home-filter-row">
-                    <a class="filter-chip" asp-controller="Home" asp-action="Index" asp-route-status="@Model.SelectedStatus" asp-route-location="@Model.LocationQuery">
+                    <a class="filter-chip" asp-area="Root" asp-controller="Vehicle" asp-action="Index">
                         @App.Resources.Views.Home.Index.SelectVehicle
                     </a>
+                    @if (Model.VehicleOptions.Count > 0)
+                    {
+                        <form method="get" asp-controller="Home" asp-action="Index" class="d-inline">
+                            <input type="hidden" name="status" value="@Model.SelectedStatus" />
+                            <input type="hidden" name="connector" value="@Model.SelectedConnector" />
+                            <input type="hidden" name="location" value="@Model.LocationQuery" />
+                            <select name="vehicleId" class="home-vehicle-select" onchange="this.form.submit()">
+                                <option value="">@App.Resources.Views.Home.Index.AllVehicles</option>
+                                @foreach (var vehicle in Model.VehicleOptions)
+                                {
+                                    if (Model.SelectedVehicleId == vehicle.Id)
+                                    {
+                                        <option value="@vehicle.Id" selected>@vehicle.DisplayName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@vehicle.Id">@vehicle.DisplayName</option>
+                                    }
+                                }
+                            </select>
+                        </form>
+                    }
                     @foreach (var connector in Model.ConnectorFilters)
                     {
                         <a class="filter-chip @(string.Equals(Model.SelectedConnector, connector, StringComparison.OrdinalIgnoreCase) ? "active" : "")"
@@ -58,6 +86,7 @@
                            asp-action="Index"
                            asp-route-status="@Model.SelectedStatus"
                            asp-route-location="@Model.LocationQuery"
+                           asp-route-vehicleId="@Model.SelectedVehicleId"
                            asp-route-connector="@connector">
                             @connector
                         </a>
@@ -85,4 +114,3 @@
         </div>
     </section>
 </div>
-

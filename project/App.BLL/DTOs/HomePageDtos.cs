@@ -9,6 +9,7 @@ public class HomePageFilterDto
     public string? Status { get; set; }
     public string? Connector { get; set; }
     public string? Location { get; set; }
+    public Guid? VehicleId { get; set; }
 }
 
 public class HomePageDto
@@ -26,4 +27,5 @@ public class HomeStationDto
     public decimal PricePerHour { get; set; }
     public decimal MaxPower { get; set; }
     public List<string> ConnectorNames { get; set; } = new();
+    public bool? IsCompatibleWithSelectedVehicle { get; set; }
 }

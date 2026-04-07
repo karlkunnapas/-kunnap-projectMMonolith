@@ -15,10 +15,14 @@ html {
 html {
     position: relative;
     min-height: 100%;
+    height: 100%;
+    overflow: hidden;
 }
 
 body {
-    margin-bottom: 60px;
+    margin-bottom: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
@@ -48,7 +52,8 @@ body {
 
 .app-shell {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     background: #f8f9fa;
 }
 
@@ -60,6 +65,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    overflow: hidden;
 }
 
 .app-brand a {
@@ -128,6 +134,8 @@ body {
 .app-main {
     flex: 1;
     padding: 24px;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .home-page {
@@ -273,4 +281,108 @@ body {
     border-radius: 12px;
     padding: 16px;
     color: #666;
+}
+
+.home-vehicle-select {
+    border: 1px solid #c9cdd3;
+    background: #f0f0f0;
+    color: #333;
+    padding: 8px 40px 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    min-width: 210px;
+    min-height: 36px;
+    line-height: 1.2;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 8L10 12L14 8' stroke='%23666' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px 14px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.home-vehicle-select:hover {
+    border-color: #0099cc;
+    background: #eafcff;
+}
+
+.home-vehicle-select:focus,
+.home-vehicle-select:focus-visible {
+    border-color: #0099cc;
+    background: #ffffff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.25);
+}
+
+.vehicle-page {
+    max-width: 980px;
+}
+
+.vehicle-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.vehicle-card {
+    margin-bottom: 0;
+}
+
+.vehicle-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-chip-danger {
+    border-color: #cc0000;
+    color: #cc0000;
+    background: #fff5f5;
+}
+
+.vehicle-form-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+}
+
+.vehicle-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    width: 100%;
+}
+
+.vehicle-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vehicle-connectors-grid {
+    gap: 8px;
+}
+
+.vehicle-connector-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.vehicle-connector-input {
+    margin: 0;
+}
+
+.vehicle-connector-chip.active,
+.vehicle-connector-chip:has(.vehicle-connector-input:checked) {
+    background: #00d9ff;
+    border-color: #0099cc;
+    color: #ffffff;
+    font-weight: 600;
 }

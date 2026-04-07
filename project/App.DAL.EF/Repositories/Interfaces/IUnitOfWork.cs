@@ -16,6 +16,8 @@ public interface IUnitOfWork : IAsyncDisposable
     IRepository<Connector> Connectors { get; }
     IRepository<AppUserCompany> AppUserCompanies { get; }
     IRepository<AuditLog> AuditLogs { get; }
+    IVehicleRepository Vehicles { get; }
+    IVehicleConnectorRepository VehicleConnectors { get; }
 
     /// <summary>
     /// Commits all tracked changes to the database.

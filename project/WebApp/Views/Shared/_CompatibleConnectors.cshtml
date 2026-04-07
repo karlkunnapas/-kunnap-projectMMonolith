@@ -1,0 +1,11 @@
+@model List<WebApp.Areas.Root.ViewModels.ConnectorOptionViewModel>
+
+<div class="home-filter-row vehicle-connectors-grid">
+@foreach (var connector in Model)
+{
+    <label class="filter-chip vehicle-connector-chip @(connector.IsSelected ? "active" : "")">
+        <input class="vehicle-connector-input" type="checkbox" name="SelectedConnectorIds" value="@connector.Id" @(connector.IsSelected ? "checked" : null) />
+        <span>@connector.Name</span>
+    </label>
+}
+</div>

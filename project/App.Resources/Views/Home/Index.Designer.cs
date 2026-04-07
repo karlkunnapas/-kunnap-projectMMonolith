@@ -146,5 +146,23 @@ namespace App.Resources.Views.Home {
                 return ResourceManager.GetString("Details", resourceCulture);
             }
         }
+
+        public static string AllVehicles {
+            get {
+                return ResourceManager.GetString("AllVehicles", resourceCulture);
+            }
+        }
+
+        public static string Compatible {
+            get {
+                return ResourceManager.GetString("Compatible", resourceCulture);
+            }
+        }
+
+        public static string Incompatible {
+            get {
+                return ResourceManager.GetString("Incompatible", resourceCulture);
+            }
+        }
     }
 }

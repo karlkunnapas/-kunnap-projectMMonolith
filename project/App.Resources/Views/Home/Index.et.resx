@@ -62,7 +62,13 @@
   <data name="Details" xml:space="preserve">
     <value>Detailid</value>
   </data>
+  <data name="AllVehicles" xml:space="preserve">
+    <value>Kõik sõidukid</value>
+  </data>
+  <data name="Compatible" xml:space="preserve">
+    <value>Sobib sinu sõidukiga</value>
+  </data>
+  <data name="Incompatible" xml:space="preserve">
+    <value>Ei sobi sinu sõidukiga</value>
+  </data>
 </root>
-
-
-

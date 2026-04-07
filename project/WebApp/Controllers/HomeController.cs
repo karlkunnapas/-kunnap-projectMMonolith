@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Claims;
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Localization;
@@ -11,20 +12,51 @@ public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private readonly IChargingStationService _chargingStationService;
+    private readonly IVehicleService _vehicleService;
 
-    public HomeController(IChargingStationService chargingStationService, ILogger<HomeController> logger)
+    public HomeController(IChargingStationService chargingStationService, IVehicleService vehicleService, ILogger<HomeController> logger)
     {
         _logger = logger;
         _chargingStationService = chargingStationService;
+        _vehicleService = vehicleService;
     }
 
-    public async Task<IActionResult> Index(string? status = null, string? connector = null, string? location = null)
+    public async Task<IActionResult> Index(string? status = null, string? connector = null, string? location = null, Guid? vehicleId = null)
     {
+        var showVehicleFilters = HttpContext?.User?.IsInRole("Customer") == true;
+
+        Guid? currentUserId = null;
+        if (showVehicleFilters)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (Guid.TryParse(userIdClaim, out var parsedUserId))
+            {
+                currentUserId = parsedUserId;
+            }
+        }
+
+        if (vehicleId.HasValue)
+        {
+            if (!showVehicleFilters || currentUserId == null)
+            {
+                vehicleId = null;
+            }
+            else
+            {
+                var ownedVehicleResult = await _vehicleService.GetVehicleForUserAsync(vehicleId.Value, currentUserId.Value);
+                if (!ownedVehicleResult.Success)
+                {
+                    return Forbid();
+                }
+            }
+        }
+
         var filters = new HomePageFilterDto
         {
             Status = status,
             Connector = connector,
-            Location = location
+            Location = location,
+            VehicleId = vehicleId
         };
 
         var result = await _chargingStationService.GetHomePageAsync(filters);
@@ -37,11 +69,23 @@ public class HomeController : Controller
             {
                 SelectedStatus = status,
                 SelectedConnector = connector,
-                LocationQuery = location
+                LocationQuery = location,
+                SelectedVehicleId = vehicleId
             });
         }
 
-        var showVehicleFilters = HttpContext?.User?.IsInRole("Customer") == true;
+        var vehicleOptions = new List<HomeVehicleOptionViewModel>();
+        if (showVehicleFilters && currentUserId != null)
+        {
+            var vehiclesResult = await _vehicleService.GetUserVehiclesAsync(currentUserId.Value);
+            vehicleOptions = vehiclesResult.Data?
+                .Select(v => new HomeVehicleOptionViewModel
+                {
+                    Id = v.Id,
+                    DisplayName = $"{v.Make} {v.Model}"
+                })
+                .ToList() ?? new List<HomeVehicleOptionViewModel>();
+        }
 
         var viewModel = new HomeIndexViewModel
         {
@@ -50,6 +94,8 @@ public class HomeController : Controller
             SelectedStatus = status,
             SelectedConnector = connector,
             LocationQuery = location,
+            SelectedVehicleId = vehicleId,
+            VehicleOptions = vehicleOptions,
             Stations = result.Data.Stations.Select(station => new HomeStationViewModel
             {
                 Id = station.Id,
@@ -58,7 +104,8 @@ public class HomeController : Controller
                 Status = station.Status,
                 PricePerHour = station.PricePerHour,
                 MaxPower = station.MaxPower,
-                ConnectorNames = station.ConnectorNames
+                ConnectorNames = station.ConnectorNames,
+                IsCompatibleWithSelectedVehicle = station.IsCompatibleWithSelectedVehicle
             }).ToList()
         };
 

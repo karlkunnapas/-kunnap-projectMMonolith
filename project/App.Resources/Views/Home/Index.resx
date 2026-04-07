@@ -63,6 +63,14 @@
   <data name="Details" xml:space="preserve">
     <value>Details</value>
   </data>
+  <data name="AllVehicles" xml:space="preserve">
+    <value>All Vehicles</value>
+  </data>
+  <data name="Compatible" xml:space="preserve">
+    <value>Compatible with your vehicle</value>
+  </data>
+  <data name="Incompatible" xml:space="preserve">
+    <value>Incompatible with your vehicle</value>
+  </data>
 </root>
-
 

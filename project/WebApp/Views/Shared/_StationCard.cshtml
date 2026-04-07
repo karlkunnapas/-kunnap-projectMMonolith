@@ -17,6 +17,13 @@
         EStationStatus.InUse => "status-warn",
         _ => "status-bad"
     };
+
+    var compatibilityText = Model.IsCompatibleWithSelectedVehicle switch
+    {
+        true => App.Resources.Views.Home.Index.Compatible,
+        false => App.Resources.Views.Home.Index.Incompatible,
+        _ => string.Empty
+    };
 }
 
 <div class="station-card">
@@ -27,9 +34,14 @@
         <div class="station-status @statusClass">
             @statusText | €@Model.PricePerHour.ToString("0.00")/@App.Resources.Views.Home.Index.Hour | @App.Resources.Views.Home.Index.MaxPower: @Model.MaxPower.ToString("0")kW
         </div>
+        @if (!string.IsNullOrWhiteSpace(compatibilityText))
+        {
+            <div class="station-status">
+                @compatibilityText
+            </div>
+        }
     </div>
     <div class="station-actions">
         <button class="station-button" type="button">@App.Resources.Views.Home.Index.Details</button>
     </div>
 </div>
-

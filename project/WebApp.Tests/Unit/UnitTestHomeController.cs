@@ -2,6 +2,8 @@ using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using WebApp.Controllers;
 using WebApp.ViewModels;
 using Xunit.Abstractions;
@@ -22,7 +24,7 @@ public class UnitTestHomeController
         var logger = logFactory.CreateLogger<HomeController>();
 
         _fakeService = new FakeChargingStationService(ServiceResult<HomePageDto>.Ok(new HomePageDto()));
-        _homeController = new HomeController(_fakeService, logger);
+        _homeController = new HomeController(_fakeService, new FakeVehicleService(), logger);
     }
 
     [Fact]
@@ -46,6 +48,32 @@ public class UnitTestHomeController
         Assert.Equal("2.3", _fakeService.LastFilters.Location);
     }
 
+    [Fact]
+    public async Task IndexAction_ForwardsVehicleIdToService()
+    {
+        var vehicleId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        _homeController.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    new[]
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                        new Claim(ClaimTypes.Role, "Customer")
+                    },
+                    "TestAuth"))
+            }
+        };
+
+        await _homeController.Index(vehicleId: vehicleId);
+
+        Assert.NotNull(_fakeService.LastFilters);
+        Assert.Equal(vehicleId, _fakeService.LastFilters!.VehicleId);
+    }
+
     private class FakeChargingStationService : IChargingStationService
     {
         private readonly ServiceResult<HomePageDto> _result;
@@ -62,5 +90,32 @@ public class UnitTestHomeController
             LastFilters = filters;
             return Task.FromResult(_result);
         }
+    }
+
+    private class FakeVehicleService : IVehicleService
+    {
+        public Task<ServiceResult<List<VehicleDto>>> GetUserVehiclesAsync(Guid userId)
+            => Task.FromResult(ServiceResult<List<VehicleDto>>.Ok(new List<VehicleDto>()));
+
+        public Task<ServiceResult<VehicleDto>> GetVehicleForUserAsync(Guid id, Guid userId)
+            => Task.FromResult(ServiceResult<VehicleDto>.Ok(new VehicleDto { Id = id, Make = "Test", Model = "Model" }));
+
+        public Task<ServiceResult<VehicleDto>> CreateVehicleAsync(Guid userId, VehicleCreateDto dto)
+            => Task.FromResult(ServiceResult<VehicleDto>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
+
+        public Task<ServiceResult<VehicleDto>> UpdateVehicleAsync(Guid id, Guid userId, VehicleUpdateDto dto)
+            => Task.FromResult(ServiceResult<VehicleDto>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
+
+        public Task<ServiceResult> DeleteVehicleAsync(Guid id, Guid userId)
+            => Task.FromResult(ServiceResult.Fail("NOT_IMPLEMENTED", "Not used in this test."));
+
+        public Task<ServiceResult> SetConnectorCompatibilityAsync(Guid vehicleId, Guid userId, IReadOnlyCollection<Guid> connectorIds)
+            => Task.FromResult(ServiceResult.Fail("NOT_IMPLEMENTED", "Not used in this test."));
+
+        public Task<ServiceResult<List<VehicleConnectorDto>>> GetCompatibleConnectorsForVehicleAsync(Guid vehicleId, Guid userId)
+            => Task.FromResult(ServiceResult<List<VehicleConnectorDto>>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
+
+        public Task<ServiceResult<List<CompatibleStationDto>>> GetCompatibleStationsForVehicleAsync(Guid vehicleId, Guid userId)
+            => Task.FromResult(ServiceResult<List<CompatibleStationDto>>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
     }
 }

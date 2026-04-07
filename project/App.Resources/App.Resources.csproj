@@ -35,6 +35,18 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>CompanySelection.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Views\Root\Vehicle\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Root\Vehicle\Create.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Create.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Root\Vehicle\Edit.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Edit.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
@@ -72,6 +84,21 @@
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>CompanySelection.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Root\Vehicle\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Root\Vehicle\Create.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Create.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Root\Vehicle\Edit.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Edit.resx</DependentUpon>
       </Compile>
     </ItemGroup>
 
