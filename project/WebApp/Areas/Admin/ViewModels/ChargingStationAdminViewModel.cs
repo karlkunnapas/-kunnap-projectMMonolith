@@ -15,7 +15,7 @@ public class ChargingStationAdminViewModel
     public string Location { get; set; } = string.Empty;
 
     public EStationStatus Status { get; set; }
-    public decimal PricePerHour { get; set; }
+    public decimal PricePerKwh { get; set; }
     public decimal MaxPower { get; set; }
     public bool IsActive { get; set; } = true;
     public Guid? CompanyId { get; set; }

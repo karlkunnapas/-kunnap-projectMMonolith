@@ -48,10 +48,10 @@
                     </li>
                 }
                 <li class="app-nav-item">
-                    <a href="#">@((new App.Domain.LangStr { ["en"] = "Find Stations", ["et"] = "Leia jaamad" }).Translate())</a>
+                    <a asp-area="" asp-controller="Home" asp-action="Index">@((new App.Domain.LangStr { ["en"] = "Find Stations", ["et"] = "Leia jaamad" }).Translate())</a>
                 </li>
                 <li class="app-nav-item">
-                    <a href="#">@((new App.Domain.LangStr { ["en"] = "My Reservations", ["et"] = "Minu broneeringud" }).Translate())</a>
+                    <a asp-area="Root" asp-controller="Reservation" asp-action="Index">@((new App.Domain.LangStr { ["en"] = "My Reservations", ["et"] = "Minu broneeringud" }).Translate())</a>
                 </li>
                 <li class="app-nav-item">
                     <a asp-area="Root" asp-controller="Vehicle" asp-action="Index">@((new App.Domain.LangStr { ["en"] = "My Vehicles", ["et"] = "Minu soidukid" }).Translate())</a>

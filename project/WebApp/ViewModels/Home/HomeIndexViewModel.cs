@@ -23,7 +23,7 @@ public class HomeStationViewModel
     public string Name { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public EStationStatus Status { get; set; }
-    public decimal PricePerHour { get; set; }
+    public decimal PricePerKwh { get; set; }
     public decimal MaxPower { get; set; }
     public List<string> ConnectorNames { get; set; } = new();
     public bool? IsCompatibleWithSelectedVehicle { get; set; }

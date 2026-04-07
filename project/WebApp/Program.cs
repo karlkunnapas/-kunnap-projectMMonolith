@@ -22,6 +22,9 @@ builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleCompatibilityService, VehicleCompatibilityService>();
+builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 
 // Build and configure pipeline
 var app = builder.Build();

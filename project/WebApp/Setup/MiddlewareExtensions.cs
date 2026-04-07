@@ -64,6 +64,18 @@ public static class MiddlewareExtensions
         app.MapStaticAssets();
 
         app.MapControllerRoute(
+                name: "reservation-public",
+                pattern: "Reservation/{action=Index}/{id?}",
+                defaults: new { area = "Root", controller = "Reservation" })
+            .WithStaticAssets();
+
+        app.MapControllerRoute(
+                name: "station-public",
+                pattern: "Station/{id:guid}",
+                defaults: new { area = "Root", controller = "Station", action = "Details" })
+            .WithStaticAssets();
+
+        app.MapControllerRoute(
                 name: "area",
                 pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}")
             .WithStaticAssets();

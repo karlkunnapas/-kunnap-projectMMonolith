@@ -4,5 +4,6 @@ public enum EReservationStatus
 {
     Active,
     Cancelled,
-    Expired
+    Expired,
+    Started
 }

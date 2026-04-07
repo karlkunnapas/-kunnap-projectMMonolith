@@ -39,4 +39,13 @@ public class ChargingStationRepository : IChargingStationRepository
 
         return query;
     }
+
+    public Task<ChargingStation?> GetByIdWithDetailsAsync(Guid id)
+    {
+        return _context.ChargingStations
+            .Include(station => station.ChargingStationConnectors!)
+            .ThenInclude(link => link.Connector!)
+            .Include(station => station.Reservations!)
+            .FirstOrDefaultAsync(station => station.Id == id && station.IsActive);
+    }
 }

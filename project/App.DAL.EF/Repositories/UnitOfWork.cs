@@ -21,6 +21,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<AuditLog>? _auditLogs;
     private IVehicleRepository? _vehicles;
     private IVehicleConnectorRepository? _vehicleConnectors;
+    private IReservationRepository? _reservations;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -37,6 +38,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<AuditLog> AuditLogs => _auditLogs ??= new Repository<AuditLog>(_context);
     public IVehicleRepository Vehicles => _vehicles ??= new App.DAL.EF.Repositories.VehicleRepository(_context);
     public IVehicleConnectorRepository VehicleConnectors => _vehicleConnectors ??= new App.DAL.EF.Repositories.VehicleConnectorRepository(_context);
+    public IReservationRepository Reservations => _reservations ??= new App.DAL.EF.Repositories.ReservationRepository(_context);
 
     /// <summary>
     /// Commits all tracked changes to the database.

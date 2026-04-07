@@ -22,7 +22,7 @@
                 @Html.DisplayNameFor(model => model.Status)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.PricePerHour)
+                @Html.DisplayNameFor(model => model.PricePerKwh)
             </th>
             <th>
                 @Html.DisplayNameFor(model => model.MaxPower)
@@ -49,7 +49,7 @@
                 @(item?.Status.ToString() ?? string.Empty)
             </td>
             <td>
-                @(item?.PricePerHour.ToString() ?? string.Empty)
+                @(item?.PricePerKwh.ToString() ?? string.Empty)
             </td>
             <td>
                 @(item?.MaxPower.ToString() ?? string.Empty)

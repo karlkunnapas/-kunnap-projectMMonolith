@@ -102,7 +102,7 @@ public class HomeController : Controller
                 Name = station.Name,
                 Location = station.Location,
                 Status = station.Status,
-                PricePerHour = station.PricePerHour,
+                PricePerKwh = station.PricePerKwh,
                 MaxPower = station.MaxPower,
                 ConnectorNames = station.ConnectorNames,
                 IsCompatibleWithSelectedVehicle = station.IsCompatibleWithSelectedVehicle

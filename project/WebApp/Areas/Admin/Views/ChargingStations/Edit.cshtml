@@ -10,7 +10,7 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Edit">
+        <form asp-action="Edit" asp-route-id="@Model.Id">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
                 <label asp-for="Name" class="control-label"></label>
@@ -24,13 +24,13 @@
             </div>
             <div class="form-group">
                 <label asp-for="Status" class="control-label"></label>
-                <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<App.Domain.EStationStatus>()"></select>
+                <select asp-for="Status" class="form-control" asp-items="ViewBag.StatusOptions"></select>
                 <span asp-validation-for="Status" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="PricePerHour" class="control-label"></label>
-                <input asp-for="PricePerHour" class="form-control" />
-                <span asp-validation-for="PricePerHour" class="text-danger"></span>
+                <label asp-for="PricePerKwh" class="control-label"></label>
+                <input asp-for="PricePerKwh" class="form-control" />
+                <span asp-validation-for="PricePerKwh" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="MaxPower" class="control-label"></label>

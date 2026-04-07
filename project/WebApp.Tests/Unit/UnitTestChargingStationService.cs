@@ -108,7 +108,7 @@ public class UnitTestChargingStationService
             Name = new LangStr { ["en"] = "Downtown", ["et"] = "Kesklinn" },
             Location = "Downtown area",
             Status = EStationStatus.Available,
-            PricePerHour = 0.40m,
+            PricePerKwh = 0.40m,
             MaxPower = 150m,
             IsActive = true
         };
@@ -118,8 +118,8 @@ public class UnitTestChargingStationService
             Id = Guid.NewGuid(),
             Name = new LangStr { ["en"] = "North", ["et"] = "Pohja" },
             Location = "North side",
-            Status = EStationStatus.Reserved,
-            PricePerHour = 0.50m,
+            Status = EStationStatus.InUse,
+            PricePerKwh = 0.50m,
             MaxPower = 120m,
             IsActive = true
         };
@@ -143,5 +143,3 @@ public class UnitTestChargingStationService
         await context.SaveChangesAsync();
     }
 }
-
-

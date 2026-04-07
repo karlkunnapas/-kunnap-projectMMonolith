@@ -386,3 +386,126 @@ body {
     color: #ffffff;
     font-weight: 600;
 }
+
+.reservation-page {
+    max-width: 1040px;
+}
+
+.reservation-station-header,
+.reservation-section-card {
+    align-items: flex-start;
+}
+
+.reservation-connector-grid,
+.reservation-slot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reservation-connector-chip {
+    background: #f7fcff;
+}
+
+.reservation-form-grid {
+    width: 100%;
+}
+
+.figure2-page .reservation-station-header {
+    border-radius: 10px;
+}
+
+.figure2-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+}
+
+.figure2-option-card {
+    border: 1px solid #d5d9dd;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.figure2-option-card.active {
+    border: 2px solid #00d9ff;
+    background: #eafcff;
+}
+
+.figure2-option-title {
+    font-weight: 700;
+    color: #333;
+}
+
+.figure2-option-meta {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.figure2-calculator {
+    background: #ffffff;
+}
+
+.figure2-battery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.figure2-battery-grid input[type="range"] {
+    width: 100%;
+}
+
+.figure2-result-box {
+    margin-top: 10px;
+    border: 1px solid #53b563;
+    background: #e8f5e9;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #155724;
+    font-weight: 600;
+}
+
+.availability-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+}
+
+.availability-day-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.availability-day-title {
+    font-weight: 700;
+    color: #333;
+    font-size: 0.85rem;
+}
+
+.station-reservation-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.station-reservation-day {
+    background: #f8fbfd;
+    border: 1px solid #d9e1e7;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.station-button.is-disabled,
+.station-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+

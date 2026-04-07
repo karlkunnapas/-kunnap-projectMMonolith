@@ -55,6 +55,7 @@ namespace WebApp.Areas.Admin.Controllers
         public IActionResult Create()
         {
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "ContactEmail");
+            ViewData["StatusOptions"] = BuildStatusSelectList(EStationStatus.Available);
             return View(new ChargingStationAdminViewModel());
         }
 
@@ -65,14 +66,22 @@ namespace WebApp.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ChargingStationAdminViewModel model)
         {
+            var postedStatus = ResolvePostedStatus(model.Status, Request.Form["Status"]);
+
+            if (!IsValidStationStatus(postedStatus))
+            {
+                ModelState.AddModelError(nameof(model.Status), "Invalid station status.");
+            }
+
             if (ModelState.IsValid)
             {
+                var normalizedStatus = NormalizeStationStatus(postedStatus);
                 var chargingStation = new ChargingStation
                 {
                     Id = Guid.NewGuid(),
                     Location = model.Location,
-                    Status = model.Status,
-                    PricePerHour = model.PricePerHour,
+                    Status = normalizedStatus,
+                    PricePerKwh = model.PricePerKwh,
                     MaxPower = model.MaxPower,
                     IsActive = model.IsActive,
                     CompanyId = model.CompanyId,
@@ -86,6 +95,7 @@ namespace WebApp.Areas.Admin.Controllers
             }
 
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "ContactEmail", model.CompanyId);
+            ViewData["StatusOptions"] = BuildStatusSelectList(NormalizeStationStatus(model.Status));
             return View(model);
         }
 
@@ -106,7 +116,9 @@ namespace WebApp.Areas.Admin.Controllers
             }
 
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "ContactEmail", chargingStation.CompanyId);
-            return View(MapToViewModel(chargingStation));
+            var model = MapToViewModel(chargingStation);
+            ViewData["StatusOptions"] = BuildStatusSelectList(model.Status);
+            return View(model);
         }
 
         // POST: Admin/ChargingStations/Edit/5
@@ -116,9 +128,21 @@ namespace WebApp.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Guid id, ChargingStationAdminViewModel model)
         {
+            if (id == Guid.Empty)
+            {
+                id = model.Id;
+            }
+
             if (id != model.Id)
             {
                 return NotFound();
+            }
+
+            var postedStatus = ResolvePostedStatus(model.Status, Request.Form["Status"]);
+
+            if (!IsValidStationStatus(postedStatus))
+            {
+                ModelState.AddModelError(nameof(model.Status), "Invalid station status.");
             }
 
             if (ModelState.IsValid)
@@ -132,8 +156,8 @@ namespace WebApp.Areas.Admin.Controllers
                     }
 
                     chargingStation.Location = model.Location;
-                    chargingStation.Status = model.Status;
-                    chargingStation.PricePerHour = model.PricePerHour;
+                    chargingStation.Status = NormalizeStationStatus(postedStatus);
+                    chargingStation.PricePerKwh = model.PricePerKwh;
                     chargingStation.MaxPower = model.MaxPower;
                     chargingStation.IsActive = model.IsActive;
                     chargingStation.CompanyId = model.CompanyId;
@@ -142,6 +166,7 @@ namespace WebApp.Areas.Admin.Controllers
 
                     // LangStr is a mutable JSON-backed value; force EF to persist Name-only edits.
                     _context.Entry(chargingStation).Property(x => x.Name).IsModified = true;
+                    _context.Entry(chargingStation).Property(x => x.Status).IsModified = true;
 
                     await _context.SaveChangesAsync();
                 }
@@ -160,6 +185,7 @@ namespace WebApp.Areas.Admin.Controllers
             }
 
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "ContactEmail", model.CompanyId);
+            ViewData["StatusOptions"] = BuildStatusSelectList(NormalizeStationStatus(postedStatus));
             return View(model);
         }
 
@@ -209,13 +235,64 @@ namespace WebApp.Areas.Admin.Controllers
                 Id = station.Id,
                 Name = station.Name?.Translate() ?? string.Empty,
                 Location = station.Location,
-                Status = station.Status,
-                PricePerHour = station.PricePerHour,
+                Status = NormalizeStationStatus(station.Status),
+                PricePerKwh = station.PricePerKwh,
                 MaxPower = station.MaxPower,
                 IsActive = station.IsActive,
                 CompanyId = station.CompanyId,
                 CompanyContactEmail = station.Company?.ContactEmail ?? string.Empty
             };
+        }
+
+        private static EStationStatus NormalizeStationStatus(EStationStatus status)
+        {
+            var rawValue = (int)status;
+
+            // Legacy status value 1 (Reserved) was removed; treat it as InUse.
+            if (rawValue == 1)
+            {
+                return EStationStatus.InUse;
+            }
+
+            return Enum.IsDefined(typeof(EStationStatus), status)
+                ? status
+                : EStationStatus.Available;
+        }
+
+        private static bool IsValidStationStatus(EStationStatus status)
+        {
+            var rawValue = (int)status;
+            return rawValue == 1 || Enum.IsDefined(typeof(EStationStatus), status);
+        }
+
+        private static EStationStatus ResolvePostedStatus(EStationStatus fallback, string? rawStatus)
+        {
+            if (string.IsNullOrWhiteSpace(rawStatus))
+            {
+                return fallback;
+            }
+
+            if (int.TryParse(rawStatus, out var statusInt))
+            {
+                return (EStationStatus)statusInt;
+            }
+
+            return Enum.TryParse<EStationStatus>(rawStatus, true, out var parsed)
+                ? parsed
+                : fallback;
+        }
+
+        private static SelectList BuildStatusSelectList(EStationStatus selected)
+        {
+            var values = Enum.GetValues<EStationStatus>()
+                .Select(value => new
+                {
+                    Value = ((int)value).ToString(),
+                    Text = value.ToString()
+                })
+                .ToList();
+
+            return new SelectList(values, "Value", "Text", ((int)NormalizeStationStatus(selected)).ToString());
         }
     }
 }

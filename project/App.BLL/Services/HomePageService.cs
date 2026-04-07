@@ -40,7 +40,7 @@ public class HomePageService : IHomePageService
                 Name = station.Name?.Translate() ?? station.Name?.ToString() ?? string.Empty,
                 Location = station.Location,
                 Status = station.Status,
-                PricePerHour = station.PricePerHour,
+                PricePerKwh = station.PricePerKwh,
                 MaxPower = station.MaxPower,
                 ConnectorNames = station.ChargingStationConnectors
                     ?.Where(link => link.Connector != null && link.Connector.IsActive)

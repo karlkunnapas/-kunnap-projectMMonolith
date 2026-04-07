@@ -1,0 +1,40 @@
+@model WebApp.Areas.Root.ViewModels.ReservationCreateViewModel
+
+@{
+    var startLocal = Model.StartTimeUtc.Kind == DateTimeKind.Utc
+        ? Model.StartTimeUtc.ToLocalTime()
+        : Model.StartTimeUtc;
+    var endLocal = Model.EndTimeUtc.Kind == DateTimeKind.Utc
+        ? Model.EndTimeUtc.ToLocalTime()
+        : Model.EndTimeUtc;
+    var canReserve = Model.CanReserve;
+}
+
+<form asp-area="Root" asp-controller="Reservation" asp-action="Create" method="get" class="vehicle-form-grid reservation-form-grid" id="reservation-form">
+    <input asp-for="StationId" type="hidden" />
+
+    <div class="vehicle-form-field">
+        <label asp-for="StartTimeUtc" class="home-filters-title">@App.Resources.Views.Root.Station.Details.StartTime</label>
+        <input asp-for="StartTimeUtc" type="datetime-local" class="form-control" id="reservation-start" value="@startLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!canReserve)" />
+    </div>
+
+    <div class="vehicle-form-field">
+        <label asp-for="EndTimeUtc" class="home-filters-title">@App.Resources.Views.Root.Station.Details.EndTime</label>
+        <input asp-for="EndTimeUtc" type="datetime-local" class="form-control" id="reservation-end" value="@endLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!canReserve)" />
+    </div>
+
+    <div class="vehicle-form-field">
+        <label asp-for="EstimatedEnergyKwh" class="home-filters-title">@App.Resources.Views.Root.Station.Details.EstimatedEnergy</label>
+        <input asp-for="EstimatedEnergyKwh" class="form-control" id="reservation-energy" readonly disabled="@(!canReserve)" />
+    </div>
+
+    <div class="vehicle-form-field">
+        <label class="home-filters-title">@App.Resources.Views.Root.Reservation.Create.EstimatedCost</label>
+        <input asp-for="EstimatedCost" class="form-control" id="reservation-cost" readonly disabled="@(!canReserve)" />
+    </div>
+
+    <div class="home-filter-row">
+        <button type="submit" class="station-button" id="reserve-button" disabled="@(!canReserve)">@App.Resources.Views.Root.Station.Details.ReserveNow</button>
+        <a class="filter-chip" asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Root.Station.Details.MyReservations</a>
+    </div>
+</form>

@@ -8,6 +8,9 @@ public class Reservation : BaseEntity
     public Guid ChargingStationId { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
+    public DateTime ExpiresAtUtc { get; set; }
+    public DateTime? CancelledAtUtc { get; set; }
+    public decimal EstimatedCost { get; set; }
     public EReservationStatus Status { get; set; }
 
     // Navigation properties

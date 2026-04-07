@@ -18,6 +18,7 @@ public interface IUnitOfWork : IAsyncDisposable
     IRepository<AuditLog> AuditLogs { get; }
     IVehicleRepository Vehicles { get; }
     IVehicleConnectorRepository VehicleConnectors { get; }
+    IReservationRepository Reservations { get; }
 
     /// <summary>
     /// Commits all tracked changes to the database.

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace App.Domain;
 
@@ -9,7 +10,8 @@ public class ChargingStation : BaseEntity
     [StringLength(128, MinimumLength = 1)]
     public string Location { get; set; } = default!;
     public EStationStatus Status { get; set; }
-    public decimal PricePerHour { get; set; }
+    [Column("PricePerHour")]
+    public decimal PricePerKwh { get; set; }
     public decimal MaxPower { get; set; }
     public bool IsActive { get; set; } = true;
     public Guid? CompanyId { get; set; }

@@ -51,7 +51,7 @@ public static class AppDataInit
             Name = new LangStr { ["en"] = "Downtown Charging Hub", ["et"] = "Kesklinna laadimiskeskus" },
             Location = "2.3 km away",
             Status = EStationStatus.Available,
-            PricePerHour = 0.40m,
+            PricePerKwh = 0.40m,
             MaxPower = 350m,
             IsActive = true
         };
@@ -61,8 +61,8 @@ public static class AppDataInit
             Id = Guid.NewGuid(),
             Name = new LangStr { ["en"] = "North Side Charger", ["et"] = "Pohja laadija" },
             Location = "3.8 km away",
-            Status = EStationStatus.Reserved,
-            PricePerHour = 0.40m,
+            Status = EStationStatus.InUse,
+            PricePerKwh = 0.40m,
             MaxPower = 150m,
             IsActive = true
         };
@@ -73,7 +73,7 @@ public static class AppDataInit
             Name = new LangStr { ["en"] = "Airport Charging Point", ["et"] = "Lennujaama laadimispunkt" },
             Location = "5.2 km away",
             Status = EStationStatus.Maintenance,
-            PricePerHour = 0.40m,
+            PricePerKwh = 0.40m,
             MaxPower = 50m,
             IsActive = true
         };

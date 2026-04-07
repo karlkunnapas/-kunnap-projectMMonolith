@@ -1,0 +1,204 @@
+using System.Security.Claims;
+using App.BLL.DTOs;
+using App.BLL.Services.Interfaces;
+using App.Domain;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebApp.Areas.Root.ViewModels;
+
+namespace WebApp.Areas.Root.Controllers;
+
+[Area("Root")]
+[Authorize(Roles = "Customer")]
+public class ReservationController : Controller
+{
+    private readonly IReservationService _reservationService;
+
+    public ReservationController(IReservationService reservationService)
+    {
+        _reservationService = reservationService;
+    }
+
+    public async Task<IActionResult> Index()
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        var result = await _reservationService.GetUserReservationsAsync(userId.Value);
+        var model = new ReservationListViewModel
+        {
+            Reservations = result.Data?.Select(r => new ReservationListItemViewModel
+            {
+                Id = r.Id,
+                StationName = r.StationName,
+                StartTimeUtc = r.StartTimeUtc,
+                EndTimeUtc = r.EndTimeUtc,
+                EstimatedCost = r.EstimatedCost,
+                Status = r.Status,
+                CanStart = r.Status == EReservationStatus.Active && r.StartTimeUtc <= nowUtc && nowUtc < r.EndTimeUtc
+            }).ToList() ?? new List<ReservationListItemViewModel>()
+        };
+
+        return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Create(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, decimal? estimatedEnergyKwh = null)
+    {
+        if (stationId == Guid.Empty)
+        {
+            return RedirectToAction("Index", "Home", new { area = string.Empty });
+        }
+
+        var durationMinutes = (int)Math.Ceiling((endTimeUtc - startTimeUtc).TotalMinutes);
+        if (durationMinutes <= 0)
+        {
+            durationMinutes = 60;
+            startTimeUtc = DateTime.UtcNow.AddMinutes(30);
+            endTimeUtc = startTimeUtc.AddMinutes(durationMinutes);
+        }
+
+        var stationResult = await _reservationService.GetStationDetailsAsync(stationId);
+        var canReserve = stationResult.Success
+                         && stationResult.Data != null
+                         && stationResult.Data.Status != EStationStatus.Maintenance;
+
+        var estimateResult = canReserve
+            ? await _reservationService.EstimateCostAsync(stationId, durationMinutes, estimatedEnergyKwh)
+            : ServiceResult<CostEstimateDto>.Ok(new CostEstimateDto { EstimatedCost = 0, DurationMinutes = durationMinutes });
+
+        var model = new ReservationCreateViewModel
+        {
+            StationId = stationId,
+            StartTimeUtc = startTimeUtc,
+            EndTimeUtc = endTimeUtc,
+            EstimatedEnergyKwh = estimatedEnergyKwh,
+            EstimatedCost = estimateResult.Data?.EstimatedCost ?? 0,
+            StationName = stationResult.Data?.Name ?? string.Empty,
+            CanReserve = canReserve
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(ReservationCreateViewModel model)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var result = await _reservationService.ReserveAsync(userId.Value, new ReservationCreateDto
+        {
+            StationId = model.StationId,
+            StartTimeUtc = model.StartTimeUtc,
+            EndTimeUtc = model.EndTimeUtc,
+            EstimatedEnergyKwh = model.EstimatedEnergyKwh
+        });
+
+        if (!result.Success)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Message);
+            }
+
+            var duration = (int)Math.Ceiling((model.EndTimeUtc - model.StartTimeUtc).TotalMinutes);
+            if (duration > 0)
+            {
+                var estimate = await _reservationService.EstimateCostAsync(model.StationId, duration, model.EstimatedEnergyKwh);
+                model.EstimatedCost = estimate.Data?.EstimatedCost ?? model.EstimatedCost;
+            }
+
+            return View(model);
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var result = await _reservationService.GetReservationDetailsAsync(id, userId.Value);
+        if (!result.Success || result.Data == null)
+        {
+            return Forbid();
+        }
+
+        var model = new ReservationDetailViewModel
+        {
+            Id = result.Data.Id,
+            StationName = result.Data.StationName,
+            StartTimeUtc = result.Data.StartTimeUtc,
+            EndTimeUtc = result.Data.EndTimeUtc,
+            ExpiresAtUtc = result.Data.ExpiresAtUtc,
+            CancelledAtUtc = result.Data.CancelledAtUtc,
+            EstimatedCost = result.Data.EstimatedCost,
+            Status = result.Data.Status
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Start(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var result = await _reservationService.StartReservationAsync(id, userId.Value);
+        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        {
+            return Forbid();
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var result = await _reservationService.CancelReservationAsync(id, userId.Value);
+        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        {
+            return Forbid();
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(value, out var userId) ? userId : null;
+    }
+}
