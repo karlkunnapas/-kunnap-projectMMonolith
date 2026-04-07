@@ -4,6 +4,13 @@ using App.Domain;
 
 namespace App.BLL.DTOs;
 
+public class HomePageFilterDto
+{
+    public string? Status { get; set; }
+    public string? Connector { get; set; }
+    public string? Location { get; set; }
+}
+
 public class HomePageDto
 {
     public IReadOnlyList<HomeStationDto> Stations { get; set; } = new List<HomeStationDto>();

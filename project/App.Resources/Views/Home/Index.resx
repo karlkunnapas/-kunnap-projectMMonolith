@@ -24,8 +24,8 @@
   <data name="AvailableNow" xml:space="preserve">
     <value>Available Now</value>
   </data>
-  <data name="FastCharging" xml:space="preserve">
-    <value>Fast Charging</value>
+  <data name="ClearFilters" xml:space="preserve">
+    <value>Clear Filters</value>
   </data>
   <data name="CompatibleWithMyVehicle" xml:space="preserve">
     <value>Compatible with My Vehicle:</value>
@@ -64,4 +64,5 @@
     <value>Details</value>
   </data>
 </root>
+
 

@@ -86,85 +86,85 @@ namespace App.Resources.Views.Shared {
                 return ResourceManager.GetString("Login", resourceCulture);
             }
         }
-
+        
         public static string Admin {
             get {
                 return ResourceManager.GetString("Admin", resourceCulture);
             }
         }
-
+        
         public static string AdminCompanies {
             get {
                 return ResourceManager.GetString("AdminCompanies", resourceCulture);
             }
         }
-
+        
         public static string AdminAppUserCompanies {
             get {
                 return ResourceManager.GetString("AdminAppUserCompanies", resourceCulture);
             }
         }
-
+        
         public static string AdminChargingStations {
             get {
                 return ResourceManager.GetString("AdminChargingStations", resourceCulture);
             }
         }
-
+        
         public static string AdminStationConnectors {
             get {
                 return ResourceManager.GetString("AdminStationConnectors", resourceCulture);
             }
         }
-
+        
         public static string AdminChargingSessions {
             get {
                 return ResourceManager.GetString("AdminChargingSessions", resourceCulture);
             }
         }
-
+        
         public static string AdminConnectors {
             get {
                 return ResourceManager.GetString("AdminConnectors", resourceCulture);
             }
         }
-
+        
         public static string AdminVehicles {
             get {
                 return ResourceManager.GetString("AdminVehicles", resourceCulture);
             }
         }
-
+        
         public static string AdminVehicleConnectors {
             get {
                 return ResourceManager.GetString("AdminVehicleConnectors", resourceCulture);
             }
         }
-
+        
         public static string AdminReservations {
             get {
                 return ResourceManager.GetString("AdminReservations", resourceCulture);
             }
         }
-
+        
         public static string AdminPromotions {
             get {
                 return ResourceManager.GetString("AdminPromotions", resourceCulture);
             }
         }
-
+        
         public static string AdminUserPromotions {
             get {
                 return ResourceManager.GetString("AdminUserPromotions", resourceCulture);
             }
         }
-
+        
         public static string AdminMaintenances {
             get {
                 return ResourceManager.GetString("AdminMaintenances", resourceCulture);
             }
         }
-
+        
         public static string AdminAuditLogs {
             get {
                 return ResourceManager.GetString("AdminAuditLogs", resourceCulture);

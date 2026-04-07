@@ -1,0 +1,35 @@
+@model WebApp.ViewModels.HomeStationViewModel
+@using App.Domain
+
+@{
+    var statusText = Model.Status switch
+    {
+        EStationStatus.Available => App.Resources.Views.Home.Index.StatusAvailable,
+        EStationStatus.Reserved => App.Resources.Views.Home.Index.StatusLimitedAvailability,
+        EStationStatus.InUse => App.Resources.Views.Home.Index.StatusInUse,
+        _ => App.Resources.Views.Home.Index.StatusUnavailable
+    };
+
+    var statusClass = Model.Status switch
+    {
+        EStationStatus.Available => "status-ok",
+        EStationStatus.Reserved => "status-warn",
+        EStationStatus.InUse => "status-warn",
+        _ => "status-bad"
+    };
+}
+
+<div class="station-card">
+    <div class="station-icon">📍</div>
+    <div class="station-details">
+        <div class="station-name">@Model.Name</div>
+        <div class="station-meta">📍 @Model.Location | @App.Resources.Views.Home.Index.Supported: @string.Join(", ", Model.ConnectorNames)</div>
+        <div class="station-status @statusClass">
+            @statusText | €@Model.PricePerHour.ToString("0.00")/@App.Resources.Views.Home.Index.Hour | @App.Resources.Views.Home.Index.MaxPower: @Model.MaxPower.ToString("0")kW
+        </div>
+    </div>
+    <div class="station-actions">
+        <button class="station-button" type="button">@App.Resources.Views.Home.Index.Details</button>
+    </div>
+</div>
+

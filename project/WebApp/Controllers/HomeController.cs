@@ -1,13 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
+using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using WebApp.ViewModels;
 
 namespace WebApp.Controllers;
@@ -23,23 +18,38 @@ public class HomeController : Controller
         _chargingStationService = chargingStationService;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? status = null, string? connector = null, string? location = null)
     {
-        var result = await _chargingStationService.GetHomePageAsync();
+        var filters = new HomePageFilterDto
+        {
+            Status = status,
+            Connector = connector,
+            Location = location
+        };
+
+        var result = await _chargingStationService.GetHomePageAsync(filters);
         if (!result.Success || result.Data == null)
         {
             _logger.LogWarning("Home page data load failed: {Errors}",
                 string.Join("; ", result.Errors.Select(error => error.Message)));
 
-            return View(new HomeIndexViewModel());
+            return View(new HomeIndexViewModel
+            {
+                SelectedStatus = status,
+                SelectedConnector = connector,
+                LocationQuery = location
+            });
         }
 
-        var showVehicleFilters = User?.IsInRole("Customer") == true;
+        var showVehicleFilters = HttpContext?.User?.IsInRole("Customer") == true;
 
         var viewModel = new HomeIndexViewModel
         {
             ShowVehicleFilters = showVehicleFilters,
             ConnectorFilters = showVehicleFilters ? result.Data.ConnectorFilters.ToList() : new List<string>(),
+            SelectedStatus = status,
+            SelectedConnector = connector,
+            LocationQuery = location,
             Stations = result.Data.Stations.Select(station => new HomeStationViewModel
             {
                 Id = station.Id,

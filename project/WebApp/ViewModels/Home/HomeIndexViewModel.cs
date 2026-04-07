@@ -9,6 +9,10 @@ public class HomeIndexViewModel
     public bool ShowVehicleFilters { get; set; }
     public List<string> ConnectorFilters { get; set; } = new();
     public List<HomeStationViewModel> Stations { get; set; } = new();
+
+    public string? SelectedStatus { get; set; }
+    public string? SelectedConnector { get; set; }
+    public string? LocationQuery { get; set; }
 }
 
 public class HomeStationViewModel

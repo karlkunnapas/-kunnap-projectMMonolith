@@ -1,20 +1,46 @@
 ﻿@model WebApp.ViewModels.HomeIndexViewModel
+@using System
 @using App.Domain
 @{
     ViewData["Title"] = App.Resources.Views.Home.Index.Title;
+    var hasActiveFilters = !string.IsNullOrWhiteSpace(Model.SelectedStatus)
+                           || !string.IsNullOrWhiteSpace(Model.SelectedConnector)
+                           || !string.IsNullOrWhiteSpace(Model.LocationQuery);
 }
 
 <div class="home-page">
     <section class="home-content">
-        <div class="home-search">
-            <input type="text" placeholder="@App.Resources.Views.Home.Index.SearchLocationPlaceholder" />
-        </div>
+        <form class="home-search" method="get" asp-controller="Home" asp-action="Index">
+            <input type="text" name="location" value="@Model.LocationQuery" placeholder="@App.Resources.Views.Home.Index.SearchLocationPlaceholder" />
+            @if (!string.IsNullOrWhiteSpace(Model.SelectedStatus))
+            {
+                <input type="hidden" name="status" value="@Model.SelectedStatus" />
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.SelectedConnector))
+            {
+                <input type="hidden" name="connector" value="@Model.SelectedConnector" />
+            }
+        </form>
 
         <div class="home-filters">
             <div class="home-filters-title">@App.Resources.Views.Home.Index.Filters</div>
             <div class="home-filter-row">
-                <button class="filter-chip active" type="button">@App.Resources.Views.Home.Index.AvailableNow</button>
-                <button class="filter-chip" type="button">@App.Resources.Views.Home.Index.FastCharging</button>
+                <a class="filter-chip @(string.Equals(Model.SelectedStatus, EStationStatus.Available.ToString(), StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+                   asp-controller="Home"
+                   asp-action="Index"
+                   asp-route-status="@EStationStatus.Available"
+                   asp-route-location="@Model.LocationQuery"
+                   asp-route-connector="@Model.SelectedConnector">
+                    @App.Resources.Views.Home.Index.AvailableNow
+                </a>
+                @if (hasActiveFilters)
+                {
+                    <a class="filter-chip"
+                       asp-controller="Home"
+                       asp-action="Index">
+                        @App.Resources.Views.Home.Index.ClearFilters
+                    </a>
+                }
             </div>
             @if (Model.ShowVehicleFilters)
             {
@@ -22,10 +48,19 @@
                     @App.Resources.Views.Home.Index.CompatibleWithMyVehicle
                 </div>
                 <div class="home-filter-row">
-                    <button class="filter-chip" type="button">@App.Resources.Views.Home.Index.SelectVehicle</button>
+                    <a class="filter-chip" asp-controller="Home" asp-action="Index" asp-route-status="@Model.SelectedStatus" asp-route-location="@Model.LocationQuery">
+                        @App.Resources.Views.Home.Index.SelectVehicle
+                    </a>
                     @foreach (var connector in Model.ConnectorFilters)
                     {
-                        <button class="filter-chip" type="button">@connector</button>
+                        <a class="filter-chip @(string.Equals(Model.SelectedConnector, connector, StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+                           asp-controller="Home"
+                           asp-action="Index"
+                           asp-route-status="@Model.SelectedStatus"
+                           asp-route-location="@Model.LocationQuery"
+                           asp-route-connector="@connector">
+                            @connector
+                        </a>
                     }
                 </div>
             }
@@ -44,35 +79,7 @@
             {
                 foreach (var station in Model.Stations)
                 {
-                    var statusText = station.Status switch
-                    {
-                        EStationStatus.Available => App.Resources.Views.Home.Index.StatusAvailable,
-                        EStationStatus.Reserved => App.Resources.Views.Home.Index.StatusLimitedAvailability,
-                        EStationStatus.InUse => App.Resources.Views.Home.Index.StatusInUse,
-                        _ => App.Resources.Views.Home.Index.StatusUnavailable
-                    };
-
-                    var statusClass = station.Status switch
-                    {
-                        EStationStatus.Available => "status-ok",
-                        EStationStatus.Reserved => "status-warn",
-                        EStationStatus.InUse => "status-warn",
-                        _ => "status-bad"
-                    };
-
-                    <div class="station-card">
-                        <div class="station-icon">📍</div>
-                        <div class="station-details">
-                            <div class="station-name">@station.Name</div>
-                            <div class="station-meta">📍 @station.Location | @App.Resources.Views.Home.Index.Supported: @string.Join(", ", station.ConnectorNames)</div>
-                            <div class="station-status @statusClass">
-                                @statusText | €@station.PricePerHour.ToString("0.00")/@App.Resources.Views.Home.Index.Hour | @App.Resources.Views.Home.Index.MaxPower: @station.MaxPower.ToString("0")kW
-                            </div>
-                        </div>
-                        <div class="station-actions">
-                            <button class="station-button" type="button">@App.Resources.Views.Home.Index.Details</button>
-                        </div>
-                    </div>
+                    <partial name="_StationCard" model="station" />
                 }
             }
         </div>

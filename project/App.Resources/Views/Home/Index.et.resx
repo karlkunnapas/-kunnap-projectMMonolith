@@ -23,8 +23,8 @@
   <data name="AvailableNow" xml:space="preserve">
     <value>Hetkel saadaval</value>
   </data>
-  <data name="FastCharging" xml:space="preserve">
-    <value>Kiirlaadimine</value>
+  <data name="ClearFilters" xml:space="preserve">
+    <value>Tühjenda filtrid</value>
   </data>
   <data name="CompatibleWithMyVehicle" xml:space="preserve">
     <value>Sobib minu sõidukiga:</value>
@@ -63,4 +63,6 @@
     <value>Detailid</value>
   </data>
 </root>
+
+
 

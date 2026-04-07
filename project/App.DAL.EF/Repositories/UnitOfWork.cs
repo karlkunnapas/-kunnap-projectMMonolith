@@ -26,7 +26,8 @@ public class UnitOfWork : IUnitOfWork
     }
 
     public ICompanyRepository Companies => _companies ??= new CompanyRepository(_context);
-    public IChargingStationRepository ChargingStations => _chargingStations ??= new ChargingStationRepository(_context);
+    public IChargingStationRepository ChargingStations =>
+        _chargingStations ??= new App.DAL.EF.Repositories.ChargingStationRepository(_context);
     public IRepository<ChargingStationConnector> ChargingStationConnectors =>
         _chargingStationConnectors ??= new Repository<ChargingStationConnector>(_context);
     public IRepository<Connector> Connectors => _connectors ??= new Repository<Connector>(_context);
