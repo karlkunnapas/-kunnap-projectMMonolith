@@ -188,6 +188,16 @@ public class AppDbContext(
             return company.Id;
         }
 
+        if (entry.Entity is Reservation reservation)
+        {
+            return ResolveStationCompanyId(reservation.ChargingStationId);
+        }
+
+        if (entry.Entity is ChargingSession session)
+        {
+            return ResolveStationCompanyId(session.ChargingStationId);
+        }
+
         var companyIdProperty = entry.Properties
             .FirstOrDefault(p => p.Metadata.Name == nameof(AuditLog.CompanyId));
 
@@ -201,6 +211,30 @@ public class AppDbContext(
             : companyIdProperty.CurrentValue;
 
         return rawValue is Guid value && value != Guid.Empty ? value : null;
+    }
+
+    private Guid? ResolveStationCompanyId(Guid stationId)
+    {
+        if (stationId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var trackedStation = ChangeTracker.Entries<ChargingStation>()
+            .FirstOrDefault(e => e.Entity.Id == stationId)
+            ?.Entity;
+
+        if (trackedStation?.CompanyId is Guid trackedCompanyId && trackedCompanyId != Guid.Empty)
+        {
+            return trackedCompanyId;
+        }
+
+        return ChargingStations
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(s => s.Id == stationId)
+            .Select(s => s.CompanyId)
+            .FirstOrDefault();
     }
 
     private static Guid ResolveEntityId(EntityEntry entry)

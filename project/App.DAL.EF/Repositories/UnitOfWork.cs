@@ -15,10 +15,12 @@ public class UnitOfWork : IUnitOfWork
     private ICompanyRepository? _companies;
 
     private IChargingStationRepository? _chargingStations;
+    private IChargingSessionRepository? _chargingSessions;
     private IRepository<ChargingStationConnector>? _chargingStationConnectors;
     private IRepository<Connector>? _connectors;
     private IRepository<AppUserCompany>? _appUserCompanies;
     private IRepository<AuditLog>? _auditLogs;
+    private IAuditLogRepository? _auditLogQueries;
     private IVehicleRepository? _vehicles;
     private IVehicleConnectorRepository? _vehicleConnectors;
     private IReservationRepository? _reservations;
@@ -31,11 +33,14 @@ public class UnitOfWork : IUnitOfWork
     public ICompanyRepository Companies => _companies ??= new CompanyRepository(_context);
     public IChargingStationRepository ChargingStations =>
         _chargingStations ??= new App.DAL.EF.Repositories.ChargingStationRepository(_context);
+    public IChargingSessionRepository ChargingSessions =>
+        _chargingSessions ??= new App.DAL.EF.Repositories.ChargingSessionRepository(_context);
     public IRepository<ChargingStationConnector> ChargingStationConnectors =>
         _chargingStationConnectors ??= new Repository<ChargingStationConnector>(_context);
     public IRepository<Connector> Connectors => _connectors ??= new Repository<Connector>(_context);
     public IRepository<AppUserCompany> AppUserCompanies => _appUserCompanies ??= new Repository<AppUserCompany>(_context);
     public IRepository<AuditLog> AuditLogs => _auditLogs ??= new Repository<AuditLog>(_context);
+    public IAuditLogRepository AuditLogQueries => _auditLogQueries ??= new App.DAL.EF.Repositories.AuditLogRepository(_context);
     public IVehicleRepository Vehicles => _vehicles ??= new App.DAL.EF.Repositories.VehicleRepository(_context);
     public IVehicleConnectorRepository VehicleConnectors => _vehicleConnectors ??= new App.DAL.EF.Repositories.VehicleConnectorRepository(_context);
     public IReservationRepository Reservations => _reservations ??= new App.DAL.EF.Repositories.ReservationRepository(_context);

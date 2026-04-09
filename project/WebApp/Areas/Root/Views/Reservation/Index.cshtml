@@ -48,10 +48,13 @@
                         <a class="filter-chip" asp-action="Details" asp-route-id="@reservation.Id">@App.Resources.Views.Root.Reservation.Index.Details</a>
                         @if (reservation.CanStart)
                         {
-                            <form asp-action="Start" asp-route-id="@reservation.Id" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="filter-chip">@App.Resources.Views.Root.Reservation.Index.Start</button>
-                            </form>
+                            <a class="filter-chip"
+                               asp-area="Root"
+                               asp-controller="ChargingSession"
+                               asp-action="Start"
+                               asp-route-reservationId="@reservation.Id">
+                                @App.Resources.Views.Root.Reservation.Index.Start
+                            </a>
                         }
                         @if (reservation.Status == EReservationStatus.Active)
                         {

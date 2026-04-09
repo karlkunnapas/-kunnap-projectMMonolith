@@ -74,4 +74,25 @@
     <data name="AdminAuditLogs" xml:space="preserve">
         <value>Auditilogid</value>
     </data>
+    <data name="FindStations" xml:space="preserve">
+        <value>Leia jaamad</value>
+    </data>
+    <data name="MyReservations" xml:space="preserve">
+        <value>Minu broneeringud</value>
+    </data>
+    <data name="MySessions" xml:space="preserve">
+        <value>Minu seansid</value>
+    </data>
+    <data name="MyVehicles" xml:space="preserve">
+        <value>Minu sõidukid</value>
+    </data>
+    <data name="CompanyAudit" xml:space="preserve">
+        <value>Ettevõtte audit</value>
+    </data>
+    <data name="PaymentMethods" xml:space="preserve">
+        <value>Makselahendused</value>
+    </data>
+    <data name="Settings" xml:space="preserve">
+        <value>Seaded</value>
+    </data>
 </root>

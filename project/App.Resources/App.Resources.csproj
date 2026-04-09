@@ -63,6 +63,26 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>Details.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Views\Root\ChargingSession\Start.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Start.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Root\ChargingSession\Details.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Details.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Root\ChargingSession\History.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>History.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Admin\Audit\Trail.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Trail.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Audit\CompanyLog.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>CompanyLog.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
@@ -135,6 +155,31 @@
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>Details.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Root\ChargingSession\Start.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Start.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Root\ChargingSession\Details.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Details.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Root\ChargingSession\History.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>History.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Admin\Audit\Trail.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Trail.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Audit\CompanyLog.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>CompanyLog.resx</DependentUpon>
       </Compile>
     </ItemGroup>
 

@@ -48,19 +48,31 @@
                     </li>
                 }
                 <li class="app-nav-item">
-                    <a asp-area="" asp-controller="Home" asp-action="Index">@((new App.Domain.LangStr { ["en"] = "Find Stations", ["et"] = "Leia jaamad" }).Translate())</a>
+                    <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
                 </li>
                 <li class="app-nav-item">
-                    <a asp-area="Root" asp-controller="Reservation" asp-action="Index">@((new App.Domain.LangStr { ["en"] = "My Reservations", ["et"] = "Minu broneeringud" }).Translate())</a>
+                    <a asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Shared._Layout.MyReservations</a>
+                </li>
+                @if (User.IsInRole("Customer"))
+                {
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="ChargingSession" asp-action="History">@App.Resources.Views.Shared._Layout.MySessions</a>
+                    </li>
+                }
+                <li class="app-nav-item">
+                    <a asp-area="Root" asp-controller="Vehicle" asp-action="Index">@App.Resources.Views.Shared._Layout.MyVehicles</a>
+                </li>
+                @if (User.IsInRole("CompanyOwner"))
+                {
+                    <li class="app-nav-item">
+                        <a asp-area="Company" asp-controller="Audit" asp-action="CompanyLog">@App.Resources.Views.Shared._Layout.CompanyAudit</a>
+                    </li>
+                }
+                <li class="app-nav-item">
+                    <a href="#">@App.Resources.Views.Shared._Layout.PaymentMethods</a>
                 </li>
                 <li class="app-nav-item">
-                    <a asp-area="Root" asp-controller="Vehicle" asp-action="Index">@((new App.Domain.LangStr { ["en"] = "My Vehicles", ["et"] = "Minu soidukid" }).Translate())</a>
-                </li>
-                <li class="app-nav-item">
-                    <a href="#">@((new App.Domain.LangStr { ["en"] = "Payment Methods", ["et"] = "Makselahendused" }).Translate())</a>
-                </li>
-                <li class="app-nav-item">
-                    <a href="#">@((new App.Domain.LangStr { ["en"] = "Settings", ["et"] = "Seaded" }).Translate())</a>
+                    <a href="#">@App.Resources.Views.Shared._Layout.Settings</a>
                 </li>
             </ul>
         </nav>

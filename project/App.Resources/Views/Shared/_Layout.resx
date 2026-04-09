@@ -81,4 +81,25 @@
     <data name="AdminAuditLogs" xml:space="preserve">
         <value>Audit Logs</value>
     </data>
+    <data name="FindStations" xml:space="preserve">
+        <value>Find Stations</value>
+    </data>
+    <data name="MyReservations" xml:space="preserve">
+        <value>My Reservations</value>
+    </data>
+    <data name="MySessions" xml:space="preserve">
+        <value>My Sessions</value>
+    </data>
+    <data name="MyVehicles" xml:space="preserve">
+        <value>My Vehicles</value>
+    </data>
+    <data name="CompanyAudit" xml:space="preserve">
+        <value>Company Audit</value>
+    </data>
+    <data name="PaymentMethods" xml:space="preserve">
+        <value>Payment Methods</value>
+    </data>
+    <data name="Settings" xml:space="preserve">
+        <value>Settings</value>
+    </data>
 </root>

@@ -12,10 +12,12 @@ public interface IUnitOfWork : IAsyncDisposable
     ICompanyRepository Companies { get; }
 
     IChargingStationRepository ChargingStations { get; }
+    IChargingSessionRepository ChargingSessions { get; }
     IRepository<ChargingStationConnector> ChargingStationConnectors { get; }
     IRepository<Connector> Connectors { get; }
     IRepository<AppUserCompany> AppUserCompanies { get; }
     IRepository<AuditLog> AuditLogs { get; }
+    IAuditLogRepository AuditLogQueries { get; }
     IVehicleRepository Vehicles { get; }
     IVehicleConnectorRepository VehicleConnectors { get; }
     IReservationRepository Reservations { get; }

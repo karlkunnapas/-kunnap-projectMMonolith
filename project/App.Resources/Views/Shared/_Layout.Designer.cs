@@ -170,5 +170,47 @@ namespace App.Resources.Views.Shared {
                 return ResourceManager.GetString("AdminAuditLogs", resourceCulture);
             }
         }
+
+        public static string FindStations {
+            get {
+                return ResourceManager.GetString("FindStations", resourceCulture);
+            }
+        }
+
+        public static string MyReservations {
+            get {
+                return ResourceManager.GetString("MyReservations", resourceCulture);
+            }
+        }
+
+        public static string MySessions {
+            get {
+                return ResourceManager.GetString("MySessions", resourceCulture);
+            }
+        }
+
+        public static string MyVehicles {
+            get {
+                return ResourceManager.GetString("MyVehicles", resourceCulture);
+            }
+        }
+
+        public static string CompanyAudit {
+            get {
+                return ResourceManager.GetString("CompanyAudit", resourceCulture);
+            }
+        }
+
+        public static string PaymentMethods {
+            get {
+                return ResourceManager.GetString("PaymentMethods", resourceCulture);
+            }
+        }
+
+        public static string Settings {
+            get {
+                return ResourceManager.GetString("Settings", resourceCulture);
+            }
+        }
     }
 }

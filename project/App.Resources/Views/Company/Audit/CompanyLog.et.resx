@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Ettevotte auditilogi</value></data>
+  <data name="Heading" xml:space="preserve"><value>Ettevotte muudatuste logi</value></data>
+  <data name="FromUtc" xml:space="preserve"><value>Algus (UTC)</value></data>
+  <data name="ToUtc" xml:space="preserve"><value>Lopp (UTC)</value></data>
+  <data name="EntityName" xml:space="preserve"><value>Objekt</value></data>
+  <data name="Action" xml:space="preserve"><value>Tegevus</value></data>
+  <data name="ApplyFilters" xml:space="preserve"><value>Rakenda filtrid</value></data>
+  <data name="NoEntries" xml:space="preserve"><value>Auditi kirjeid ei leitud.</value></data>
+  <data name="Actor" xml:space="preserve"><value>Tegutseja</value></data>
+  <data name="AtUtc" xml:space="preserve"><value>Aeg (UTC)</value></data>
+  <data name="Changes" xml:space="preserve"><value>Muudatused</value></data>
+</root>
+

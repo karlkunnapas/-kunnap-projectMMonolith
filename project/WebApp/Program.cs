@@ -25,6 +25,8 @@ builder.Services.AddScoped<IVehicleCompatibilityService, VehicleCompatibilitySer
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IChargingSessionService, ChargingSessionService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Build and configure pipeline
 var app = builder.Build();

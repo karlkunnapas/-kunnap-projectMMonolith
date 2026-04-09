@@ -96,10 +96,71 @@ public class UnitTestAuditLogging
         Assert.Equal("SPRING-UNIT-UPDATED", changedPhone.GetProperty("new").GetString());
     }
 
+    [Fact]
+    public async Task SaveChangesAsync_CreatesAuditLogs_ForReservationAndChargingSession_UsingStationCompany()
+    {
+        await using var ctx = CreateContext("unit.user@example.com");
+
+        var company = new Company
+        {
+            Id = Guid.NewGuid(),
+            Name = "Station Company",
+            ContactEmail = "company@test.local",
+            ContactPhone = "+3720000001",
+            Slug = "station-company",
+            IsActive = true
+        };
+
+        var station = new ChargingStation
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "Audit Station" },
+            Location = "Tallinn",
+            Status = EStationStatus.Available,
+            PricePerKwh = 0.40m,
+            MaxPower = 100,
+            IsActive = true,
+            CompanyId = company.Id
+        };
+
+        var reservation = new Reservation
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            ChargingStationId = station.Id,
+            StartTime = DateTime.UtcNow.AddMinutes(5),
+            EndTime = DateTime.UtcNow.AddMinutes(35),
+            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(20),
+            Status = EReservationStatus.Active,
+            EstimatedCost = 8
+        };
+
+        var session = new ChargingSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = reservation.UserId,
+            ChargingStationId = station.Id,
+            ReservationId = reservation.Id,
+            StartTime = DateTime.UtcNow,
+            EnergyConsumed = 0,
+            Cost = 0
+        };
+
+        ctx.Companies.Add(company);
+        ctx.ChargingStations.Add(station);
+        ctx.Reservations.Add(reservation);
+        ctx.ChargingSessions.Add(session);
+        await ctx.SaveChangesAsync();
+
+        var reservationAudit = ctx.AuditLogs.Single(l => l.EntityName == nameof(Reservation) && l.EntityId == reservation.Id && l.Action == "Create");
+        var sessionAudit = ctx.AuditLogs.Single(l => l.EntityName == nameof(ChargingSession) && l.EntityId == session.Id && l.Action == "Create");
+
+        Assert.Equal(company.Id, reservationAudit.CompanyId);
+        Assert.Equal(company.Id, sessionAudit.CompanyId);
+    }
+
     private sealed class TestAuditActorProvider(string? userName) : IAuditActorProvider
     {
         public string? UserName { get; } = userName;
     }
 }
-
-

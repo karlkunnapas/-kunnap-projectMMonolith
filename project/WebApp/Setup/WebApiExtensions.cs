@@ -14,7 +14,10 @@ public static class WebApiExtensions
 {
     public static IServiceCollection AddAppControllers(this IServiceCollection services)
     {
-        services.AddControllersWithViews()
+        services.AddControllersWithViews(options =>
+            {
+                options.ModelBinderProviders.Insert(0, new WebApp.Helpers.FlexibleDecimalModelBinderProvider());
+            })
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.WriteIndented = true;
