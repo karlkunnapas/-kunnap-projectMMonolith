@@ -30,6 +30,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IOperatorDashboardService, OperatorDashboardService>();
 builder.Services.AddScoped<IChargingStationCompanyService, ChargingStationCompanyService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
 
 // Build and configure pipeline
 var app = builder.Build();

@@ -62,6 +62,12 @@ public class VehicleOptionViewModel
     public bool IsSelected { get; set; }
 }
 
+public class PromotionSelectOptionViewModel
+{
+    public string Code { get; set; } = string.Empty;
+    public string DisplayText { get; set; } = string.Empty;
+}
+
 public class ReservationCreateViewModel
 {
     public Guid StationId { get; set; }
@@ -76,6 +82,10 @@ public class ReservationCreateViewModel
 
     [Range(0, 1000)]
     public decimal? EstimatedEnergyKwh { get; set; }
+
+    [StringLength(128)]
+    public string? PromotionCode { get; set; }
+    public List<PromotionSelectOptionViewModel> AvailablePromotions { get; set; } = new();
 
     public decimal EstimatedCost { get; set; }
     public string StationName { get; set; } = string.Empty;

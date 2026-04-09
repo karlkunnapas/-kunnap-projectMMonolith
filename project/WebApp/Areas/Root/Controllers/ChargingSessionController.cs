@@ -13,13 +13,16 @@ public class ChargingSessionController : Controller
 {
     private readonly IChargingSessionService _chargingSessionService;
     private readonly IReservationService _reservationService;
+    private readonly IPromotionService _promotionService;
 
     public ChargingSessionController(
         IChargingSessionService chargingSessionService,
-        IReservationService reservationService)
+        IReservationService reservationService,
+        IPromotionService promotionService)
     {
         _chargingSessionService = chargingSessionService;
         _reservationService = reservationService;
+        _promotionService = promotionService;
     }
 
     [HttpGet]
@@ -129,7 +132,21 @@ public class ChargingSessionController : Controller
             return Forbid();
         }
 
-        return View(MapToDetail(result.Data));
+        var model = MapToDetail(result.Data);
+        if (model.IsActive && string.IsNullOrWhiteSpace(model.PromotionCode))
+        {
+            var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
+            model.AvailablePromotions = promotionsResult.Data?
+                .OrderBy(p => p.Code)
+                .Select(p => new PromotionSelectOptionViewModel
+                {
+                    Code = p.Code,
+                    DisplayText = $"{p.Code} (-{p.DiscountValue:0.##}%)"
+                })
+                .ToList() ?? new List<PromotionSelectOptionViewModel>();
+        }
+
+        return View(model);
     }
 
     [HttpPost]
@@ -147,14 +164,18 @@ public class ChargingSessionController : Controller
             return BadRequest();
         }
 
-        var result = await _chargingSessionService.StopSessionAsync(userId.Value, model.Id, new ChargingSessionStopRequestDto());
-
+        var result = await _chargingSessionService.StopSessionAsync(userId.Value, model.Id, new ChargingSessionStopRequestDto
+        {
+            PromotionCode = model.PromotionCode
+        });
         if (!result.Success)
         {
             if (result.Errors.Any(e => e.Code == "FORBIDDEN"))
             {
                 return StatusCode(StatusCodes.Status403Forbidden);
             }
+
+            TempData["SessionError"] = string.Join("; ", result.Errors.Select(e => e.Message));
         }
 
         return RedirectToAction(nameof(Details), new { id = model.Id });
@@ -176,6 +197,10 @@ public class ChargingSessionController : Controller
             DurationMinutes = duration,
             EnergyConsumedKwh = session.EnergyConsumedKwh,
             Cost = session.Cost,
+            BaseCostBeforeDiscount = session.BaseCostBeforeDiscount,
+            DiscountPercent = session.DiscountPercent,
+            DiscountAmount = session.DiscountAmount,
+            PromotionCode = session.PromotionCode,
             IsActive = session.IsActive
         };
     }
@@ -192,6 +217,10 @@ public class ChargingSessionController : Controller
             DurationMinutes = session.DurationMinutes,
             EnergyConsumedKwh = session.EnergyConsumedKwh,
             Cost = session.Cost,
+            BaseCostBeforeDiscount = session.BaseCostBeforeDiscount,
+            DiscountPercent = session.DiscountPercent,
+            DiscountAmount = session.DiscountAmount,
+            PromotionCode = session.PromotionCode,
             IsActive = session.IsActive
         };
     }

@@ -10,12 +10,18 @@ public class ReservationService : IReservationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAvailabilityService _availabilityService;
     private readonly IPricingService _pricingService;
+    private readonly IPromotionService _promotionService;
 
-    public ReservationService(IUnitOfWork unitOfWork, IAvailabilityService availabilityService, IPricingService pricingService)
+    public ReservationService(
+        IUnitOfWork unitOfWork,
+        IAvailabilityService availabilityService,
+        IPricingService pricingService,
+        IPromotionService promotionService)
     {
         _unitOfWork = unitOfWork;
         _availabilityService = availabilityService;
         _pricingService = pricingService;
+        _promotionService = promotionService;
     }
 
     public async Task<ServiceResult<StationDetailsDto>> GetStationDetailsAsync(Guid stationId, DateTime? dateUtc = null)
@@ -127,6 +133,18 @@ public class ReservationService : IReservationService
             EstimatedCost = estimateResult.Data.EstimatedCost,
             Status = EReservationStatus.Active
         };
+
+        if (!string.IsNullOrWhiteSpace(dto.PromotionCode))
+        {
+            var promotionResult = await _promotionService.ValidateUserPromotionForCompanyAsync(userId, station.CompanyId, dto.PromotionCode);
+            if (!promotionResult.Success || promotionResult.Data == null)
+            {
+                return ServiceResult<ReservationDto>.Fail(promotionResult.Errors);
+            }
+
+            reservation.EstimatedCost = ApplyDiscount(reservation.EstimatedCost, promotionResult.Data.DiscountValue);
+            reservation.PromotionId = promotionResult.Data.PromotionId;
+        }
 
         await _unitOfWork.Reservations.AddAsync(reservation);
         await _unitOfWork.SaveAsync();
@@ -254,7 +272,7 @@ public class ReservationService : IReservationService
 
     private static EReservationStatus GetEffectiveStatus(Reservation reservation)
     {
-        if (reservation.Status == EReservationStatus.Active && DateTime.UtcNow > reservation.StartTime.AddMinutes(15))
+        if (reservation.Status == EReservationStatus.Active && DateTime.UtcNow > reservation.ExpiresAtUtc)
         {
             return EReservationStatus.Expired;
         }
@@ -285,7 +303,14 @@ public class ReservationService : IReservationService
             return false;
         }
 
-        return nowUtc <= reservation.StartTime.AddMinutes(15) && reservation.EndTime > nowUtc;
+        return nowUtc <= reservation.ExpiresAtUtc && reservation.EndTime > nowUtc;
+    }
+
+    private static decimal ApplyDiscount(decimal baseCost, decimal discountValue)
+    {
+        var safeDiscount = Math.Min(100m, Math.Max(0m, discountValue));
+        var discounted = baseCost * (1m - safeDiscount / 100m);
+        return Math.Round(Math.Max(0m, discounted), 2, MidpointRounding.AwayFromZero);
     }
 
     private static DateTime ToUtc(DateTime value)
@@ -298,6 +323,3 @@ public class ReservationService : IReservationService
         };
     }
 }
-
-
-

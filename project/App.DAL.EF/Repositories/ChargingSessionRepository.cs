@@ -18,6 +18,8 @@ public class ChargingSessionRepository : IChargingSessionRepository
         return _context.ChargingSessions
             .Include(s => s.ChargingStation)
             .Include(s => s.Reservation)
+            .ThenInclude(r => r!.Promotion)
+            .Include(s => s.Promotion)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
@@ -26,6 +28,8 @@ public class ChargingSessionRepository : IChargingSessionRepository
         return _context.ChargingSessions
             .Include(s => s.ChargingStation)
             .Include(s => s.Reservation)
+            .ThenInclude(r => r!.Promotion)
+            .Include(s => s.Promotion)
             .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
     }
 
@@ -34,6 +38,8 @@ public class ChargingSessionRepository : IChargingSessionRepository
         return _context.ChargingSessions
             .Include(s => s.ChargingStation)
             .Include(s => s.Reservation)
+            .ThenInclude(r => r!.Promotion)
+            .Include(s => s.Promotion)
             .FirstOrDefaultAsync(s => s.ReservationId == reservationId);
     }
 
@@ -42,6 +48,8 @@ public class ChargingSessionRepository : IChargingSessionRepository
         return _context.ChargingSessions
             .Include(s => s.ChargingStation)
             .Include(s => s.Reservation)
+            .ThenInclude(r => r!.Promotion)
+            .Include(s => s.Promotion)
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.StartTime)
             .AsNoTracking()

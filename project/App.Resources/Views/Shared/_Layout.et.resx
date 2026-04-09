@@ -86,6 +86,9 @@
     <data name="MyVehicles" xml:space="preserve">
         <value>Minu sõidukid</value>
     </data>
+    <data name="MyPromotions" xml:space="preserve">
+        <value>Minu kampaaniad</value>
+    </data>
     <data name="CompanyAudit" xml:space="preserve">
         <value>Ettevõtte audit</value>
     </data>
@@ -97,6 +100,9 @@
     </data>
     <data name="CompanyMaintenance" xml:space="preserve">
         <value>Ettevõtte hooldus</value>
+    </data>
+    <data name="CompanyPromotions" xml:space="preserve">
+        <value>Ettevõtte kampaaniad</value>
     </data>
     <data name="PaymentMethods" xml:space="preserve">
         <value>Makselahendused</value>

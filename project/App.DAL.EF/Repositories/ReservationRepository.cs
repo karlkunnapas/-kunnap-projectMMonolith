@@ -52,7 +52,7 @@ public class ReservationRepository : IReservationRepository
         return _context.Reservations
             .Where(r => r.ChargingStationId == stationId
                         && ((r.Status == EReservationStatus.Active
-                             && nowUtc <= r.StartTime.AddMinutes(15)
+                             && nowUtc <= r.ExpiresAtUtc
                              && r.EndTime > nowUtc)
                             || (r.Status == EReservationStatus.Started
                                 && r.EndTime > nowUtc)))
@@ -65,7 +65,7 @@ public class ReservationRepository : IReservationRepository
 
         var query = _context.Reservations
             .Where(r => r.ChargingStationId == stationId
-                        && ((r.Status == EReservationStatus.Active && nowUtc <= r.StartTime.AddMinutes(15))
+                        && ((r.Status == EReservationStatus.Active && nowUtc <= r.ExpiresAtUtc)
                             || r.Status == EReservationStatus.Started)
                         && r.StartTime < endTimeUtc
                         && startTimeUtc < r.EndTime);

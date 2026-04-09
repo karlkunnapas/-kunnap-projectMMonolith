@@ -1,0 +1,60 @@
+@model WebApp.Areas.Root.ViewModels.PromotionWalletViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.Promotion.Index.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Root.Promotion.Index.Heading</h2>
+        </div>
+
+        @if (TempData["PromotionError"] is string errorText && !string.IsNullOrWhiteSpace(errorText))
+        {
+            <div class="station-empty text-danger">@errorText</div>
+        }
+
+        @if (TempData["PromotionSuccess"] is string successText && !string.IsNullOrWhiteSpace(successText))
+        {
+            <div class="station-empty text-success">@successText</div>
+        }
+
+        <form asp-action="Redeem" method="post" class="station-card vehicle-form-card">
+            @Html.AntiForgeryToken()
+            <div class="vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label asp-for="RedeemCode" class="home-filters-title">@App.Resources.Views.Root.Promotion.Index.RedeemCodeLabel</label>
+                    <input asp-for="RedeemCode" class="form-control" />
+                </div>
+                <div class="station-actions vehicle-actions">
+                    <button type="submit" class="station-button">@App.Resources.Views.Root.Promotion.Index.RedeemAction</button>
+                </div>
+            </div>
+        </form>
+
+        @if (!Model.Promotions.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Root.Promotion.Index.NoPromotions</div>
+        }
+        else
+        {
+            @foreach (var promotion in Model.Promotions)
+            {
+                <div class="station-card">
+                    <div class="station-icon">%</div>
+                    <div class="station-details">
+                        <div class="station-name">@promotion.Code</div>
+                        <div class="station-meta">@App.Resources.Views.Root.Promotion.Index.DiscountLabel: @promotion.DiscountValue.ToString("0.##")%</div>
+                        <div class="station-meta">@App.Resources.Views.Root.Promotion.Index.ValidWindowLabel: @promotion.ValidFromUtc.ToLocalTime().ToString("g") - @promotion.ValidToUtc.ToLocalTime().ToString("g")</div>
+                    </div>
+                    <div class="station-actions vehicle-actions">
+                        <form asp-action="Remove" asp-route-id="@promotion.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Root.Promotion.Index.RemoveAction</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

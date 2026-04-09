@@ -1,0 +1,47 @@
+@model WebApp.Areas.Company.ViewModels.CompanyPromotionListViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Promotion.Index.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Promotion.Index.Heading</h2>
+            <a class="station-button" asp-action="Create" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Promotion.Index.CreateAction</a>
+        </div>
+
+        @if (!Model.Promotions.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Company.Promotion.Index.NoPromotions</div>
+        }
+        else
+        {
+            @foreach (var promotion in Model.Promotions)
+            {
+                var statusClass = promotion.IsActive ? "status-ok" : "status-bad";
+                <div class="station-card">
+                    <div class="station-icon">%</div>
+                    <div class="station-details">
+                        <div class="station-name">@promotion.Code</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Promotion.Index.DiscountLabel: @promotion.DiscountValue.ToString("0.##")%</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Promotion.Index.ValidWindowLabel: @promotion.ValidFromUtc.ToLocalTime().ToString("g") - @promotion.ValidToUtc.ToLocalTime().ToString("g")</div>
+                        <div class="station-status @statusClass">
+                            @(promotion.IsActive
+                                ? App.Resources.Views.Company.Promotion.Index.ActiveStatus
+                                : App.Resources.Views.Company.Promotion.Index.InactiveStatus)
+                        </div>
+                    </div>
+                    <div class="station-actions vehicle-actions">
+                        <a class="filter-chip" asp-action="Edit" asp-route-id="@promotion.Id" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Promotion.Index.EditAction</a>
+                        <form asp-action="Delete" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                            <input type="hidden" name="id" value="@promotion.Id" />
+                            <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Company.Promotion.Index.DeleteAction</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

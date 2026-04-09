@@ -22,6 +22,8 @@ public interface IUnitOfWork : IAsyncDisposable
     IVehicleRepository Vehicles { get; }
     IVehicleConnectorRepository VehicleConnectors { get; }
     IReservationRepository Reservations { get; }
+    IPromotionRepository Promotions { get; }
+    IUserPromotionRepository UserPromotions { get; }
 
     /// <summary>
     /// Commits all tracked changes to the database.

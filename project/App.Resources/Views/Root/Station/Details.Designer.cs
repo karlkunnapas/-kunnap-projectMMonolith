@@ -140,6 +140,12 @@ namespace App.Resources.Views.Root.Station {
                 return ResourceManager.GetString("EstimatedEnergy", resourceCulture);
             }
         }
+
+        public static string PromotionCode {
+            get {
+                return ResourceManager.GetString("PromotionCode", resourceCulture);
+            }
+        }
         
         public static string ReserveNow {
             get {

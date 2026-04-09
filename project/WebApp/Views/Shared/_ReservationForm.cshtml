@@ -33,6 +33,17 @@
         <input asp-for="EstimatedCost" class="form-control" id="reservation-cost" readonly disabled="@(!canReserve)" />
     </div>
 
+    <div class="vehicle-form-field">
+        <label asp-for="PromotionCode" class="home-filters-title">@App.Resources.Views.Root.Station.Details.PromotionCode</label>
+        <select asp-for="PromotionCode" class="form-control" id="reservation-promotion-code" disabled="@(!canReserve)">
+            <option value="">@App.Resources.Views.Root.Reservation.Create.PromotionNoneOption</option>
+            @foreach (var promo in Model.AvailablePromotions)
+            {
+                <option value="@promo.Code">@promo.DisplayText</option>
+            }
+        </select>
+    </div>
+
     <div class="home-filter-row">
         <button type="submit" class="station-button" id="reserve-button" disabled="@(!canReserve)">@App.Resources.Views.Root.Station.Details.ReserveNow</button>
         <a class="filter-chip" asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Root.Station.Details.MyReservations</a>

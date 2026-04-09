@@ -10,12 +10,18 @@ public class ChargingSessionService : IChargingSessionService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IReservationService _reservationService;
     private readonly IPricingService _pricingService;
+    private readonly IPromotionService _promotionService;
 
-    public ChargingSessionService(IUnitOfWork unitOfWork, IReservationService reservationService, IPricingService pricingService)
+    public ChargingSessionService(
+        IUnitOfWork unitOfWork,
+        IReservationService reservationService,
+        IPricingService pricingService,
+        IPromotionService promotionService)
     {
         _unitOfWork = unitOfWork;
         _reservationService = reservationService;
         _pricingService = pricingService;
+        _promotionService = promotionService;
     }
 
     public async Task<ServiceResult<ChargingSessionDto>> StartSessionAsync(Guid userId, ChargingSessionStartRequestDto dto)
@@ -58,6 +64,7 @@ public class ChargingSessionService : IChargingSessionService
             UserId = userId,
             ChargingStationId = reservation.ChargingStationId,
             ReservationId = reservation.Id,
+            PromotionId = reservation.PromotionId,
             StartTime = DateTime.UtcNow,
             EndTime = null,
             EnergyConsumed = 0m,
@@ -102,6 +109,54 @@ public class ChargingSessionService : IChargingSessionService
         session.EndTime = nowUtc;
         session.EnergyConsumed = energyConsumedKwh;
         session.Cost = costResult.Data;
+
+        AppliedPromotionDto? appliedPromotion = null;
+        if (session.PromotionId.HasValue)
+        {
+            var userPromotion = await _unitOfWork.UserPromotions.GetByUserAndPromotionAsync(userId, session.PromotionId.Value);
+            if (userPromotion == null || userPromotion.IsUsed)
+            {
+                return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Promotion code is not available in your wallet.");
+            }
+
+            var lockedPromotion = session.Promotion ?? session.Reservation?.Promotion;
+            if (lockedPromotion == null)
+            {
+                return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Promotion code is not available in your wallet.");
+            }
+
+            appliedPromotion = new AppliedPromotionDto
+            {
+                PromotionId = lockedPromotion.Id,
+                Code = lockedPromotion.Code,
+                DiscountValue = lockedPromotion.DiscountValue
+            };
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.PromotionCode))
+        {
+            var promotionResult = await _promotionService.ValidateUserPromotionForCompanyAsync(
+                userId,
+                session.ChargingStation?.CompanyId,
+                dto.PromotionCode);
+            if (!promotionResult.Success || promotionResult.Data == null)
+            {
+                return ServiceResult<ChargingSessionDto>.Fail(promotionResult.Errors);
+            }
+
+            appliedPromotion = promotionResult.Data;
+        }
+
+        if (appliedPromotion != null)
+        {
+            session.Cost = ApplyDiscount(session.Cost, appliedPromotion.DiscountValue);
+            session.PromotionId = appliedPromotion.PromotionId;
+
+            var consumeResult = await ConsumeUserPromotionAsync(userId, appliedPromotion.PromotionId);
+            if (!consumeResult.Success)
+            {
+                return ServiceResult<ChargingSessionDto>.Fail(consumeResult.Errors);
+            }
+        }
 
         if (session.ChargingStation != null)
         {
@@ -150,6 +205,11 @@ public class ChargingSessionService : IChargingSessionService
 
     private static ChargingSessionDto MapSession(ChargingSession session)
     {
+        var promotionCode = session.Promotion?.Code ?? session.Reservation?.Promotion?.Code;
+        var discountPercent = session.Promotion?.DiscountValue ?? session.Reservation?.Promotion?.DiscountValue ?? 0m;
+        var baseCost = discountPercent > 0m ? RecoverBaseCost(session.Cost, discountPercent) : session.Cost;
+        var discountAmount = Math.Max(0m, baseCost - session.Cost);
+
         return new ChargingSessionDto
         {
             Id = session.Id,
@@ -160,6 +220,10 @@ public class ChargingSessionService : IChargingSessionService
             EndTimeUtc = session.EndTime,
             EnergyConsumedKwh = session.EnergyConsumed,
             Cost = session.Cost,
+            BaseCostBeforeDiscount = baseCost,
+            DiscountPercent = discountPercent,
+            DiscountAmount = discountAmount,
+            PromotionCode = promotionCode,
             IsActive = session.EndTime == null
         };
     }
@@ -177,6 +241,15 @@ public class ChargingSessionService : IChargingSessionService
         var calculatedCost = session.EndTime.HasValue
             ? session.Cost
             : Math.Round((session.ChargingStation?.PricePerKwh ?? 0m) * energyConsumedKwh, 2, MidpointRounding.AwayFromZero);
+        var promotionCode = session.Promotion?.Code ?? session.Reservation?.Promotion?.Code;
+        var discountPercent = session.Promotion?.DiscountValue ?? session.Reservation?.Promotion?.DiscountValue ?? 0m;
+        var baseCost = session.EndTime.HasValue && discountPercent > 0m
+            ? RecoverBaseCost(calculatedCost, discountPercent)
+            : calculatedCost;
+        var discountedCost = discountPercent > 0m
+            ? ApplyDiscount(baseCost, discountPercent)
+            : calculatedCost;
+        var discountAmount = Math.Max(0m, baseCost - discountedCost);
 
         return new ChargingSessionDetailsDto
         {
@@ -188,7 +261,11 @@ public class ChargingSessionService : IChargingSessionService
             EndTimeUtc = session.EndTime,
             DurationMinutes = durationMinutes,
             EnergyConsumedKwh = energyConsumedKwh,
-            Cost = calculatedCost,
+            Cost = discountedCost,
+            BaseCostBeforeDiscount = baseCost,
+            DiscountPercent = discountPercent,
+            DiscountAmount = discountAmount,
+            PromotionCode = promotionCode,
             IsActive = session.EndTime == null
         };
     }
@@ -198,5 +275,51 @@ public class ChargingSessionService : IChargingSessionService
         var effectivePower = Math.Max(1m, Math.Min(stationMaxPower ?? 50m, 200m));
         var durationHours = durationMinutes / 60m;
         return Math.Round(durationHours * effectivePower, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static decimal ApplyDiscount(decimal baseCost, decimal discountValue)
+    {
+        var safeDiscount = Math.Min(100m, Math.Max(0m, discountValue));
+        var discounted = baseCost * (1m - safeDiscount / 100m);
+        return Math.Round(Math.Max(0m, discounted), 2, MidpointRounding.AwayFromZero);
+    }
+
+    private Task<ServiceResult> ConsumeUserPromotionAsync(Guid userId, Guid promotionId)
+    {
+        return ConsumeUserPromotionInternalAsync(userId, promotionId);
+    }
+
+    private async Task<ServiceResult> ConsumeUserPromotionInternalAsync(Guid userId, Guid promotionId)
+    {
+        var userPromotion = await _unitOfWork.UserPromotions.GetByUserAndPromotionAsync(userId, promotionId);
+        if (userPromotion == null)
+        {
+            return ServiceResult.Fail("VALIDATION", "Promotion code is not available in your wallet.");
+        }
+
+        if (userPromotion.IsUsed)
+        {
+            return ServiceResult.Fail("VALIDATION", "Promotion code is not available in your wallet.");
+        }
+
+        userPromotion.IsUsed = true;
+        return ServiceResult.Ok();
+    }
+
+    private static decimal RecoverBaseCost(decimal discountedCost, decimal discountPercent)
+    {
+        var safeDiscount = Math.Min(100m, Math.Max(0m, discountPercent));
+        if (safeDiscount <= 0m)
+        {
+            return discountedCost;
+        }
+
+        if (safeDiscount >= 100m)
+        {
+            return discountedCost;
+        }
+
+        var baseCost = discountedCost / (1m - safeDiscount / 100m);
+        return Math.Round(Math.Max(0m, baseCost), 2, MidpointRounding.AwayFromZero);
     }
 }

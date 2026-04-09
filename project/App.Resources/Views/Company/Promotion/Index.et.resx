@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>1.3</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Ettevõtte kampaaniad</value></data>
+  <data name="Heading" xml:space="preserve"><value>Kampaaniate haldus</value></data>
+  <data name="CreateAction" xml:space="preserve"><value>Loo kampaania</value></data>
+  <data name="NoPromotions" xml:space="preserve"><value>Kampaaniaid pole veel loodud.</value></data>
+  <data name="DiscountLabel" xml:space="preserve"><value>Soodustus</value></data>
+  <data name="ValidWindowLabel" xml:space="preserve"><value>Kehtiv</value></data>
+  <data name="ActiveStatus" xml:space="preserve"><value>Aktiivne</value></data>
+  <data name="InactiveStatus" xml:space="preserve"><value>Mitteaktiivne</value></data>
+  <data name="EditAction" xml:space="preserve"><value>Muuda</value></data>
+  <data name="DeleteAction" xml:space="preserve"><value>Kustuta</value></data>
+</root>

@@ -4,6 +4,7 @@ using App.DAL.EF;
 using App.DAL.EF.Repositories.Implementations;
 using App.Domain;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace WebApp.Tests.Unit;
 
@@ -28,7 +29,8 @@ public class UnitTestReservationService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow));
+        var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
+        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
         var userId = Guid.NewGuid();
 
         var start = DateTime.UtcNow.AddHours(1);
@@ -46,6 +48,58 @@ public class UnitTestReservationService
         Assert.NotNull(result.Data);
         Assert.Equal(EReservationStatus.Active, result.Data!.Status);
         Assert.Equal(start.AddMinutes(15), result.Data.ExpiresAtUtc);
+    }
+
+    [Fact]
+    public async Task ReserveAsync_WithPromotionCode_AppliesDiscountToEstimatedCost()
+    {
+        await using var context = BuildContext();
+        var station = new ChargingStation
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr { ["en"] = "Discount Station" },
+            Location = "Tallinn",
+            CompanyId = Guid.NewGuid(),
+            Status = EStationStatus.Available,
+            PricePerKwh = 10m,
+            MaxPower = 150,
+            IsActive = true
+        };
+
+        context.ChargingStations.Add(station);
+        await context.SaveChangesAsync();
+
+        await using var uow = new UnitOfWork(context);
+        var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
+        promotionService
+            .Setup(s => s.ValidateUserPromotionForCompanyAsync(It.IsAny<Guid>(), station.CompanyId!.Value, "SAVE20"))
+            .ReturnsAsync(ServiceResult<App.BLL.DTOs.AppliedPromotionDto>.Ok(new App.BLL.DTOs.AppliedPromotionDto
+            {
+                PromotionId = Guid.NewGuid(),
+                Code = "SAVE20",
+                DiscountValue = 20m
+            }));
+
+        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
+        var userId = Guid.NewGuid();
+        var start = DateTime.UtcNow.AddHours(1);
+        var end = start.AddHours(1);
+
+        var result = await service.ReserveAsync(userId, new ReservationCreateDto
+        {
+            StationId = station.Id,
+            StartTimeUtc = start,
+            EndTimeUtc = end,
+            EstimatedEnergyKwh = 10m,
+            PromotionCode = "SAVE20"
+        });
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Equal(80m, result.Data!.EstimatedCost);
+
+        var persisted = await context.Reservations.SingleAsync(r => r.UserId == userId);
+        Assert.NotNull(persisted.PromotionId);
     }
 
     [Fact]
@@ -79,7 +133,8 @@ public class UnitTestReservationService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow));
+        var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
+        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
 
         var result = await service.ReserveAsync(Guid.NewGuid(), new ReservationCreateDto
         {
@@ -111,7 +166,8 @@ public class UnitTestReservationService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow));
+        var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
+        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
 
         var start = DateTime.UtcNow.AddHours(1);
         var end = start.AddMinutes(45);
@@ -160,7 +216,8 @@ public class UnitTestReservationService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow));
+        var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
+        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
 
         var result = await service.StartReservationAsync(reservation.Id, userId);
         Assert.True(result.Success);
@@ -204,7 +261,8 @@ public class UnitTestReservationService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow));
+        var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
+        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
 
         var result = await service.CancelReservationAsync(reservation.Id, userId);
 

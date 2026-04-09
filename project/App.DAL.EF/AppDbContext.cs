@@ -198,6 +198,11 @@ public class AppDbContext(
             return ResolveStationCompanyId(session.ChargingStationId);
         }
 
+        if (entry.Entity is UserPromotion userPromotion)
+        {
+            return ResolvePromotionCompanyId(userPromotion.PromotionId);
+        }
+
         var companyIdProperty = entry.Properties
             .FirstOrDefault(p => p.Metadata.Name == nameof(AuditLog.CompanyId));
 
@@ -234,6 +239,30 @@ public class AppDbContext(
             .AsNoTracking()
             .Where(s => s.Id == stationId)
             .Select(s => s.CompanyId)
+            .FirstOrDefault();
+    }
+
+    private Guid? ResolvePromotionCompanyId(Guid promotionId)
+    {
+        if (promotionId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var trackedPromotion = ChangeTracker.Entries<Promotion>()
+            .FirstOrDefault(e => e.Entity.Id == promotionId)
+            ?.Entity;
+
+        if (trackedPromotion?.CompanyId is Guid trackedCompanyId && trackedCompanyId != Guid.Empty)
+        {
+            return trackedCompanyId;
+        }
+
+        return Promotions
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(p => p.Id == promotionId)
+            .Select(p => p.CompanyId)
             .FirstOrDefault();
     }
 

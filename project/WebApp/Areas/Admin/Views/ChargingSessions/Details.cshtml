@@ -52,6 +52,12 @@
         <dd class = "col-sm-10">
             @(Model.Reservation?.Id.ToString() ?? string.Empty)
         </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Promotion)
+        </dt>
+        <dd class = "col-sm-10">
+            @(Model.Promotion?.Code ?? string.Empty)
+        </dd>
     </dl>
 </div>
 <div>

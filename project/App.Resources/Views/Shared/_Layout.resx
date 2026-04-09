@@ -93,6 +93,9 @@
     <data name="MyVehicles" xml:space="preserve">
         <value>My Vehicles</value>
     </data>
+    <data name="MyPromotions" xml:space="preserve">
+        <value>My Promotions</value>
+    </data>
     <data name="CompanyAudit" xml:space="preserve">
         <value>Company Audit</value>
     </data>
@@ -104,6 +107,9 @@
     </data>
     <data name="CompanyMaintenance" xml:space="preserve">
         <value>Company Maintenance</value>
+    </data>
+    <data name="CompanyPromotions" xml:space="preserve">
+        <value>Company Promotions</value>
     </data>
     <data name="PaymentMethods" xml:space="preserve">
         <value>Payment Methods</value>

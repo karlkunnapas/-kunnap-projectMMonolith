@@ -50,6 +50,7 @@ public class ReservationCreateDto
     public DateTime StartTimeUtc { get; set; }
     public DateTime EndTimeUtc { get; set; }
     public decimal? EstimatedEnergyKwh { get; set; }
+    public string? PromotionCode { get; set; }
 }
 
 public class ReservationDto
@@ -70,6 +71,5 @@ public class CostEstimateDto
     public decimal EstimatedCost { get; set; }
     public int DurationMinutes { get; set; }
 }
-
 
 

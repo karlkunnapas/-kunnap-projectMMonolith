@@ -20,6 +20,7 @@
   <data name="StartTime" xml:space="preserve"><value>Start time</value></data>
   <data name="EndTime" xml:space="preserve"><value>End time</value></data>
   <data name="EstimatedEnergy" xml:space="preserve"><value>Estimated energy (kWh)</value></data>
+  <data name="PromotionCode" xml:space="preserve"><value>Promotion code</value></data>
   <data name="ReserveNow" xml:space="preserve"><value>Reserve</value></data>
   <data name="MyReservations" xml:space="preserve"><value>My reservations</value></data>
   <data name="NoAvailability" xml:space="preserve"><value>No slots available for the selected day.</value></data>

@@ -12,6 +12,7 @@ public class ChargingSessionStopRequestDto
 {
     public decimal EnergyConsumedKwh { get; set; }
     public int? DurationMinutes { get; set; }
+    public string? PromotionCode { get; set; }
 }
 
 public class ChargingSessionDto
@@ -24,6 +25,10 @@ public class ChargingSessionDto
     public DateTime? EndTimeUtc { get; set; }
     public decimal EnergyConsumedKwh { get; set; }
     public decimal Cost { get; set; }
+    public decimal BaseCostBeforeDiscount { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public string? PromotionCode { get; set; }
     public bool IsActive { get; set; }
 }
 
@@ -38,6 +43,10 @@ public class ChargingSessionDetailsDto
     public int DurationMinutes { get; set; }
     public decimal EnergyConsumedKwh { get; set; }
     public decimal Cost { get; set; }
+    public decimal BaseCostBeforeDiscount { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public string? PromotionCode { get; set; }
     public bool IsActive { get; set; }
 }
 

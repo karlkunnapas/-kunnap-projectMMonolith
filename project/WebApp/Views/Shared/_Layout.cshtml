@@ -78,6 +78,9 @@
                     <li class="app-nav-item">
                         <a asp-area="Root" asp-controller="Vehicle" asp-action="Index">@App.Resources.Views.Shared._Layout.MyVehicles</a>
                     </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="Promotion" asp-action="Index">@App.Resources.Views.Shared._Layout.MyPromotions</a>
+                    </li>
                 }
                 @if (isCompanyUser)
                 {
@@ -89,6 +92,9 @@
                     </li>
                     <li class="app-nav-item">
                         <a asp-area="Company" asp-controller="Maintenance" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Company" asp-controller="Promotion" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyPromotions</a>
                     </li>
                     <li class="app-nav-item">
                         <a asp-area="Company" asp-controller="Audit" asp-action="CompanyLog">@App.Resources.Views.Shared._Layout.CompanyAudit</a>

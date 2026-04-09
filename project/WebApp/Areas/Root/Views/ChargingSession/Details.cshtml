@@ -18,6 +18,16 @@
                 }
                 <div class="station-meta">@App.Resources.Views.Root.ChargingSession.Details.DurationMinutes: @Model.DurationMinutes</div>
                 <div class="station-meta">@App.Resources.Views.Root.ChargingSession.Details.EnergyConsumed: @Model.EnergyConsumedKwh.ToString("0.##") kWh</div>
+                @if (!string.IsNullOrWhiteSpace(Model.PromotionCode))
+                {
+                    <div class="station-meta">@App.Resources.Views.Root.ChargingSession.Details.PromotionCodeLabel: @Model.PromotionCode</div>
+                }
+                @if (Model.DiscountPercent > 0)
+                {
+                    <div class="station-meta">@App.Resources.Views.Root.ChargingSession.Details.CostBeforeDiscount: @Model.BaseCostBeforeDiscount.ToString("0.00")</div>
+                    <div class="station-meta">@App.Resources.Views.Root.ChargingSession.Details.DiscountPercent: @Model.DiscountPercent.ToString("0.##")%</div>
+                    <div class="station-meta">@App.Resources.Views.Root.ChargingSession.Details.DiscountAmount: @Model.DiscountAmount.ToString("0.00")</div>
+                }
                 <div class="station-status @(Model.IsActive ? "status-warn" : "status-ok")">
                     @(Model.IsActive
                         ? App.Resources.Views.Root.ChargingSession.Details.StatusActive
@@ -26,6 +36,10 @@
                 </div>
             </div>
             <div class="station-actions vehicle-actions">
+                @if (TempData["SessionError"] is string errorText && !string.IsNullOrWhiteSpace(errorText))
+                {
+                    <div class="text-danger">@errorText</div>
+                }
                 <a class="filter-chip" asp-action="History">@App.Resources.Views.Root.ChargingSession.Details.BackToHistory</a>
                 @if (Model.IsActive)
                 {
@@ -34,6 +48,22 @@
                         <input type="hidden" name="Id" value="@Model.Id" />
                         <input type="text" class="form-control mb-2" value="@Model.DurationMinutes" readonly aria-label="@App.Resources.Views.Root.ChargingSession.Details.DurationMinutes" />
                         <input type="text" class="form-control mb-2" value="@Model.EnergyConsumedKwh.ToString("0.##")" readonly aria-label="@App.Resources.Views.Root.ChargingSession.Details.EnergyConsumed" />
+                        @if (!string.IsNullOrWhiteSpace(Model.PromotionCode))
+                        {
+                            <input type="text" class="form-control mb-2" value="@Model.PromotionCode" readonly aria-label="@App.Resources.Views.Root.ChargingSession.Details.PromotionCodeLabel" />
+                            <input type="hidden" name="PromotionCode" value="@Model.PromotionCode" />
+                            <div class="station-meta mb-2">@App.Resources.Views.Root.ChargingSession.Details.PromotionLockedMessage</div>
+                        }
+                        else
+                        {
+                            <select class="form-control mb-2" name="PromotionCode" aria-label="@App.Resources.Views.Root.ChargingSession.Details.PromotionCodePlaceholder">
+                                <option value="">@App.Resources.Views.Root.ChargingSession.Details.PromotionNoneOption</option>
+                                @foreach (var promo in Model.AvailablePromotions)
+                                {
+                                    <option value="@promo.Code">@promo.DisplayText</option>
+                                }
+                            </select>
+                        }
                         <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Root.ChargingSession.Details.StopSession</button>
                     </form>
                 }
@@ -41,4 +71,3 @@
         </div>
     </section>
 </div>
-

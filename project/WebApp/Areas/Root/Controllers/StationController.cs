@@ -14,12 +14,18 @@ public class StationController : Controller
     private readonly IReservationService _reservationService;
     private readonly IAvailabilityService _availabilityService;
     private readonly IVehicleService _vehicleService;
+    private readonly IPromotionService _promotionService;
 
-    public StationController(IReservationService reservationService, IAvailabilityService availabilityService, IVehicleService vehicleService)
+    public StationController(
+        IReservationService reservationService,
+        IAvailabilityService availabilityService,
+        IVehicleService vehicleService,
+        IPromotionService promotionService)
     {
         _reservationService = reservationService;
         _availabilityService = availabilityService;
         _vehicleService = vehicleService;
+        _promotionService = promotionService;
     }
 
     public async Task<IActionResult> Details(Guid id, DateTime? dateUtc = null)
@@ -35,6 +41,7 @@ public class StationController : Controller
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var vehicles = new List<VehicleOptionViewModel>();
 
+        var promotionOptions = new List<PromotionSelectOptionViewModel>();
         if (Guid.TryParse(userIdClaim, out var userId))
         {
             var vehicleResult = await _vehicleService.GetUserVehiclesAsync(userId);
@@ -47,6 +54,16 @@ public class StationController : Controller
                     BatteryCapacityKwh = v.BatteryCapacity ?? 0
                 })
                 .ToList() ?? new List<VehicleOptionViewModel>();
+
+            var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId);
+            promotionOptions = promotionsResult.Data?
+                .OrderBy(p => p.Code)
+                .Select(p => new PromotionSelectOptionViewModel
+                {
+                    Code = p.Code,
+                    DisplayText = $"{p.Code} (-{p.DiscountValue:0.##}%)"
+                })
+                .ToList() ?? new List<PromotionSelectOptionViewModel>();
         }
 
         var selectedVehicle = vehicles.FirstOrDefault();
@@ -111,6 +128,7 @@ public class StationController : Controller
                 EndTimeUtc = DateTime.UtcNow.AddMinutes(30 + durationMinutes),
                 EstimatedEnergyKwh = energyKwh,
                 EstimatedCost = costResult.Data?.EstimatedCost ?? 0,
+                AvailablePromotions = promotionOptions,
                 CanReserve = canReserve
             }
         };

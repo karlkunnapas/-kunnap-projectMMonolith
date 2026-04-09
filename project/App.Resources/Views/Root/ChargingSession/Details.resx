@@ -16,6 +16,12 @@
   <data name="BackToHistory" xml:space="preserve"><value>Back to history</value></data>
   <data name="EnergyInputPlaceholder" xml:space="preserve"><value>Consumed energy (kWh)</value></data>
   <data name="DurationInputPlaceholder" xml:space="preserve"><value>Duration in minutes (optional)</value></data>
+  <data name="PromotionCodePlaceholder" xml:space="preserve"><value>Promotion code (optional)</value></data>
+  <data name="PromotionCodeLabel" xml:space="preserve"><value>Promotion code</value></data>
+  <data name="CostBeforeDiscount" xml:space="preserve"><value>Cost before discount</value></data>
+  <data name="DiscountPercent" xml:space="preserve"><value>Discount</value></data>
+  <data name="DiscountAmount" xml:space="preserve"><value>Discount amount</value></data>
+  <data name="PromotionLockedMessage" xml:space="preserve"><value>Promotion was selected in reservation and cannot be changed for this session.</value></data>
+  <data name="PromotionNoneOption" xml:space="preserve"><value>No promotion</value></data>
   <data name="StopSession" xml:space="preserve"><value>Stop session</value></data>
 </root>
-

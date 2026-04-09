@@ -38,6 +38,18 @@
                     <input asp-for="EstimatedEnergyKwh" class="form-control" disabled="@(!canReserve)" />
                     <span asp-validation-for="EstimatedEnergyKwh" class="text-danger"></span>
                 </div>
+
+                <div class="vehicle-form-field">
+                    <label asp-for="PromotionCode" class="home-filters-title">@App.Resources.Views.Root.Reservation.Create.PromotionCode</label>
+                    <select asp-for="PromotionCode" class="form-control" disabled="@(!canReserve)">
+                        <option value="">@App.Resources.Views.Root.Reservation.Create.PromotionNoneOption</option>
+                        @foreach (var promo in Model.AvailablePromotions)
+                        {
+                            <option value="@promo.Code">@promo.DisplayText</option>
+                        }
+                    </select>
+                    <span asp-validation-for="PromotionCode" class="text-danger"></span>
+                </div>
             </div>
 
             <div class="station-status status-ok">

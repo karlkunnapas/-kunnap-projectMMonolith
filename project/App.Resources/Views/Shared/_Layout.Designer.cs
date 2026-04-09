@@ -195,6 +195,12 @@ namespace App.Resources.Views.Shared {
             }
         }
 
+        public static string MyPromotions {
+            get {
+                return ResourceManager.GetString("MyPromotions", resourceCulture);
+            }
+        }
+
         public static string CompanyAudit {
             get {
                 return ResourceManager.GetString("CompanyAudit", resourceCulture);
@@ -216,6 +222,12 @@ namespace App.Resources.Views.Shared {
         public static string CompanyMaintenance {
             get {
                 return ResourceManager.GetString("CompanyMaintenance", resourceCulture);
+            }
+        }
+
+        public static string CompanyPromotions {
+            get {
+                return ResourceManager.GetString("CompanyPromotions", resourceCulture);
             }
         }
 

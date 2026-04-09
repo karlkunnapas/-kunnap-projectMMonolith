@@ -28,6 +28,9 @@ public class ChargingSessionStopViewModel
 {
     [Required]
     public Guid Id { get; set; }
+
+    [StringLength(128)]
+    public string? PromotionCode { get; set; }
 }
 
 public class ChargingSessionDetailViewModel
@@ -40,7 +43,12 @@ public class ChargingSessionDetailViewModel
     public int DurationMinutes { get; set; }
     public decimal EnergyConsumedKwh { get; set; }
     public decimal Cost { get; set; }
+    public decimal BaseCostBeforeDiscount { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
     public bool IsActive { get; set; }
+    public string? PromotionCode { get; set; }
+    public List<PromotionSelectOptionViewModel> AvailablePromotions { get; set; } = new();
 }
 
 public class ChargingSessionListViewModel

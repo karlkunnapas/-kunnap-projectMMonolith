@@ -114,6 +114,9 @@ namespace App.DAL.EF.Migrations
                     b.Property<decimal>("EnergyConsumed")
                         .HasColumnType("numeric");
 
+                    b.Property<Guid?>("PromotionId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("ReservationId")
                         .HasColumnType("uuid");
 
@@ -126,6 +129,8 @@ namespace App.DAL.EF.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChargingStationId");
+
+                    b.HasIndex("PromotionId");
 
                     b.HasIndex("ReservationId");
 
@@ -158,8 +163,9 @@ namespace App.DAL.EF.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<decimal>("PricePerHour")
-                        .HasColumnType("numeric");
+                    b.Property<decimal>("PricePerKwh")
+                        .HasColumnType("numeric")
+                        .HasColumnName("PricePerHour");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -465,6 +471,9 @@ namespace App.DAL.EF.Migrations
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("PromotionId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("timestamp with time zone");
 
@@ -477,6 +486,8 @@ namespace App.DAL.EF.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChargingStationId");
+
+                    b.HasIndex("PromotionId");
 
                     b.HasIndex("UserId");
 
@@ -491,6 +502,9 @@ namespace App.DAL.EF.Migrations
 
                     b.Property<DateTime>("AddedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("PromotionId")
                         .HasColumnType("uuid");
@@ -717,6 +731,11 @@ namespace App.DAL.EF.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("App.Domain.Promotion", "Promotion")
+                        .WithMany()
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("App.Domain.Reservation", "Reservation")
                         .WithMany()
                         .HasForeignKey("ReservationId")
@@ -729,6 +748,8 @@ namespace App.DAL.EF.Migrations
                         .IsRequired();
 
                     b.Navigation("ChargingStation");
+
+                    b.Navigation("Promotion");
 
                     b.Navigation("Reservation");
 
@@ -818,6 +839,11 @@ namespace App.DAL.EF.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("App.Domain.Promotion", "Promotion")
+                        .WithMany()
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("App.Domain.Identity.AppUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -825,6 +851,8 @@ namespace App.DAL.EF.Migrations
                         .IsRequired();
 
                     b.Navigation("ChargingStation");
+
+                    b.Navigation("Promotion");
 
                     b.Navigation("User");
                 });

@@ -12,8 +12,10 @@ public class Reservation : BaseEntity
     public DateTime? CancelledAtUtc { get; set; }
     public decimal EstimatedCost { get; set; }
     public EReservationStatus Status { get; set; }
+    public Guid? PromotionId { get; set; }
 
     // Navigation properties
     public AppUser? User { get; set; }
     public ChargingStation? ChargingStation { get; set; }
+    public Promotion? Promotion { get; set; }
 }

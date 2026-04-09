@@ -10,7 +10,8 @@
   <data name="EndTime" xml:space="preserve"><value>Lopuaeg</value></data>
   <data name="EstimatedEnergy" xml:space="preserve"><value>Hinnanguline energia (kWh)</value></data>
   <data name="EstimatedCost" xml:space="preserve"><value>Hinnanguline maksumus</value></data>
+  <data name="PromotionCode" xml:space="preserve"><value>Kampaaniakood</value></data>
+  <data name="PromotionNoneOption" xml:space="preserve"><value>Ilma kampaaniata</value></data>
   <data name="Confirm" xml:space="preserve"><value>Kinnita broneering</value></data>
   <data name="Back" xml:space="preserve"><value>Tagasi</value></data>
 </root>
-

@@ -61,7 +61,7 @@ namespace WebApp.Areas.Admin.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("UserId,PromotionId,AddedAt,Id")] UserPromotion userPromotion)
+        public async Task<IActionResult> Create([Bind("UserId,PromotionId,AddedAt,IsUsed,Id")] UserPromotion userPromotion)
         {
             if (ModelState.IsValid)
             {
@@ -98,7 +98,7 @@ namespace WebApp.Areas.Admin.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("UserId,PromotionId,AddedAt,Id")] UserPromotion userPromotion)
+        public async Task<IActionResult> Edit(Guid id, [Bind("UserId,PromotionId,AddedAt,IsUsed,Id")] UserPromotion userPromotion)
         {
             if (id != userPromotion.Id)
             {

@@ -10,7 +10,8 @@
   <data name="EndTime" xml:space="preserve"><value>End time</value></data>
   <data name="EstimatedEnergy" xml:space="preserve"><value>Estimated energy (kWh)</value></data>
   <data name="EstimatedCost" xml:space="preserve"><value>Estimated cost</value></data>
+  <data name="PromotionCode" xml:space="preserve"><value>Promotion code</value></data>
+  <data name="PromotionNoneOption" xml:space="preserve"><value>No promotion</value></data>
   <data name="Confirm" xml:space="preserve"><value>Confirm Reservation</value></data>
   <data name="Back" xml:space="preserve"><value>Back</value></data>
 </root>
-

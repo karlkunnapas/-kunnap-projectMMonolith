@@ -20,6 +20,7 @@
   <data name="StartTime" xml:space="preserve"><value>Algusaeg</value></data>
   <data name="EndTime" xml:space="preserve"><value>Lopuaeg</value></data>
   <data name="EstimatedEnergy" xml:space="preserve"><value>Hinnanguline energia (kWh)</value></data>
+  <data name="PromotionCode" xml:space="preserve"><value>Kampaaniakood</value></data>
   <data name="ReserveNow" xml:space="preserve"><value>Broneeri</value></data>
   <data name="MyReservations" xml:space="preserve"><value>Minu broneeringud</value></data>
   <data name="NoAvailability" xml:space="preserve"><value>Valitud paeva jaoks vabu aegu ei leitud.</value></data>

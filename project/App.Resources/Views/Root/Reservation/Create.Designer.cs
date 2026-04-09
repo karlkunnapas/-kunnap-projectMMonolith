@@ -32,8 +32,9 @@ namespace App.Resources.Views.Root.Reservation {
         public static string EndTime => ResourceManager.GetString("EndTime", resourceCulture);
         public static string EstimatedEnergy => ResourceManager.GetString("EstimatedEnergy", resourceCulture);
         public static string EstimatedCost => ResourceManager.GetString("EstimatedCost", resourceCulture);
+        public static string PromotionCode => ResourceManager.GetString("PromotionCode", resourceCulture);
+        public static string PromotionNoneOption => ResourceManager.GetString("PromotionNoneOption", resourceCulture);
         public static string Confirm => ResourceManager.GetString("Confirm", resourceCulture);
         public static string Back => ResourceManager.GetString("Back", resourceCulture);
     }
 }
-

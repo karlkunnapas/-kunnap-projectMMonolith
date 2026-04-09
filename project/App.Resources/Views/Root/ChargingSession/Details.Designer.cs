@@ -42,7 +42,13 @@ namespace App.Resources.Views.Root.ChargingSession {
         public static string BackToHistory => ResourceManager.GetString("BackToHistory", resourceCulture);
         public static string EnergyInputPlaceholder => ResourceManager.GetString("EnergyInputPlaceholder", resourceCulture);
         public static string DurationInputPlaceholder => ResourceManager.GetString("DurationInputPlaceholder", resourceCulture);
+        public static string PromotionCodePlaceholder => ResourceManager.GetString("PromotionCodePlaceholder", resourceCulture);
+        public static string PromotionCodeLabel => ResourceManager.GetString("PromotionCodeLabel", resourceCulture);
+        public static string CostBeforeDiscount => ResourceManager.GetString("CostBeforeDiscount", resourceCulture);
+        public static string DiscountPercent => ResourceManager.GetString("DiscountPercent", resourceCulture);
+        public static string DiscountAmount => ResourceManager.GetString("DiscountAmount", resourceCulture);
+        public static string PromotionLockedMessage => ResourceManager.GetString("PromotionLockedMessage", resourceCulture);
+        public static string PromotionNoneOption => ResourceManager.GetString("PromotionNoneOption", resourceCulture);
         public static string StopSession => ResourceManager.GetString("StopSession", resourceCulture);
     }
 }
-

@@ -24,7 +24,11 @@ namespace WebApp.Areas.Admin.Controllers
         // GET: Admin/ChargingSessions
         public async Task<IActionResult> Index()
         {
-            var appDbContext = _context.ChargingSessions.Include(c => c.ChargingStation).Include(c => c.Reservation).Include(c => c.User);
+            var appDbContext = _context.ChargingSessions
+                .Include(c => c.ChargingStation)
+                .Include(c => c.Reservation)
+                .Include(c => c.User)
+                .Include(c => c.Promotion);
             return View(await appDbContext.ToListAsync());
         }
 
@@ -40,6 +44,7 @@ namespace WebApp.Areas.Admin.Controllers
                 .Include(c => c.ChargingStation)
                 .Include(c => c.Reservation)
                 .Include(c => c.User)
+                .Include(c => c.Promotion)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (chargingSession == null)
             {
@@ -53,6 +58,7 @@ namespace WebApp.Areas.Admin.Controllers
         public IActionResult Create()
         {
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location");
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code");
             ViewData["ReservationId"] = new SelectList(_context.Reservations, "Id", "Id");
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id");
             return View();
@@ -63,7 +69,7 @@ namespace WebApp.Areas.Admin.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("UserId,ChargingStationId,ReservationId,StartTime,EndTime,EnergyConsumed,Cost,Id")] ChargingSession chargingSession)
+        public async Task<IActionResult> Create([Bind("UserId,ChargingStationId,ReservationId,PromotionId,StartTime,EndTime,EnergyConsumed,Cost,Id")] ChargingSession chargingSession)
         {
             if (ModelState.IsValid)
             {
@@ -73,6 +79,7 @@ namespace WebApp.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location", chargingSession.ChargingStationId);
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code", chargingSession.PromotionId);
             ViewData["ReservationId"] = new SelectList(_context.Reservations, "Id", "Id", chargingSession.ReservationId);
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", chargingSession.UserId);
             return View(chargingSession);
@@ -92,6 +99,7 @@ namespace WebApp.Areas.Admin.Controllers
                 return NotFound();
             }
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location", chargingSession.ChargingStationId);
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code", chargingSession.PromotionId);
             ViewData["ReservationId"] = new SelectList(_context.Reservations, "Id", "Id", chargingSession.ReservationId);
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", chargingSession.UserId);
             return View(chargingSession);
@@ -102,7 +110,7 @@ namespace WebApp.Areas.Admin.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("UserId,ChargingStationId,ReservationId,StartTime,EndTime,EnergyConsumed,Cost,Id")] ChargingSession chargingSession)
+        public async Task<IActionResult> Edit(Guid id, [Bind("UserId,ChargingStationId,ReservationId,PromotionId,StartTime,EndTime,EnergyConsumed,Cost,Id")] ChargingSession chargingSession)
         {
             if (id != chargingSession.Id)
             {
@@ -130,6 +138,7 @@ namespace WebApp.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location", chargingSession.ChargingStationId);
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code", chargingSession.PromotionId);
             ViewData["ReservationId"] = new SelectList(_context.Reservations, "Id", "Id", chargingSession.ReservationId);
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", chargingSession.UserId);
             return View(chargingSession);
@@ -147,6 +156,7 @@ namespace WebApp.Areas.Admin.Controllers
                 .Include(c => c.ChargingStation)
                 .Include(c => c.Reservation)
                 .Include(c => c.User)
+                .Include(c => c.Promotion)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (chargingSession == null)
             {

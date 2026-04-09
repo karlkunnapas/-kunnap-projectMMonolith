@@ -13,10 +13,12 @@ namespace WebApp.Areas.Root.Controllers;
 public class ReservationController : Controller
 {
     private readonly IReservationService _reservationService;
+    private readonly IPromotionService _promotionService;
 
-    public ReservationController(IReservationService reservationService)
+    public ReservationController(IReservationService reservationService, IPromotionService promotionService)
     {
         _reservationService = reservationService;
+        _promotionService = promotionService;
     }
 
     public async Task<IActionResult> Index()
@@ -47,7 +49,7 @@ public class ReservationController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Create(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, decimal? estimatedEnergyKwh = null)
+    public async Task<IActionResult> Create(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, decimal? estimatedEnergyKwh = null, string? promotionCode = null)
     {
         if (stationId == Guid.Empty)
         {
@@ -77,10 +79,12 @@ public class ReservationController : Controller
             StartTimeUtc = startTimeUtc,
             EndTimeUtc = endTimeUtc,
             EstimatedEnergyKwh = estimatedEnergyKwh,
+            PromotionCode = promotionCode,
             EstimatedCost = estimateResult.Data?.EstimatedCost ?? 0,
             StationName = stationResult.Data?.Name ?? string.Empty,
             CanReserve = canReserve
         };
+        await PopulatePromotionOptionsAsync(model, GetCurrentUserId());
 
         return View(model);
     }
@@ -97,6 +101,7 @@ public class ReservationController : Controller
 
         if (!ModelState.IsValid)
         {
+            await PopulatePromotionOptionsAsync(model, userId);
             return View(model);
         }
 
@@ -105,7 +110,8 @@ public class ReservationController : Controller
             StationId = model.StationId,
             StartTimeUtc = model.StartTimeUtc,
             EndTimeUtc = model.EndTimeUtc,
-            EstimatedEnergyKwh = model.EstimatedEnergyKwh
+            EstimatedEnergyKwh = model.EstimatedEnergyKwh,
+            PromotionCode = model.PromotionCode
         });
 
         if (!result.Success)
@@ -122,6 +128,7 @@ public class ReservationController : Controller
                 model.EstimatedCost = estimate.Data?.EstimatedCost ?? model.EstimatedCost;
             }
 
+            await PopulatePromotionOptionsAsync(model, userId);
             return View(model);
         }
 
@@ -200,5 +207,24 @@ public class ReservationController : Controller
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(value, out var userId) ? userId : null;
+    }
+
+    private async Task PopulatePromotionOptionsAsync(ReservationCreateViewModel model, Guid? userId)
+    {
+        model.AvailablePromotions = new List<PromotionSelectOptionViewModel>();
+        if (userId == null)
+        {
+            return;
+        }
+
+        var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
+        model.AvailablePromotions = promotionsResult.Data?
+            .OrderBy(p => p.Code)
+            .Select(p => new PromotionSelectOptionViewModel
+            {
+                Code = p.Code,
+                DisplayText = $"{p.Code} (-{p.DiscountValue:0.##}%)"
+            })
+            .ToList() ?? new List<PromotionSelectOptionViewModel>();
     }
 }

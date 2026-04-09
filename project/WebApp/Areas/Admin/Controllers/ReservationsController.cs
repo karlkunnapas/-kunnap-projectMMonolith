@@ -24,7 +24,10 @@ namespace WebApp.Areas.Admin.Controllers
         // GET: Admin/Reservations
         public async Task<IActionResult> Index()
         {
-            var appDbContext = _context.Reservations.Include(r => r.ChargingStation).Include(r => r.User);
+            var appDbContext = _context.Reservations
+                .Include(r => r.ChargingStation)
+                .Include(r => r.User)
+                .Include(r => r.Promotion);
             return View(await appDbContext.ToListAsync());
         }
 
@@ -39,6 +42,7 @@ namespace WebApp.Areas.Admin.Controllers
             var reservation = await _context.Reservations
                 .Include(r => r.ChargingStation)
                 .Include(r => r.User)
+                .Include(r => r.Promotion)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (reservation == null)
             {
@@ -52,6 +56,7 @@ namespace WebApp.Areas.Admin.Controllers
         public IActionResult Create()
         {
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location");
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code");
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id");
             return View();
         }
@@ -61,7 +66,7 @@ namespace WebApp.Areas.Admin.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("UserId,ChargingStationId,StartTime,EndTime,Status,Id")] Reservation reservation)
+        public async Task<IActionResult> Create([Bind("UserId,ChargingStationId,StartTime,EndTime,ExpiresAtUtc,CancelledAtUtc,EstimatedCost,Status,PromotionId,Id")] Reservation reservation)
         {
             if (ModelState.IsValid)
             {
@@ -71,6 +76,7 @@ namespace WebApp.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location", reservation.ChargingStationId);
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code", reservation.PromotionId);
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", reservation.UserId);
             return View(reservation);
         }
@@ -89,6 +95,7 @@ namespace WebApp.Areas.Admin.Controllers
                 return NotFound();
             }
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location", reservation.ChargingStationId);
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code", reservation.PromotionId);
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", reservation.UserId);
             return View(reservation);
         }
@@ -98,7 +105,7 @@ namespace WebApp.Areas.Admin.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("UserId,ChargingStationId,StartTime,EndTime,Status,Id")] Reservation reservation)
+        public async Task<IActionResult> Edit(Guid id, [Bind("UserId,ChargingStationId,StartTime,EndTime,ExpiresAtUtc,CancelledAtUtc,EstimatedCost,Status,PromotionId,Id")] Reservation reservation)
         {
             if (id != reservation.Id)
             {
@@ -126,6 +133,7 @@ namespace WebApp.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["ChargingStationId"] = new SelectList(_context.ChargingStations, "Id", "Location", reservation.ChargingStationId);
+            ViewData["PromotionId"] = new SelectList(_context.Promotions, "Id", "Code", reservation.PromotionId);
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", reservation.UserId);
             return View(reservation);
         }
@@ -141,6 +149,7 @@ namespace WebApp.Areas.Admin.Controllers
             var reservation = await _context.Reservations
                 .Include(r => r.ChargingStation)
                 .Include(r => r.User)
+                .Include(r => r.Promotion)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (reservation == null)
             {
