@@ -43,6 +43,9 @@ namespace App.Resources.Views.Company.Maintenance {
         public static string Reporter => ResourceManager.GetString("Reporter", resourceCulture);
         public static string Unknown => ResourceManager.GetString("Unknown", resourceCulture);
         public static string Notes => ResourceManager.GetString("Notes", resourceCulture);
+        public static string QuickActionsHeading => ResourceManager.GetString("QuickActionsHeading", resourceCulture);
+        public static string MarkMaintenanceAction => ResourceManager.GetString("MarkMaintenanceAction", resourceCulture);
+        public static string ResolveIssueAction => ResourceManager.GetString("ResolveIssueAction", resourceCulture);
         public static string UpdateStatusHeading => ResourceManager.GetString("UpdateStatusHeading", resourceCulture);
         public static string NotesPlaceholder => ResourceManager.GetString("NotesPlaceholder", resourceCulture);
         public static string UpdateAction => ResourceManager.GetString("UpdateAction", resourceCulture);

@@ -11,4 +11,12 @@
   <data name="Connectors" xml:space="preserve"><value>Connectors</value></data>
   <data name="MaintenanceIssues" xml:space="preserve"><value>Maintenance issues</value></data>
   <data name="DetailsAction" xml:space="preserve"><value>Details</value></data>
+  <data name="CreateAction" xml:space="preserve"><value>Create Station</value></data>
+  <data name="EditAction" xml:space="preserve"><value>Edit</value></data>
+  <data name="DeleteAction" xml:space="preserve"><value>Delete</value></data>
+  <data name="SetAvailableAction" xml:space="preserve"><value>Set Available</value></data>
+  <data name="SetInUseAction" xml:space="preserve"><value>Set In Use</value></data>
+  <data name="SetMaintenanceAction" xml:space="preserve"><value>Set Maintenance</value></data>
+  <data name="PriceLabel" xml:space="preserve"><value>Price</value></data>
+  <data name="MaxPowerLabel" xml:space="preserve"><value>Max power</value></data>
 </root>

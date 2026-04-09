@@ -73,6 +73,40 @@ public class CompanyStationDto
     public int MaintenanceIssueCount { get; set; }
 }
 
+public class CompanyStationUpsertDto
+{
+    public string NameEn { get; set; } = string.Empty;
+    public string NameEt { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public decimal PricePerKwh { get; set; }
+    public decimal MaxPower { get; set; }
+    public EStationStatus Status { get; set; } = EStationStatus.Available;
+    public bool IsActive { get; set; } = true;
+    public List<Guid> SelectedConnectorIds { get; set; } = new();
+}
+
+public class CompanyStationConnectorOptionDto
+{
+    public Guid ConnectorId { get; set; }
+    public string ConnectorName { get; set; } = string.Empty;
+    public bool IsAssigned { get; set; }
+}
+
+public class CompanyStationFormDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public string NameEn { get; set; } = string.Empty;
+    public string NameEt { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public decimal PricePerKwh { get; set; }
+    public decimal MaxPower { get; set; }
+    public EStationStatus Status { get; set; } = EStationStatus.Available;
+    public bool IsActive { get; set; } = true;
+    public List<Guid> SelectedConnectorIds { get; set; } = new();
+    public List<CompanyStationConnectorOptionDto> AvailableConnectors { get; set; } = new();
+}
+
 public class ChartPointDto
 {
     public string Label { get; set; } = string.Empty;

@@ -15,17 +15,20 @@ public class StationController : Controller
     private readonly IAvailabilityService _availabilityService;
     private readonly IVehicleService _vehicleService;
     private readonly IPromotionService _promotionService;
+    private readonly IMaintenanceService _maintenanceService;
 
     public StationController(
         IReservationService reservationService,
         IAvailabilityService availabilityService,
         IVehicleService vehicleService,
-        IPromotionService promotionService)
+        IPromotionService promotionService,
+        IMaintenanceService maintenanceService)
     {
         _reservationService = reservationService;
         _availabilityService = availabilityService;
         _vehicleService = vehicleService;
         _promotionService = promotionService;
+        _maintenanceService = maintenanceService;
     }
 
     public async Task<IActionResult> Details(Guid id, DateTime? dateUtc = null)
@@ -83,6 +86,7 @@ public class StationController : Controller
         var model = new StationDetailsViewModel
         {
             Id = dto.Id,
+            CompanyId = dto.CompanyId,
             Name = dto.Name,
             Location = dto.Location,
             Status = dto.Status,
@@ -130,10 +134,58 @@ public class StationController : Controller
                 EstimatedCost = costResult.Data?.EstimatedCost ?? 0,
                 AvailablePromotions = promotionOptions,
                 CanReserve = canReserve
+            },
+            IssueReportForm = new StationIssueReportViewModel
+            {
+                StationId = dto.Id
             }
         };
 
         return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReportIssue([Bind(Prefix = "IssueReportForm")] StationIssueReportViewModel model)
+    {
+        if (!User.IsInRole("Customer"))
+        {
+            return Forbid();
+        }
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Forbid();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            TempData["IssueReportError"] = App.Resources.Views.Root.Station.Details.ReportIssueValidationError;
+            return RedirectToAction(nameof(Details), new { id = model.StationId });
+        }
+
+        var stationResult = await _reservationService.GetStationDetailsAsync(model.StationId);
+        if (!stationResult.Success || stationResult.Data?.CompanyId == null || stationResult.Data.CompanyId == Guid.Empty)
+        {
+            TempData["IssueReportError"] = App.Resources.Views.Root.Station.Details.ReportIssueFailure;
+            return RedirectToAction(nameof(Details), new { id = model.StationId });
+        }
+
+        var reportResult = await _maintenanceService.CreateMaintenanceAsync(
+            model.StationId,
+            stationResult.Data.CompanyId.Value,
+            userId,
+            model.IssueDescription);
+
+        if (!reportResult.Success)
+        {
+            TempData["IssueReportError"] = App.Resources.Views.Root.Station.Details.ReportIssueFailure;
+            return RedirectToAction(nameof(Details), new { id = model.StationId });
+        }
+
+        TempData["IssueReportSuccess"] = App.Resources.Views.Root.Station.Details.ReportIssueSuccess;
+        return RedirectToAction(nameof(Details), new { id = model.StationId });
     }
 
     [HttpGet]

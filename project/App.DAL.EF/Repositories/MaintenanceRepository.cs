@@ -96,6 +96,39 @@ public class MaintenanceRepository : IMaintenanceRepository
 
     public void Update(Maintenance issue)
     {
-        _context.Maintenances.Update(issue);
+        var trackedEntry = _context.ChangeTracker.Entries<Maintenance>()
+            .FirstOrDefault(entry => entry.Entity.Id == issue.Id);
+
+        if (trackedEntry != null)
+        {
+            trackedEntry.CurrentValues.SetValues(new
+            {
+                issue.ChargingStationId,
+                issue.ReportedByUserId,
+                issue.IssueDescription,
+                issue.Status,
+                issue.ReportedAt,
+                issue.ResolvedAt,
+                issue.AssignedToUserId,
+                issue.Notes
+            });
+            return;
+        }
+
+        var update = new Maintenance
+        {
+            Id = issue.Id,
+            ChargingStationId = issue.ChargingStationId,
+            ReportedByUserId = issue.ReportedByUserId,
+            IssueDescription = issue.IssueDescription,
+            Status = issue.Status,
+            ReportedAt = issue.ReportedAt,
+            ResolvedAt = issue.ResolvedAt,
+            AssignedToUserId = issue.AssignedToUserId,
+            Notes = issue.Notes
+        };
+
+        _context.Maintenances.Attach(update);
+        _context.Entry(update).State = EntityState.Modified;
     }
 }

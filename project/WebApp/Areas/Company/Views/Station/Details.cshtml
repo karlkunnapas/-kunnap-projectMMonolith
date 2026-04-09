@@ -16,7 +16,7 @@
         <div class="vehicle-header-row">
             <h2>@App.Resources.Views.Company.Station.Details.Heading</h2>
             <div class="vehicle-actions">
-                <a class="station-button" asp-area="Company" asp-controller="Maintenance" asp-action="Create" asp-route-companyId="@companyId" asp-route-stationId="@Model.Id">@App.Resources.Views.Company.Station.Details.ReportIssue</a>
+                <a class="station-button" asp-area="Company" asp-controller="Station" asp-action="Edit" asp-route-id="@Model.Id" asp-route-companyId="@companyId">@App.Resources.Views.Company.Station.Details.EditAction</a>
                 <a class="filter-chip" asp-area="Company" asp-controller="Station" asp-action="Index" asp-route-companyId="@companyId">@App.Resources.Views.Company.Station.Details.BackToStations</a>
             </div>
         </div>

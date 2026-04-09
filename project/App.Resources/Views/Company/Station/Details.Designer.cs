@@ -34,6 +34,7 @@ namespace App.Resources.Views.Company.Station {
         public static string Heading => ResourceManager.GetString("Heading", resourceCulture);
         public static string ReportIssue => ResourceManager.GetString("ReportIssue", resourceCulture);
         public static string BackToStations => ResourceManager.GetString("BackToStations", resourceCulture);
+        public static string EditAction => ResourceManager.GetString("EditAction", resourceCulture);
         public static string MaxPower => ResourceManager.GetString("MaxPower", resourceCulture);
         public static string Connectors => ResourceManager.GetString("Connectors", resourceCulture);
         public static string ActiveMaintenance => ResourceManager.GetString("ActiveMaintenance", resourceCulture);

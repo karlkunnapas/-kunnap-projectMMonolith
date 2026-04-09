@@ -275,6 +275,12 @@ body {
     font-weight: 600;
 }
 
+.station-button-compact {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    line-height: 1.2;
+}
+
 .station-empty {
     background: #ffffff;
     border: 1px dashed #d0d7de;

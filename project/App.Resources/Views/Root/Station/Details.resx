@@ -39,4 +39,10 @@
   <data name="CurrencyCode" xml:space="preserve"><value>EUR</value></data>
   <data name="StatusActive" xml:space="preserve"><value>Active</value></data>
   <data name="StatusStarted" xml:space="preserve"><value>In progress</value></data>
+  <data name="ReportIssueTitle" xml:space="preserve"><value>Report a station problem</value></data>
+  <data name="ReportIssueDescriptionLabel" xml:space="preserve"><value>Describe the issue</value></data>
+  <data name="ReportIssueSubmit" xml:space="preserve"><value>Submit issue</value></data>
+  <data name="ReportIssueSuccess" xml:space="preserve"><value>Issue reported successfully. The station operator has been notified.</value></data>
+  <data name="ReportIssueFailure" xml:space="preserve"><value>Could not report issue. Please try again.</value></data>
+  <data name="ReportIssueValidationError" xml:space="preserve"><value>Please enter a valid issue description.</value></data>
 </root>

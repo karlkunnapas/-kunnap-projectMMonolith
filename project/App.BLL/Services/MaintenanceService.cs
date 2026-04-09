@@ -69,8 +69,6 @@ public class MaintenanceService : IMaintenanceService
             ReportedAt = DateTime.UtcNow
         };
 
-        station.Status = EStationStatus.Maintenance;
-
         await _unitOfWork.Maintenances.AddAsync(issue);
         await _unitOfWork.SaveAsync();
 
@@ -115,26 +113,17 @@ public class MaintenanceService : IMaintenanceService
             issue.ResolvedAt = null;
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(issue.ChargingStationId, companyId);
-        if (station == null)
+        var station = issue.ChargingStation;
+        if (station == null || station.CompanyId != companyId)
         {
             return ServiceResult<MaintenanceIssueDto>.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        if (newStatus == EMaintenanceStatus.Resolved)
-        {
-            var unresolvedOtherIssues = (await _unitOfWork.Maintenances.GetByStationIdAsync(station.Id))
-                .Any(other => other.Id != issue.Id && other.Status != EMaintenanceStatus.Resolved);
-
-            if (!unresolvedOtherIssues)
-            {
-                station.Status = EStationStatus.Available;
-            }
-        }
-        else
-        {
-            station.Status = EStationStatus.Maintenance;
-        }
+        var targetStationStatus = newStatus == EMaintenanceStatus.Resolved
+            ? EStationStatus.Available
+            : EStationStatus.Maintenance;
+        var stationUpdate = BuildStationStatusUpdate(station, targetStationStatus);
+        _unitOfWork.ChargingStations.UpdateForCompany(stationUpdate);
 
         _unitOfWork.Maintenances.Update(issue);
         await _unitOfWork.SaveAsync();
@@ -225,6 +214,21 @@ public class MaintenanceService : IMaintenanceService
             AssignedToUserName = issue.AssignedToUser?.UserName ?? string.Empty,
             ReporterUserName = issue.ReportedByUser?.UserName ?? string.Empty,
             Notes = issue.Notes
+        };
+    }
+
+    private static ChargingStation BuildStationStatusUpdate(ChargingStation source, EStationStatus status)
+    {
+        return new ChargingStation
+        {
+            Id = source.Id,
+            Name = source.Name,
+            Location = source.Location,
+            Status = status,
+            PricePerKwh = source.PricePerKwh,
+            MaxPower = source.MaxPower,
+            IsActive = source.IsActive,
+            CompanyId = source.CompanyId
         };
     }
 }

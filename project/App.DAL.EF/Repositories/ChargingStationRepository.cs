@@ -74,4 +74,51 @@ public class ChargingStationRepository : IChargingStationRepository
             .Include(station => station.ChargingSessions!)
             .FirstOrDefaultAsync();
     }
+
+    public async Task CreateForCompanyAsync(ChargingStation station, Guid companyId)
+    {
+        station.CompanyId = companyId;
+        await _context.ChargingStations.AddAsync(station);
+    }
+
+    public void UpdateForCompany(ChargingStation station)
+    {
+        var trackedEntry = _context.ChangeTracker.Entries<ChargingStation>()
+            .FirstOrDefault(entry => entry.Entity.Id == station.Id);
+
+        if (trackedEntry != null)
+        {
+            trackedEntry.CurrentValues.SetValues(new
+            {
+                station.Name,
+                station.Location,
+                station.Status,
+                station.PricePerKwh,
+                station.MaxPower,
+                station.IsActive,
+                station.CompanyId
+            });
+            return;
+        }
+
+        var update = new ChargingStation
+        {
+            Id = station.Id,
+            Name = station.Name,
+            Location = station.Location,
+            Status = station.Status,
+            PricePerKwh = station.PricePerKwh,
+            MaxPower = station.MaxPower,
+            IsActive = station.IsActive,
+            CompanyId = station.CompanyId
+        };
+
+        _context.ChargingStations.Attach(update);
+        _context.Entry(update).State = EntityState.Modified;
+    }
+
+    public void DeleteForCompany(ChargingStation station)
+    {
+        _context.ChargingStations.Remove(station);
+    }
 }

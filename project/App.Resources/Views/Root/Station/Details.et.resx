@@ -39,4 +39,10 @@
   <data name="CurrencyCode" xml:space="preserve"><value>EUR</value></data>
   <data name="StatusActive" xml:space="preserve"><value>Aktiivne</value></data>
   <data name="StatusStarted" xml:space="preserve"><value>Kaimas</value></data>
+  <data name="ReportIssueTitle" xml:space="preserve"><value>Teavita jaama probleemist</value></data>
+  <data name="ReportIssueDescriptionLabel" xml:space="preserve"><value>Kirjelda probleemi</value></data>
+  <data name="ReportIssueSubmit" xml:space="preserve"><value>Saada teavitus</value></data>
+  <data name="ReportIssueSuccess" xml:space="preserve"><value>Probleem on raporteeritud. Jaama operaatorit on teavitatud.</value></data>
+  <data name="ReportIssueFailure" xml:space="preserve"><value>Probleemi raporteerimine ebaonnestus. Proovi uuesti.</value></data>
+  <data name="ReportIssueValidationError" xml:space="preserve"><value>Palun sisesta korrektne probleemi kirjeldus.</value></data>
 </root>

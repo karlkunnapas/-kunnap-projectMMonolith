@@ -17,6 +17,9 @@
   <data name="Reporter" xml:space="preserve"><value>Raporteerija</value></data>
   <data name="Unknown" xml:space="preserve"><value>Tundmatu</value></data>
   <data name="Notes" xml:space="preserve"><value>Märkused</value></data>
+  <data name="QuickActionsHeading" xml:space="preserve"><value>Kiirtegevused</value></data>
+  <data name="MarkMaintenanceAction" xml:space="preserve"><value>Märgi jaam hooldusesse</value></data>
+  <data name="ResolveIssueAction" xml:space="preserve"><value>Lahenda probleem</value></data>
   <data name="UpdateStatusHeading" xml:space="preserve"><value>Uuenda staatust</value></data>
   <data name="NotesPlaceholder" xml:space="preserve"><value>Lisa märkused</value></data>
   <data name="UpdateAction" xml:space="preserve"><value>Uuenda</value></data>

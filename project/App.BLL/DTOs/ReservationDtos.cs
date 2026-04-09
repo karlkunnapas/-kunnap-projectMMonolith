@@ -5,6 +5,7 @@ namespace App.BLL.DTOs;
 public class StationDetailsDto
 {
     public Guid Id { get; set; }
+    public Guid? CompanyId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public EStationStatus Status { get; set; }
@@ -71,5 +72,4 @@ public class CostEstimateDto
     public decimal EstimatedCost { get; set; }
     public int DurationMinutes { get; set; }
 }
-
 

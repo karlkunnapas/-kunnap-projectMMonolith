@@ -158,6 +158,32 @@
             <div class="station-card reservation-section-card">
                 <partial name="~/Views/Shared/_ReservationForm.cshtml" model="Model.ReservationForm" />
             </div>
+
+            <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.ReportIssueTitle</h3>
+            <div class="station-card reservation-section-card">
+                <div class="station-details">
+                    @if (TempData["IssueReportSuccess"] is string successMessage)
+                    {
+                        <div class="station-status status-ok">@successMessage</div>
+                    }
+                    @if (TempData["IssueReportError"] is string errorMessage)
+                    {
+                        <div class="station-status status-bad">@errorMessage</div>
+                    }
+                    <form asp-action="ReportIssue" method="post" class="vehicle-form-grid">
+                        @Html.AntiForgeryToken()
+                        <input asp-for="IssueReportForm.StationId" type="hidden" />
+                        <div class="vehicle-form-field">
+                            <label asp-for="IssueReportForm.IssueDescription">@App.Resources.Views.Root.Station.Details.ReportIssueDescriptionLabel</label>
+                            <textarea asp-for="IssueReportForm.IssueDescription" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="IssueReportForm.IssueDescription" class="text-danger"></span>
+                        </div>
+                        <div class="home-filter-row">
+                            <button type="submit" class="station-button station-button-compact">@App.Resources.Views.Root.Station.Details.ReportIssueSubmit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         }
     </section>
 </div>

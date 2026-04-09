@@ -51,7 +51,7 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
     }
 
     [Fact]
-    public async Task Maintenance_Create_ReportsIssue_AndRedirects()
+    public async Task Maintenance_Create_CompanyOwner_ReturnsForbidden()
     {
         var userId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
@@ -61,23 +61,7 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
 
         var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
         var getCreate = await client.GetAsync($"/Company/Maintenance/Create?companyId={companyId}");
-        Assert.Equal(HttpStatusCode.OK, getCreate.StatusCode);
-
-        var createDoc = await HtmlHelpers.GetDocumentAsync(getCreate);
-        var form = Assert.IsAssignableFrom<IHtmlFormElement>(createDoc.QuerySelector("form"));
-        var submit = Assert.IsAssignableFrom<IHtmlElement>(Assert.Single(form.QuerySelectorAll("button[type=submit]")));
-        var post = await client.SendAsync(form, submit, new Dictionary<string, string>
-        {
-            ["StationId"] = stationId.ToString(),
-            ["IssueDescription"] = "Integration issue report"
-        });
-
-        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
-
-        using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var issue = db.Maintenances.Single(m => m.ChargingStationId == stationId);
-        Assert.Equal(EMaintenanceStatus.Reported, issue.Status);
+        Assert.Equal(HttpStatusCode.Forbidden, getCreate.StatusCode);
     }
 
     [Fact]
@@ -95,13 +79,12 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
         Assert.Equal(HttpStatusCode.OK, getDetails.StatusCode);
 
         var detailsDoc = await HtmlHelpers.GetDocumentAsync(getDetails);
-        var updateForm = Assert.IsAssignableFrom<IHtmlFormElement>(detailsDoc.QuerySelector("form[action*='Update']"));
-        var updateSubmit = Assert.IsAssignableFrom<IHtmlElement>(Assert.Single(updateForm.QuerySelectorAll("button[type=submit]")));
-        var post = await client.SendAsync(updateForm, updateSubmit, new Dictionary<string, string>
-        {
-            ["status"] = EMaintenanceStatus.Resolved.ToString(),
-            ["notes"] = "Resolved in integration test"
-        });
+        var updateForms = detailsDoc.QuerySelectorAll("form[action*='Update']").OfType<IHtmlFormElement>().ToList();
+        var resolveForm = Assert.Single(
+            updateForms,
+            form => (form.QuerySelector("input[name='status']") as IHtmlInputElement)?.Value == EMaintenanceStatus.Resolved.ToString());
+        var resolveSubmit = Assert.IsAssignableFrom<IHtmlElement>(Assert.Single(resolveForm.QuerySelectorAll("button[type=submit]")));
+        var post = await client.SendAsync(resolveForm, resolveSubmit);
 
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
@@ -110,6 +93,40 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
         var issue = db.Maintenances.Single(m => m.Id == issueId);
         Assert.Equal(EMaintenanceStatus.Resolved, issue.Status);
         Assert.NotNull(issue.ResolvedAt);
+        var station = db.ChargingStations.Single(s => s.Id == stationId);
+        Assert.Equal(EStationStatus.Available, station.Status);
+    }
+
+    [Fact]
+    public async Task Maintenance_Update_ToInProgress_SetsStationToMaintenance()
+    {
+        var userId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var stationId = Guid.NewGuid();
+        var issueId = Guid.NewGuid();
+        await using var authFactory = CreateAuthenticatedFactory();
+        await SeedCompanyOwnerData(authFactory, userId, companyId, stationId, issueId);
+
+        var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
+        var getDetails = await client.GetAsync($"/Company/Maintenance/Details/{issueId}?companyId={companyId}");
+        Assert.Equal(HttpStatusCode.OK, getDetails.StatusCode);
+
+        var detailsDoc = await HtmlHelpers.GetDocumentAsync(getDetails);
+        var updateForms = detailsDoc.QuerySelectorAll("form[action*='Update']").OfType<IHtmlFormElement>().ToList();
+        var inProgressForm = Assert.Single(
+            updateForms,
+            form => (form.QuerySelector("input[name='status']") as IHtmlInputElement)?.Value == EMaintenanceStatus.InProgress.ToString());
+        var inProgressSubmit = Assert.IsAssignableFrom<IHtmlElement>(Assert.Single(inProgressForm.QuerySelectorAll("button[type=submit]")));
+        var post = await client.SendAsync(inProgressForm, inProgressSubmit);
+
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+
+        using var scope = authFactory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var issue = db.Maintenances.Single(m => m.Id == issueId);
+        Assert.Equal(EMaintenanceStatus.InProgress, issue.Status);
+        var station = db.ChargingStations.Single(s => s.Id == stationId);
+        Assert.Equal(EStationStatus.Maintenance, station.Status);
     }
 
     private static WebApplicationFactory<Program> CreateAuthenticatedFactory()

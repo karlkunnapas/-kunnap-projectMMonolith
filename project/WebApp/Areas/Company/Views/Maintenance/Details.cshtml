@@ -28,6 +28,34 @@
 
         <div class="station-card">
             <div class="station-details">
+                <div class="station-name">@App.Resources.Views.Company.Maintenance.Details.QuickActionsHeading</div>
+                <div class="vehicle-actions">
+                    @if (Model.Status == App.Domain.EMaintenanceStatus.Reported)
+                    {
+                        <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Update">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="status" value="@App.Domain.EMaintenanceStatus.InProgress" />
+                            <button type="submit" class="station-button">@App.Resources.Views.Company.Maintenance.Details.MarkMaintenanceAction</button>
+                        </form>
+                    }
+                    @if (Model.Status != App.Domain.EMaintenanceStatus.Resolved)
+                    {
+                        <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Update">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="status" value="@App.Domain.EMaintenanceStatus.Resolved" />
+                            <button type="submit" class="station-button">@App.Resources.Views.Company.Maintenance.Details.ResolveIssueAction</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="station-card">
+            <div class="station-details">
                 <div class="station-name">@App.Resources.Views.Company.Maintenance.Details.UpdateStatusHeading</div>
                 <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Update" class="vehicle-actions">
                     @Html.AntiForgeryToken()

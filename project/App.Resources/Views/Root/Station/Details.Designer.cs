@@ -254,5 +254,41 @@ namespace App.Resources.Views.Root.Station {
                 return ResourceManager.GetString("StatusStarted", resourceCulture);
             }
         }
+
+        public static string ReportIssueTitle {
+            get {
+                return ResourceManager.GetString("ReportIssueTitle", resourceCulture);
+            }
+        }
+
+        public static string ReportIssueDescriptionLabel {
+            get {
+                return ResourceManager.GetString("ReportIssueDescriptionLabel", resourceCulture);
+            }
+        }
+
+        public static string ReportIssueSubmit {
+            get {
+                return ResourceManager.GetString("ReportIssueSubmit", resourceCulture);
+            }
+        }
+
+        public static string ReportIssueSuccess {
+            get {
+                return ResourceManager.GetString("ReportIssueSuccess", resourceCulture);
+            }
+        }
+
+        public static string ReportIssueFailure {
+            get {
+                return ResourceManager.GetString("ReportIssueFailure", resourceCulture);
+            }
+        }
+
+        public static string ReportIssueValidationError {
+            get {
+                return ResourceManager.GetString("ReportIssueValidationError", resourceCulture);
+            }
+        }
     }
 }

@@ -9,7 +9,7 @@ namespace WebApp.Tests.Unit;
 public class UnitTestMaintenanceService
 {
     [Fact]
-    public async Task CreateMaintenanceAsync_CreatesReportedIssue_AndSetsStationToMaintenance()
+    public async Task CreateMaintenanceAsync_CreatesReportedIssue_AndKeepsStationStatusUnchanged()
     {
         await using var context = BuildContext();
         var companyId = Guid.NewGuid();
@@ -46,7 +46,7 @@ public class UnitTestMaintenanceService
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
         Assert.Equal(EMaintenanceStatus.Reported, result.Data!.Status);
-        Assert.Equal(EStationStatus.Maintenance, context.ChargingStations.Single().Status);
+        Assert.Equal(EStationStatus.Available, context.ChargingStations.Single().Status);
     }
 
     [Fact]

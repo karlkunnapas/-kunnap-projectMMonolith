@@ -8,6 +8,7 @@
   <data name="Heading" xml:space="preserve"><value>Jaama detailid</value></data>
   <data name="ReportIssue" xml:space="preserve"><value>Raporteeri probleem</value></data>
   <data name="BackToStations" xml:space="preserve"><value>Tagasi jaamade juurde</value></data>
+  <data name="EditAction" xml:space="preserve"><value>Muuda jaama</value></data>
   <data name="MaxPower" xml:space="preserve"><value>Maksimaalne võimsus</value></data>
   <data name="Connectors" xml:space="preserve"><value>Pistikud</value></data>
   <data name="ActiveMaintenance" xml:space="preserve"><value>Aktiivne hooldus</value></data>

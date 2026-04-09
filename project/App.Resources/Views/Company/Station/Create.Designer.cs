@@ -8,17 +8,17 @@ namespace App.Resources.Views.Company.Station {
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class Index {
+    public class Create {
         private static System.Resources.ResourceManager resourceMan;
         private static System.Globalization.CultureInfo resourceCulture;
 
-        internal Index() {
+        internal Create() {
         }
 
         public static System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.Equals(null, resourceMan)) {
-                    var temp = new System.Resources.ResourceManager("App.Resources.Views.Company.Station.Index", typeof(Index).Assembly);
+                    var temp = new System.Resources.ResourceManager("App.Resources.Views.Company.Station.Create", typeof(Create).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -32,18 +32,17 @@ namespace App.Resources.Views.Company.Station {
 
         public static string Title => ResourceManager.GetString("Title", resourceCulture);
         public static string Heading => ResourceManager.GetString("Heading", resourceCulture);
-        public static string BackToDashboard => ResourceManager.GetString("BackToDashboard", resourceCulture);
-        public static string NoStations => ResourceManager.GetString("NoStations", resourceCulture);
-        public static string Connectors => ResourceManager.GetString("Connectors", resourceCulture);
-        public static string MaintenanceIssues => ResourceManager.GetString("MaintenanceIssues", resourceCulture);
-        public static string DetailsAction => ResourceManager.GetString("DetailsAction", resourceCulture);
-        public static string CreateAction => ResourceManager.GetString("CreateAction", resourceCulture);
-        public static string EditAction => ResourceManager.GetString("EditAction", resourceCulture);
-        public static string DeleteAction => ResourceManager.GetString("DeleteAction", resourceCulture);
-        public static string SetAvailableAction => ResourceManager.GetString("SetAvailableAction", resourceCulture);
-        public static string SetInUseAction => ResourceManager.GetString("SetInUseAction", resourceCulture);
-        public static string SetMaintenanceAction => ResourceManager.GetString("SetMaintenanceAction", resourceCulture);
+        public static string NameEnLabel => ResourceManager.GetString("NameEnLabel", resourceCulture);
+        public static string NameEtLabel => ResourceManager.GetString("NameEtLabel", resourceCulture);
+        public static string NameEnPlaceholder => ResourceManager.GetString("NameEnPlaceholder", resourceCulture);
+        public static string NameEtPlaceholder => ResourceManager.GetString("NameEtPlaceholder", resourceCulture);
+        public static string LocationLabel => ResourceManager.GetString("LocationLabel", resourceCulture);
         public static string PriceLabel => ResourceManager.GetString("PriceLabel", resourceCulture);
         public static string MaxPowerLabel => ResourceManager.GetString("MaxPowerLabel", resourceCulture);
+        public static string StatusLabel => ResourceManager.GetString("StatusLabel", resourceCulture);
+        public static string ConnectorsLabel => ResourceManager.GetString("ConnectorsLabel", resourceCulture);
+        public static string IsActiveLabel => ResourceManager.GetString("IsActiveLabel", resourceCulture);
+        public static string SaveAction => ResourceManager.GetString("SaveAction", resourceCulture);
+        public static string BackAction => ResourceManager.GetString("BackAction", resourceCulture);
     }
 }

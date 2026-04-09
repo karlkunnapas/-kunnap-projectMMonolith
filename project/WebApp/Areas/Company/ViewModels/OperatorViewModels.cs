@@ -84,6 +84,42 @@ public class CompanyStationDetailsViewModel : CompanyStationItemViewModel
     public List<MaintenanceQueueItemViewModel> RecentMaintenance { get; set; } = new();
 }
 
+public class CompanyStationFormViewModel
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+
+    [Required]
+    [StringLength(128, MinimumLength = 1)]
+    public string NameEn { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(128, MinimumLength = 1)]
+    public string NameEt { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(128, MinimumLength = 1)]
+    public string Location { get; set; } = string.Empty;
+
+    public decimal PricePerKwh { get; set; }
+
+    public decimal MaxPower { get; set; }
+
+    [Required]
+    public EStationStatus Status { get; set; } = EStationStatus.Available;
+
+    public bool IsActive { get; set; } = true;
+    public List<Guid> SelectedConnectorIds { get; set; } = new();
+    public List<StationConnectorViewModel> AvailableConnectors { get; set; } = new();
+}
+
+public class StationConnectorViewModel
+{
+    public Guid ConnectorId { get; set; }
+    public string ConnectorName { get; set; } = string.Empty;
+    public bool IsAssigned { get; set; }
+}
+
 public class MaintenanceListViewModel
 {
     public Guid CompanyId { get; set; }

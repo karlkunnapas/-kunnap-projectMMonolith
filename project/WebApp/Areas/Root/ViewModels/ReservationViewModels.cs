@@ -6,6 +6,7 @@ namespace WebApp.Areas.Root.ViewModels;
 public class StationDetailsViewModel
 {
     public Guid Id { get; set; }
+    public Guid? CompanyId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public EStationStatus Status { get; set; }
@@ -23,6 +24,16 @@ public class StationDetailsViewModel
     public int CalculatedDurationMinutes { get; set; }
     public decimal CalculatedCost { get; set; }
     public ReservationCreateViewModel ReservationForm { get; set; } = new();
+    public StationIssueReportViewModel IssueReportForm { get; set; } = new();
+}
+
+public class StationIssueReportViewModel
+{
+    public Guid StationId { get; set; }
+
+    [Required]
+    [StringLength(256, MinimumLength = 5)]
+    public string IssueDescription { get; set; } = string.Empty;
 }
 
 public class StationReservationViewModel

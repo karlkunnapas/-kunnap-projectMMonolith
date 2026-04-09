@@ -10,4 +10,7 @@ public interface IChargingStationRepository
     Task<ChargingStation?> GetByIdWithDetailsAsync(Guid id);
     Task<List<ChargingStation>> GetByCompanyAsync(Guid companyId);
     Task<ChargingStation?> GetByIdForCompanyAsync(Guid id, Guid companyId);
+    Task CreateForCompanyAsync(ChargingStation station, Guid companyId);
+    void UpdateForCompany(ChargingStation station);
+    void DeleteForCompany(ChargingStation station);
 }

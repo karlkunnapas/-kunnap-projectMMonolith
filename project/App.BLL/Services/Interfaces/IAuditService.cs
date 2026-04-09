@@ -11,4 +11,11 @@ public interface IAuditService
         DateTime? toUtc = null,
         string? entityName = null,
         string? action = null);
+    Task<ServiceResult> LogMutationAsync(
+        Guid companyId,
+        string userName,
+        string entityName,
+        Guid entityId,
+        string action,
+        string? changesJson = null);
 }

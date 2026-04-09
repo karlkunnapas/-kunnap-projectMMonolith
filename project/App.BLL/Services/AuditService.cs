@@ -56,6 +56,40 @@ public class AuditService : IAuditService
         return ServiceResult<List<AuditEntryDto>>.Ok(logs.Select(MapEntry).ToList());
     }
 
+    public async Task<ServiceResult> LogMutationAsync(
+        Guid companyId,
+        string userName,
+        string entityName,
+        Guid entityId,
+        string action,
+        string? changesJson = null)
+    {
+        if (companyId == Guid.Empty || entityId == Guid.Empty)
+        {
+            return ServiceResult.Fail("VALIDATION", "Company and entity identifiers are required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(entityName) || string.IsNullOrWhiteSpace(action))
+        {
+            return ServiceResult.Fail("VALIDATION", "Entity name and action are required.");
+        }
+
+        await _unitOfWork.AuditLogs.AddAsync(new App.Domain.AuditLog
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            UserName = string.IsNullOrWhiteSpace(userName) ? "system" : userName.Trim(),
+            EntityName = entityName.Trim(),
+            EntityId = entityId,
+            Action = action.Trim(),
+            AtUtc = DateTime.UtcNow,
+            ChangesJson = changesJson
+        });
+
+        await _unitOfWork.SaveAsync();
+        return ServiceResult.Ok();
+    }
+
     private static AuditEntryDto MapEntry(App.Domain.AuditLog entry)
     {
         return new AuditEntryDto
@@ -70,4 +104,3 @@ public class AuditService : IAuditService
         };
     }
 }
-

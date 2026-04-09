@@ -8,6 +8,7 @@
   <data name="Heading" xml:space="preserve"><value>Station Details</value></data>
   <data name="ReportIssue" xml:space="preserve"><value>Report Issue</value></data>
   <data name="BackToStations" xml:space="preserve"><value>Back to Stations</value></data>
+  <data name="EditAction" xml:space="preserve"><value>Edit Station</value></data>
   <data name="MaxPower" xml:space="preserve"><value>Max Power</value></data>
   <data name="Connectors" xml:space="preserve"><value>Connectors</value></data>
   <data name="ActiveMaintenance" xml:space="preserve"><value>Active maintenance</value></data>

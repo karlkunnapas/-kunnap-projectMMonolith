@@ -56,50 +56,14 @@ public class MaintenanceController : Controller
     [HttpGet]
     public async Task<IActionResult> Create(Guid? companyId = null, Guid? stationId = null)
     {
-        var resolvedCompany = await ResolveCompanyAsync(companyId);
-        if (resolvedCompany == null)
-        {
-            return Forbid();
-        }
-
-        ViewData["CompanyId"] = resolvedCompany.Value;
-        await PopulateStationSelectListAsync(resolvedCompany.Value, stationId);
-        return View(new MaintenanceCreateViewModel { StationId = stationId ?? Guid.Empty });
+        return Forbid();
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Guid? companyId, MaintenanceCreateViewModel model)
     {
-        var resolvedCompany = await ResolveCompanyAsync(companyId);
-        if (resolvedCompany == null)
-        {
-            return Forbid();
-        }
-
-        if (!ModelState.IsValid)
-        {
-            ViewData["CompanyId"] = resolvedCompany.Value;
-            await PopulateStationSelectListAsync(resolvedCompany.Value, model.StationId);
-            return View(model);
-        }
-
-        var userId = ResolveCurrentUserId();
-        if (userId == null)
-        {
-            return Forbid();
-        }
-
-        var result = await _maintenanceService.CreateMaintenanceAsync(model.StationId, resolvedCompany.Value, userId.Value, model.IssueDescription);
-        if (!result.Success)
-        {
-            ModelState.AddModelError(string.Empty, string.Join("; ", result.Errors.Select(e => e.Message)));
-            ViewData["CompanyId"] = resolvedCompany.Value;
-            await PopulateStationSelectListAsync(resolvedCompany.Value, model.StationId);
-            return View(model);
-        }
-
-        return RedirectToAction(nameof(Index), new { companyId = resolvedCompany.Value });
+        return Forbid();
     }
 
     [HttpGet]

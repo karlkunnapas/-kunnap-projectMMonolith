@@ -11,4 +11,12 @@
   <data name="Connectors" xml:space="preserve"><value>Pistikud</value></data>
   <data name="MaintenanceIssues" xml:space="preserve"><value>Hooldusprobleemid</value></data>
   <data name="DetailsAction" xml:space="preserve"><value>Vaata</value></data>
+  <data name="CreateAction" xml:space="preserve"><value>Loo jaam</value></data>
+  <data name="EditAction" xml:space="preserve"><value>Muuda</value></data>
+  <data name="DeleteAction" xml:space="preserve"><value>Kustuta</value></data>
+  <data name="SetAvailableAction" xml:space="preserve"><value>Määra vabaks</value></data>
+  <data name="SetInUseAction" xml:space="preserve"><value>Määra kasutuses</value></data>
+  <data name="SetMaintenanceAction" xml:space="preserve"><value>Määra hooldusesse</value></data>
+  <data name="PriceLabel" xml:space="preserve"><value>Hind</value></data>
+  <data name="MaxPowerLabel" xml:space="preserve"><value>Maks. võimsus</value></data>
 </root>

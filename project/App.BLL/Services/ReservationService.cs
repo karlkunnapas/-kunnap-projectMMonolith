@@ -75,6 +75,7 @@ public class ReservationService : IReservationService
         var dto = new StationDetailsDto
         {
             Id = station.Id,
+            CompanyId = station.CompanyId,
             Name = station.Name.Translate() ?? station.Name.ToString() ?? string.Empty,
             Location = station.Location,
             Status = station.Status,

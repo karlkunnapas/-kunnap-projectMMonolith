@@ -1,0 +1,17 @@
+@model WebApp.ViewModels.Shared.ConnectorChecklistViewModel
+
+<div class="vehicle-form-field">
+    <div class="home-filters-title">@Model.Heading</div>
+    <div class="home-filter-row">
+        @foreach (var item in Model.Items)
+        {
+            <label class="filter-chip">
+                <input type="checkbox"
+                       name="@Model.InputName"
+                       value="@item.ConnectorId"
+                       @(item.IsAssigned ? "checked=\"checked\"" : null) />
+                @item.ConnectorName
+            </label>
+        }
+    </div>
+</div>
