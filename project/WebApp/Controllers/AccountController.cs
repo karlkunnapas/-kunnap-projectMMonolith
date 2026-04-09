@@ -112,30 +112,34 @@ public class AccountController : Controller
             return View(model);
         }
 
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+            {
+                return Redirect(model.ReturnUrl);
+            }
+            return RedirectToAction("Index", "Home");
+        }
+
+        var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
+        if (companiesResult.Success && companiesResult.Data != null && companiesResult.Data.Companies.Count > 0)
+        {
+            if (companiesResult.Data.Companies.Count == 1)
+            {
+                var company = companiesResult.Data.Companies[0];
+                return RedirectToAction("Index", "Dashboard", new { area = "Company", companyId = company.CompanyId });
+            }
+
+            return RedirectToAction(nameof(CompanySelection), new { returnUrl = model.ReturnUrl });
+        }
+
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
             return Redirect(model.ReturnUrl);
         }
 
-        var userId = GetCurrentUserId();
-        if (userId == null)
-        {
-            return RedirectToAction("Index", "Home");
-        }
-
-        var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
-        if (!companiesResult.Success || companiesResult.Data == null || companiesResult.Data.Companies.Count == 0)
-        {
-            return RedirectToAction("Index", "Home");
-        }
-
-        if (companiesResult.Data.Companies.Count == 1)
-        {
-            var company = companiesResult.Data.Companies[0];
-            return Redirect($"/{company.CompanySlug}/festivaleditions");
-        }
-
-        return RedirectToAction(nameof(CompanySelection));
+        return RedirectToAction("Index", "Home");
     }
 
     // GET: /Account/CompanySelection
@@ -165,11 +169,7 @@ public class AccountController : Controller
         if (companiesResult.Data.Companies.Count == 1)
         {
             var company = companiesResult.Data.Companies.First();
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                return Redirect(returnUrl);
-            }
-            return Redirect($"/{company.CompanySlug}/festivaleditions");
+            return RedirectToAction("Index", "Dashboard", new { area = "Company", companyId = company.CompanyId });
         }
 
         var viewModel = new CompanySelectionViewModel
@@ -223,13 +223,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-        {
-            return Redirect(model.ReturnUrl);
-        }
-
-        // Redirect to festival editions (accessible to all company users)
-        return Redirect($"/{company.CompanySlug}/festivaleditions");
+        return RedirectToAction("Index", "Dashboard", new { area = "Company", companyId = company.CompanyId });
     }
 
     // POST: /Account/Logout

@@ -16,6 +16,7 @@ public class UnitOfWork : IUnitOfWork
 
     private IChargingStationRepository? _chargingStations;
     private IChargingSessionRepository? _chargingSessions;
+    private IMaintenanceRepository? _maintenances;
     private IRepository<ChargingStationConnector>? _chargingStationConnectors;
     private IRepository<Connector>? _connectors;
     private IRepository<AppUserCompany>? _appUserCompanies;
@@ -35,6 +36,8 @@ public class UnitOfWork : IUnitOfWork
         _chargingStations ??= new App.DAL.EF.Repositories.ChargingStationRepository(_context);
     public IChargingSessionRepository ChargingSessions =>
         _chargingSessions ??= new App.DAL.EF.Repositories.ChargingSessionRepository(_context);
+    public IMaintenanceRepository Maintenances =>
+        _maintenances ??= new App.DAL.EF.Repositories.MaintenanceRepository(_context);
     public IRepository<ChargingStationConnector> ChargingStationConnectors =>
         _chargingStationConnectors ??= new Repository<ChargingStationConnector>(_context);
     public IRepository<Connector> Connectors => _connectors ??= new Repository<Connector>(_context);

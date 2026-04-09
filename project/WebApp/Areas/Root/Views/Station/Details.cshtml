@@ -2,6 +2,7 @@
 @using App.Domain
 @{
     ViewData["Title"] = App.Resources.Views.Root.Station.Details.Title;
+    var isCompanyUser = User.IsInRole("CompanyOwner");
     var statusText = Model.Status switch
     {
         EStationStatus.Available => App.Resources.Views.Root.Station.Details.StatusAvailable,
@@ -58,50 +59,53 @@
             }
         </div>
 
-        <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.CalculatorTitle</h3>
-        <div class="station-card reservation-section-card figure2-calculator">
-            <div class="station-details">
-                <div class="home-filters-title">@App.Resources.Views.Root.Station.Details.SelectVehicle</div>
-                <div class="figure2-card-grid" id="vehicle-options">
-                    @foreach (var vehicle in Model.Vehicles)
+        @if (!isCompanyUser)
+        {
+            <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.CalculatorTitle</h3>
+            <div class="station-card reservation-section-card figure2-calculator">
+                <div class="station-details">
+                    <div class="home-filters-title">@App.Resources.Views.Root.Station.Details.SelectVehicle</div>
+                    <div class="figure2-card-grid" id="vehicle-options">
+                        @foreach (var vehicle in Model.Vehicles)
+                        {
+                            <button type="button"
+                                    class="figure2-option-card vehicle-option @(vehicle.IsSelected ? "active" : string.Empty)"
+                                    data-vehicle-id="@vehicle.Id"
+                                    data-battery="@vehicle.BatteryCapacityKwh.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                <span class="figure2-option-title">@vehicle.DisplayName</span>
+                                <span class="figure2-option-meta">@vehicle.BatteryCapacityKwh.ToString("0.#") kWh</span>
+                            </button>
+                        }
+                    </div>
+
+                    @if (Model.Vehicles.Count == 0)
                     {
-                        <button type="button"
-                                class="figure2-option-card vehicle-option @(vehicle.IsSelected ? "active" : string.Empty)"
-                                data-vehicle-id="@vehicle.Id"
-                                data-battery="@vehicle.BatteryCapacityKwh.ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                            <span class="figure2-option-title">@vehicle.DisplayName</span>
-                            <span class="figure2-option-meta">@vehicle.BatteryCapacityKwh.ToString("0.#") kWh</span>
-                        </button>
+                        <div class="station-empty">@App.Resources.Views.Root.Station.Details.NoVehicles</div>
                     }
-                </div>
 
-                @if (Model.Vehicles.Count == 0)
-                {
-                    <div class="station-empty">@App.Resources.Views.Root.Station.Details.NoVehicles</div>
-                }
-
-                <div class="home-filters-title">@App.Resources.Views.Root.Station.Details.BatteryLevelTitle</div>
-                <div class="figure2-battery-grid">
-                    <div class="vehicle-form-field">
-                        <label>@App.Resources.Views.Root.Station.Details.CurrentBattery %</label>
-                        <input id="current-battery" type="range" min="0" max="95" value="@Model.CurrentBatteryPercent" />
+                    <div class="home-filters-title">@App.Resources.Views.Root.Station.Details.BatteryLevelTitle</div>
+                    <div class="figure2-battery-grid">
+                        <div class="vehicle-form-field">
+                            <label>@App.Resources.Views.Root.Station.Details.CurrentBattery %</label>
+                            <input id="current-battery" type="range" min="0" max="95" value="@Model.CurrentBatteryPercent" />
+                        </div>
+                        <div class="vehicle-form-field">
+                            <label>@App.Resources.Views.Root.Station.Details.DesiredBattery %</label>
+                            <input id="desired-battery" type="range" min="5" max="100" value="@Model.DesiredBatteryPercent" />
+                        </div>
                     </div>
-                    <div class="vehicle-form-field">
-                        <label>@App.Resources.Views.Root.Station.Details.DesiredBattery %</label>
-                        <input id="desired-battery" type="range" min="5" max="100" value="@Model.DesiredBatteryPercent" />
-                    </div>
-                </div>
-                <div id="battery-label" class="station-meta">@App.Resources.Views.Root.Station.Details.CurrentBattery: @Model.CurrentBatteryPercent% | @App.Resources.Views.Root.Station.Details.DesiredBattery: @Model.DesiredBatteryPercent%</div>
+                    <div id="battery-label" class="station-meta">@App.Resources.Views.Root.Station.Details.CurrentBattery: @Model.CurrentBatteryPercent% | @App.Resources.Views.Root.Station.Details.DesiredBattery: @Model.DesiredBatteryPercent%</div>
 
-                <div class="figure2-result-box" id="calculation-result"
-                     data-default-energy="@Model.CalculatedEnergyKwh.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                     data-default-duration="@Model.CalculatedDurationMinutes"
-                     data-default-cost="@Model.CalculatedCost.ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                    <div id="calc-energy">@App.Resources.Views.Root.Station.Details.EnergyLabel: @Model.CalculatedEnergyKwh.ToString("0.##") kWh</div>
-                    <div id="calc-summary">@App.Resources.Views.Root.Station.Details.DurationLabel: @Model.CalculatedDurationMinutes @App.Resources.Views.Root.Station.Details.MinuteShort | @App.Resources.Views.Root.Station.Details.CostLabel: @App.Resources.Views.Root.Station.Details.CurrencyCode @Model.CalculatedCost.ToString("0.00")</div>
+                    <div class="figure2-result-box" id="calculation-result"
+                         data-default-energy="@Model.CalculatedEnergyKwh.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                         data-default-duration="@Model.CalculatedDurationMinutes"
+                         data-default-cost="@Model.CalculatedCost.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                        <div id="calc-energy">@App.Resources.Views.Root.Station.Details.EnergyLabel: @Model.CalculatedEnergyKwh.ToString("0.##") kWh</div>
+                        <div id="calc-summary">@App.Resources.Views.Root.Station.Details.DurationLabel: @Model.CalculatedDurationMinutes @App.Resources.Views.Root.Station.Details.MinuteShort | @App.Resources.Views.Root.Station.Details.CostLabel: @App.Resources.Views.Root.Station.Details.CurrencyCode @Model.CalculatedCost.ToString("0.00")</div>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
 
         <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.ExistingReservations</h3>
         <div class="station-card reservation-section-card">
@@ -148,13 +152,19 @@
             </div>
         </div>
 
-        <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.Reservation</h3>
-        <div class="station-card reservation-section-card">
-            <partial name="~/Views/Shared/_ReservationForm.cshtml" model="Model.ReservationForm" />
-        </div>
+        @if (!isCompanyUser)
+        {
+            <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.Reservation</h3>
+            <div class="station-card reservation-section-card">
+                <partial name="~/Views/Shared/_ReservationForm.cshtml" model="Model.ReservationForm" />
+            </div>
+        }
     </section>
 </div>
 
 @section Scripts {
-    <script src="~/js/station-details.js" asp-append-version="true"></script>
+    @if (!isCompanyUser)
+    {
+        <script src="~/js/station-details.js" asp-append-version="true"></script>
+    }
 }

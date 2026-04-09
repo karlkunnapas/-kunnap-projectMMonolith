@@ -201,6 +201,24 @@ namespace App.Resources.Views.Shared {
             }
         }
 
+        public static string CompanyDashboard {
+            get {
+                return ResourceManager.GetString("CompanyDashboard", resourceCulture);
+            }
+        }
+
+        public static string CompanyStations {
+            get {
+                return ResourceManager.GetString("CompanyStations", resourceCulture);
+            }
+        }
+
+        public static string CompanyMaintenance {
+            get {
+                return ResourceManager.GetString("CompanyMaintenance", resourceCulture);
+            }
+        }
+
         public static string PaymentMethods {
             get {
                 return ResourceManager.GetString("PaymentMethods", resourceCulture);

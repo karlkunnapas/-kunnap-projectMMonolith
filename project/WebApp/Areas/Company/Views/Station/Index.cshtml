@@ -1,0 +1,47 @@
+@model WebApp.Areas.Company.ViewModels.CompanyStationListViewModel
+@using App.Domain
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Station.Index.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Station.Index.Heading</h2>
+            <a class="filter-chip" asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Station.Index.BackToDashboard</a>
+        </div>
+
+        @if (!Model.Stations.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Company.Station.Index.NoStations</div>
+        }
+        else
+        {
+            @foreach (var station in Model.Stations)
+            {
+                var statusClass = station.Status switch
+                {
+                    EStationStatus.Available => "status-ok",
+                    EStationStatus.InUse => "status-warn",
+                    _ => "status-bad"
+                };
+
+                <div class="station-card">
+                    <div class="station-icon">⚡</div>
+                    <div class="station-details">
+                        <div class="station-name">@station.Name</div>
+                        <div class="station-meta">@station.Location</div>
+                        <div class="station-status @statusClass">@station.Status</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Station.Index.Connectors: @string.Join(", ", station.Connectors)</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Station.Index.MaintenanceIssues: @station.MaintenanceIssueCount</div>
+                    </div>
+                    <div class="station-actions">
+                        <a class="station-button" asp-area="Company" asp-controller="Station" asp-action="Details" asp-route-id="@station.Id" asp-route-companyId="@Model.CompanyId">
+                            @App.Resources.Views.Company.Station.Index.DetailsAction
+                        </a>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

@@ -8,7 +8,7 @@ using WebApp.Areas.Root.ViewModels;
 namespace WebApp.Areas.Root.Controllers;
 
 [Area("Root")]
-[Authorize(Roles = "Customer")]
+[Authorize(Roles = "Customer,CompanyOwner")]
 public class StationController : Controller
 {
     private readonly IReservationService _reservationService;

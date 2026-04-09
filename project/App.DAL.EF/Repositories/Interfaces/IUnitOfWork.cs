@@ -13,6 +13,7 @@ public interface IUnitOfWork : IAsyncDisposable
 
     IChargingStationRepository ChargingStations { get; }
     IChargingSessionRepository ChargingSessions { get; }
+    IMaintenanceRepository Maintenances { get; }
     IRepository<ChargingStationConnector> ChargingStationConnectors { get; }
     IRepository<Connector> Connectors { get; }
     IRepository<AppUserCompany> AppUserCompanies { get; }

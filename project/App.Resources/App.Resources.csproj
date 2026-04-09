@@ -83,6 +83,38 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>CompanyLog.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Dashboard\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Dashboard\StationStatus.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>StationStatus.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Dashboard\MaintenanceQueue.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>MaintenanceQueue.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Maintenance\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Maintenance\Create.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Create.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Maintenance\Details.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Details.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Station\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\Station\Details.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Details.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
@@ -180,6 +212,46 @@
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>CompanyLog.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Dashboard\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Dashboard\StationStatus.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>StationStatus.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Dashboard\MaintenanceQueue.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>MaintenanceQueue.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Maintenance\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Maintenance\Create.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Create.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Maintenance\Details.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Details.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Station\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\Station\Details.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Details.resx</DependentUpon>
       </Compile>
     </ItemGroup>
 

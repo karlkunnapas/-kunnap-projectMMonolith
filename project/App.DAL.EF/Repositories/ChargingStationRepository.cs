@@ -48,4 +48,30 @@ public class ChargingStationRepository : IChargingStationRepository
             .Include(station => station.Reservations!)
             .FirstOrDefaultAsync(station => station.Id == id && station.IsActive);
     }
+
+    public Task<List<ChargingStation>> GetByCompanyAsync(Guid companyId)
+    {
+        return _context.ChargingStations
+            .Where(station => station.CompanyId == companyId)
+            .Include(station => station.ChargingStationConnectors!)
+            .ThenInclude(link => link.Connector!)
+            .Include(station => station.MaintenanceIssues!)
+            .Include(station => station.Reservations!)
+            .Include(station => station.ChargingSessions!)
+            .OrderBy(station => station.Location)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public Task<ChargingStation?> GetByIdForCompanyAsync(Guid id, Guid companyId)
+    {
+        return _context.ChargingStations
+            .Where(station => station.Id == id && station.CompanyId == companyId)
+            .Include(station => station.ChargingStationConnectors!)
+            .ThenInclude(link => link.Connector!)
+            .Include(station => station.MaintenanceIssues!)
+            .Include(station => station.Reservations!)
+            .Include(station => station.ChargingSessions!)
+            .FirstOrDefaultAsync();
+    }
 }

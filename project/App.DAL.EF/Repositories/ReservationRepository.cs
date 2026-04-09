@@ -78,6 +78,29 @@ public class ReservationRepository : IReservationRepository
         return query.ToListAsync();
     }
 
+    public Task<int> GetCountByCompanyAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
+    {
+        return _context.Reservations
+            .Where(r => r.ChargingStation != null
+                        && r.ChargingStation.CompanyId == companyId
+                        && r.StartTime >= fromUtc
+                        && r.StartTime <= toUtc)
+            .CountAsync();
+    }
+
+    public Task<List<Reservation>> GetByCompanyAndRangeAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
+    {
+        return _context.Reservations
+            .Include(r => r.ChargingStation)
+            .Where(r => r.ChargingStation != null
+                        && r.ChargingStation.CompanyId == companyId
+                        && r.StartTime >= fromUtc
+                        && r.StartTime <= toUtc)
+            .OrderByDescending(r => r.StartTime)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public Task AddAsync(Reservation reservation)
     {
         return _context.Reservations.AddAsync(reservation).AsTask();
@@ -93,4 +116,3 @@ public class ReservationRepository : IReservationRepository
         }
     }
 }
-

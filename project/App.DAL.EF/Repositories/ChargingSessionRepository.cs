@@ -68,6 +68,67 @@ public class ChargingSessionRepository : IChargingSessionRepository
             .ToListAsync();
     }
 
+    public Task<int> GetCountByCompanyAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
+    {
+        return _context.ChargingSessions
+            .Where(s => s.ChargingStation != null
+                        && s.ChargingStation.CompanyId == companyId
+                        && s.StartTime >= fromUtc
+                        && s.StartTime <= toUtc)
+            .CountAsync();
+    }
+
+    public async Task<decimal> GetRevenueByCompanyAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
+    {
+        return await _context.ChargingSessions
+            .Where(s => s.ChargingStation != null
+                        && s.ChargingStation.CompanyId == companyId
+                        && s.EndTime != null
+                        && s.StartTime >= fromUtc
+                        && s.StartTime <= toUtc)
+            .Select(s => (decimal?)s.Cost)
+            .SumAsync() ?? 0m;
+    }
+
+    public async Task<double> GetAverageDurationMinutesByCompanyAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
+    {
+        var durations = await _context.ChargingSessions
+            .Where(s => s.ChargingStation != null
+                        && s.ChargingStation.CompanyId == companyId
+                        && s.EndTime != null
+                        && s.StartTime >= fromUtc
+                        && s.StartTime <= toUtc)
+            .Select(s => new { s.StartTime, EndTime = s.EndTime!.Value })
+            .ToListAsync();
+
+        if (durations.Count == 0)
+        {
+            return 0d;
+        }
+
+        return durations.Average(item => (item.EndTime - item.StartTime).TotalMinutes);
+    }
+
+    public Task<List<ChargingSession>> GetByCompanyAndRangeAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
+    {
+        return _context.ChargingSessions
+            .Include(s => s.ChargingStation)
+            .Where(s => s.ChargingStation != null
+                        && s.ChargingStation.CompanyId == companyId
+                        && s.StartTime >= fromUtc
+                        && s.StartTime <= toUtc)
+            .OrderByDescending(s => s.StartTime)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public Task<int> GetActiveSessionCountByStationAsync(Guid stationId)
+    {
+        return _context.ChargingSessions
+            .Where(s => s.ChargingStationId == stationId && s.EndTime == null)
+            .CountAsync();
+    }
+
     public Task AddAsync(ChargingSession session)
     {
         return _context.ChargingSessions.AddAsync(session).AsTask();

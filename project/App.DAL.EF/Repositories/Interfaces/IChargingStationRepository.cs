@@ -8,4 +8,6 @@ public interface IChargingStationRepository
     IQueryable<ChargingStation> GetStationsWithConnectors();
     IQueryable<ChargingStation> GetStationsForHome(string? status = null, string? location = null);
     Task<ChargingStation?> GetByIdWithDetailsAsync(Guid id);
+    Task<List<ChargingStation>> GetByCompanyAsync(Guid companyId);
+    Task<ChargingStation?> GetByIdForCompanyAsync(Guid id, Guid companyId);
 }

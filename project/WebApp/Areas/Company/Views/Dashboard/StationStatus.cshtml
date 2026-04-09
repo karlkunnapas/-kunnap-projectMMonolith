@@ -1,0 +1,54 @@
+@model WebApp.Areas.Company.ViewModels.OperatorDashboardViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Dashboard.StationStatus.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Dashboard.StationStatus.Heading</h2>
+            <a class="station-button" asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companyId="@Model.CompanyId">
+                @App.Resources.Views.Company.Dashboard.StationStatus.BackToDashboard
+            </a>
+        </div>
+
+        @if (!Model.StationStatus.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Company.Dashboard.StationStatus.NoStations</div>
+        }
+        else
+        {
+            <div class="station-card">
+                <div class="station-details">
+                    <div class="operator-table">
+                        <div class="operator-table-row operator-table-head" style="grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 1fr 1fr;">
+                            <div>@App.Resources.Views.Company.Dashboard.StationStatus.StationColumn</div>
+                            <div>@App.Resources.Views.Company.Dashboard.StationStatus.HealthColumn</div>
+                            <div>@App.Resources.Views.Company.Dashboard.StationStatus.UtilizationColumn</div>
+                            <div>@App.Resources.Views.Company.Dashboard.StationStatus.ActiveSessionsColumn</div>
+                            <div>@App.Resources.Views.Company.Dashboard.StationStatus.ReservationsColumn</div>
+                            <div>@App.Resources.Views.Company.Dashboard.StationStatus.PendingMaintenanceColumn</div>
+                            <div>@App.Resources.Views.Company.Dashboard.StationStatus.ActionsColumn</div>
+                        </div>
+                        @foreach (var station in Model.StationStatus)
+                        {
+                            <div class="operator-table-row" style="grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 1fr 1fr;">
+                                <div>@station.Name</div>
+                                <div><partial name="_StationHealthBadge" model="new WebApp.ViewModels.Shared.StationHealthBadgeViewModel { HealthStatus = station.HealthStatus }" /></div>
+                                <div>@station.UtilizationPercent.ToString("0.##")%</div>
+                                <div>@station.ActiveSessionsCount</div>
+                                <div>@station.ReservationsToday</div>
+                                <div>@station.PendingMaintenanceCount</div>
+                                <div>
+                                    <a class="filter-chip" asp-area="Company" asp-controller="Station" asp-action="Details" asp-route-id="@station.Id" asp-route-companyId="@Model.CompanyId">
+                                        @App.Resources.Views.Company.Dashboard.StationStatus.DetailsAction
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+</div>

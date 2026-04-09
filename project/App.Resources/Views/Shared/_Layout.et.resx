@@ -89,6 +89,15 @@
     <data name="CompanyAudit" xml:space="preserve">
         <value>Ettevõtte audit</value>
     </data>
+    <data name="CompanyDashboard" xml:space="preserve">
+        <value>Ettevõtte juhtpaneel</value>
+    </data>
+    <data name="CompanyStations" xml:space="preserve">
+        <value>Ettevõtte jaamad</value>
+    </data>
+    <data name="CompanyMaintenance" xml:space="preserve">
+        <value>Ettevõtte hooldus</value>
+    </data>
     <data name="PaymentMethods" xml:space="preserve">
         <value>Makselahendused</value>
     </data>

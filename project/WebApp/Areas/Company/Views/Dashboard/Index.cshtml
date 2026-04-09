@@ -1,0 +1,122 @@
+@model WebApp.Areas.Company.ViewModels.OperatorDashboardViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Dashboard.Index.Title;
+    var stationKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Company.Dashboard.Index.TotalStations,
+        Value = Model.Kpis.TotalStations.ToString(),
+        Hint = App.Resources.Views.Company.Dashboard.Index.TotalStationsHint,
+        AccentClass = "kpi-accent-primary"
+    };
+    var reservationKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Company.Dashboard.Index.TotalReservations,
+        Value = Model.Kpis.TotalReservations.ToString(),
+        Hint = App.Resources.Views.Company.Dashboard.Index.TotalReservationsHint,
+        AccentClass = "kpi-accent-secondary"
+    };
+    var utilizationKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Company.Dashboard.Index.AvgUtilization,
+        Value = $"{Model.Kpis.AvgUtilizationPercent:0.##}%",
+        Hint = App.Resources.Views.Company.Dashboard.Index.PeakHoursLabel + ": " + Model.Kpis.PeakHours,
+        AccentClass = "kpi-accent-tertiary"
+    };
+    var revenueKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Company.Dashboard.Index.Revenue,
+        Value = $"€{Model.Kpis.TotalRevenue:0.00}",
+        Hint = App.Resources.Views.Company.Dashboard.Index.AvgSessionDurationLabel + ": " + Model.Kpis.AvgSessionDurationMinutes.ToString("0.##") + "m",
+        AccentClass = "kpi-accent-warning"
+    };
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Dashboard.Index.Heading</h2>
+        </div>
+
+        <form method="get" class="station-card dashboard-filter-card">
+            <input type="hidden" name="companyId" value="@Model.CompanyId" />
+            <div class="station-details reservation-form-grid vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label class="home-filters-title">@App.Resources.Views.Company.Dashboard.Index.FromUtc</label>
+                    <input type="datetime-local" name="fromUtc" value="@Model.FromUtc.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                </div>
+                <div class="vehicle-form-field">
+                    <label class="home-filters-title">@App.Resources.Views.Company.Dashboard.Index.ToUtc</label>
+                    <input type="datetime-local" name="toUtc" value="@Model.ToUtc.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                </div>
+                <div class="station-actions vehicle-actions">
+                    <button type="submit" class="station-button">@App.Resources.Views.Company.Dashboard.Index.ApplyFilters</button>
+                    <a class="filter-chip" asp-area="Company" asp-controller="Dashboard" asp-action="StationStatus" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Dashboard.Index.StationStatusAction</a>
+                    <a class="filter-chip" asp-area="Company" asp-controller="Dashboard" asp-action="MaintenanceQueue" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Dashboard.Index.MaintenanceQueueAction</a>
+                </div>
+            </div>
+        </form>
+
+        <div class="operator-kpi-grid">
+            <partial name="_KpiCard" model="@stationKpi" />
+            <partial name="_KpiCard" model="@reservationKpi" />
+            <partial name="_KpiCard" model="@utilizationKpi" />
+            <partial name="_KpiCard" model="@revenueKpi" />
+        </div>
+
+        <div class="operator-two-col-grid">
+            <div class="station-card">
+                <div class="station-details">
+                    <div class="station-name">@App.Resources.Views.Company.Dashboard.Index.StationPerformanceHeading</div>
+                    @if (!Model.StationStatus.Any())
+                    {
+                        <div class="station-empty">@App.Resources.Views.Company.Dashboard.Index.NoStationData</div>
+                    }
+                    else
+                    {
+                        <div class="operator-table">
+                            <div class="operator-table-row operator-table-head">
+                                <div>@App.Resources.Views.Company.Dashboard.Index.StationColumn</div>
+                                <div>@App.Resources.Views.Company.Dashboard.Index.HealthColumn</div>
+                                <div>@App.Resources.Views.Company.Dashboard.Index.UtilizationColumn</div>
+                                <div>@App.Resources.Views.Company.Dashboard.Index.ActionsColumn</div>
+                            </div>
+                            @foreach (var station in Model.StationStatus.Take(8))
+                            {
+                                <div class="operator-table-row">
+                                    <div>@station.Name</div>
+                                    <div><partial name="_StationHealthBadge" model="new WebApp.ViewModels.Shared.StationHealthBadgeViewModel { HealthStatus = station.HealthStatus }" /></div>
+                                    <div>@station.UtilizationPercent.ToString("0.##")%</div>
+                                    <div>
+                                        <a class="filter-chip" asp-area="Company" asp-controller="Station" asp-action="Details" asp-route-id="@station.Id" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Dashboard.Index.DetailsAction</a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="station-card">
+                <div class="station-details">
+                    <div class="station-name">@App.Resources.Views.Company.Dashboard.Index.MaintenanceHeading</div>
+                    @if (!Model.MaintenanceQueue.Any())
+                    {
+                        <div class="station-empty">@App.Resources.Views.Company.Dashboard.Index.NoMaintenanceData</div>
+                    }
+                    else
+                    {
+                        @foreach (var issue in Model.MaintenanceQueue.Take(4))
+                        {
+                            <partial name="_MaintenanceCard" model="issue" />
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="operator-two-col-grid">
+            <partial name="_UtilizationChart" model="Model.UtilizationTrend" />
+            <partial name="_RevenueChart" model="Model.RevenueTrend" />
+        </div>
+    </section>
+</div>

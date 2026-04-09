@@ -1,0 +1,17 @@
+@model List<WebApp.Areas.Company.ViewModels.ChartPointViewModel>
+
+<div class="station-card dashboard-chart-card">
+    <div class="station-details">
+        <div class="station-name">@App.Resources.Views.Company.Dashboard.Index.RevenueTrend</div>
+        <div class="chart-grid">
+            @foreach (var point in Model)
+            {
+                var scaled = Math.Max(6m, Math.Min(100m, point.Value > 0 ? point.Value : 6m));
+                <div class="chart-bar-item">
+                    <div class="chart-bar chart-bar-revenue" style="height:@(scaled.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                    <div class="chart-label">@point.Label</div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

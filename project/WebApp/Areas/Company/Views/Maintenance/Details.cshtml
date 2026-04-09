@@ -1,0 +1,102 @@
+@model WebApp.Areas.Company.ViewModels.MaintenanceDetailsViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Maintenance.Details.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Maintenance.Details.Heading</h2>
+            <div class="vehicle-actions">
+                <a class="filter-chip" asp-area="Company" asp-controller="Station" asp-action="Details" asp-route-id="@Model.StationId" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Maintenance.Details.ViewStation</a>
+                <a class="filter-chip" asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Maintenance.Details.BackToList</a>
+            </div>
+        </div>
+
+        <div class="station-card">
+            <div class="station-details">
+                <div class="station-name">@Model.StationName</div>
+                <div class="station-meta">@Model.IssueDescription</div>
+                <div class="station-meta">@App.Resources.Views.Company.Maintenance.Details.Status: @Model.Status</div>
+                <div class="station-meta">@App.Resources.Views.Company.Maintenance.Details.ReportedAt: @Model.ReportedAtUtc.ToString("u")</div>
+                <div class="station-meta">@App.Resources.Views.Company.Maintenance.Details.ResolvedAt: @(Model.ResolvedAtUtc?.ToString("u") ?? App.Resources.Views.Company.Maintenance.Details.NotResolved)</div>
+                <div class="station-meta">@App.Resources.Views.Company.Maintenance.Details.AssignedTo: @(string.IsNullOrWhiteSpace(Model.AssignedToUserName) ? App.Resources.Views.Company.Maintenance.Details.Unassigned : Model.AssignedToUserName)</div>
+                <div class="station-meta">@App.Resources.Views.Company.Maintenance.Details.Reporter: @(string.IsNullOrWhiteSpace(Model.ReporterUserName) ? App.Resources.Views.Company.Maintenance.Details.Unknown : Model.ReporterUserName)</div>
+                <div class="station-meta">@App.Resources.Views.Company.Maintenance.Details.Notes: @(string.IsNullOrWhiteSpace(Model.Notes) ? "-" : Model.Notes)</div>
+            </div>
+        </div>
+
+        <div class="station-card">
+            <div class="station-details">
+                <div class="station-name">@App.Resources.Views.Company.Maintenance.Details.UpdateStatusHeading</div>
+                <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Update" class="vehicle-actions">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <select name="status" class="form-control">
+                        @foreach (var value in Enum.GetValues<App.Domain.EMaintenanceStatus>())
+                        {
+                            if (value == Model.Status)
+                            {
+                                <option selected value="@value">@value</option>
+                            }
+                            else
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        }
+                    </select>
+                    <input type="text" name="notes" value="@Model.Notes" class="form-control" placeholder="@App.Resources.Views.Company.Maintenance.Details.NotesPlaceholder" />
+                    <button type="submit" class="station-button">@App.Resources.Views.Company.Maintenance.Details.UpdateAction</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="station-card">
+            <div class="station-details">
+                <div class="station-name">@App.Resources.Views.Company.Maintenance.Details.AssignmentHeading</div>
+                <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Assign" class="vehicle-actions">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" name="assignedToUserId" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" class="station-button">
+                        @App.Resources.Views.Company.Maintenance.Details.AssignToMe
+                    </button>
+                    <button type="submit" name="assignedToUserId" value="" class="filter-chip">
+                        @App.Resources.Views.Company.Maintenance.Details.ClearAssignment
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="station-card">
+            <div class="station-details">
+                <div class="station-name">@App.Resources.Views.Company.Maintenance.Details.HistoryHeading</div>
+                @if (!Model.StatusHistory.Any())
+                {
+                    <div class="station-empty">@App.Resources.Views.Company.Maintenance.Details.NoHistory</div>
+                }
+                else
+                {
+                    <div class="operator-table">
+                        <div class="operator-table-row operator-table-head">
+                            <div>@App.Resources.Views.Company.Maintenance.Details.HistoryAt</div>
+                            <div>@App.Resources.Views.Company.Maintenance.Details.HistoryAction</div>
+                            <div>@App.Resources.Views.Company.Maintenance.Details.HistoryActor</div>
+                            <div>@App.Resources.Views.Company.Maintenance.Details.HistoryChanges</div>
+                        </div>
+                        @foreach (var item in Model.StatusHistory)
+                        {
+                            <div class="operator-table-row">
+                                <div>@item.AtUtc.ToString("u")</div>
+                                <div>@item.Action</div>
+                                <div>@item.Actor</div>
+                                <div>@item.Changes</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>

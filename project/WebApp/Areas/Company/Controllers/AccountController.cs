@@ -67,8 +67,7 @@ public class AccountController : Controller
             return Redirect(returnUrl);
         }
 
-        return Redirect($"/{model.CompanySlug.ToLowerInvariant()}/festivaleditions");
+        return RedirectToAction("Index", "Dashboard", new { area = "Company" });
     }
 }
-
 

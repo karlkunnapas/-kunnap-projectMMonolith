@@ -96,6 +96,15 @@
     <data name="CompanyAudit" xml:space="preserve">
         <value>Company Audit</value>
     </data>
+    <data name="CompanyDashboard" xml:space="preserve">
+        <value>Company Dashboard</value>
+    </data>
+    <data name="CompanyStations" xml:space="preserve">
+        <value>Company Stations</value>
+    </data>
+    <data name="CompanyMaintenance" xml:space="preserve">
+        <value>Company Maintenance</value>
+    </data>
     <data name="PaymentMethods" xml:space="preserve">
         <value>Payment Methods</value>
     </data>

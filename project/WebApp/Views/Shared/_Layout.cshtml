@@ -15,14 +15,31 @@
 </head>
 <body>
 <div class="app-shell">
+    @{
+        var isCompanyUser = User.IsInRole("CompanyOwner");
+    }
     <aside class="app-sidebar">
         <div class="app-brand">
-            <a asp-area="" asp-controller="Home" asp-action="Index">@AppNameService.AppName</a>
+            @if (isCompanyUser)
+            {
+                <a asp-area="Company" asp-controller="Dashboard" asp-action="Index">@AppNameService.AppName</a>
+            }
+            else
+            {
+                <a asp-area="" asp-controller="Home" asp-action="Index">@AppNameService.AppName</a>
+            }
         </div>
         <nav class="app-nav">
             <ul class="app-nav-list">
                 <li class="app-nav-item">
-                    <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                    @if (isCompanyUser)
+                    {
+                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                    }
+                    else
+                    {
+                        <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                    }
                 </li>
                 @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Admin") || User.IsInRole("root")))
                 {
@@ -50,30 +67,42 @@
                 <li class="app-nav-item">
                     <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
                 </li>
-                <li class="app-nav-item">
-                    <a asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Shared._Layout.MyReservations</a>
-                </li>
-                @if (User.IsInRole("Customer"))
+                @if (User.IsInRole("Customer") && !isCompanyUser)
                 {
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Shared._Layout.MyReservations</a>
+                    </li>
                     <li class="app-nav-item">
                         <a asp-area="Root" asp-controller="ChargingSession" asp-action="History">@App.Resources.Views.Shared._Layout.MySessions</a>
                     </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="Vehicle" asp-action="Index">@App.Resources.Views.Shared._Layout.MyVehicles</a>
+                    </li>
                 }
-                <li class="app-nav-item">
-                    <a asp-area="Root" asp-controller="Vehicle" asp-action="Index">@App.Resources.Views.Shared._Layout.MyVehicles</a>
-                </li>
-                @if (User.IsInRole("CompanyOwner"))
+                @if (isCompanyUser)
                 {
+                    <li class="app-nav-item">
+                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Company" asp-controller="Station" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyStations</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Company" asp-controller="Maintenance" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
+                    </li>
                     <li class="app-nav-item">
                         <a asp-area="Company" asp-controller="Audit" asp-action="CompanyLog">@App.Resources.Views.Shared._Layout.CompanyAudit</a>
                     </li>
                 }
-                <li class="app-nav-item">
-                    <a href="#">@App.Resources.Views.Shared._Layout.PaymentMethods</a>
-                </li>
-                <li class="app-nav-item">
-                    <a href="#">@App.Resources.Views.Shared._Layout.Settings</a>
-                </li>
+                @if (!isCompanyUser)
+                {
+                    <li class="app-nav-item">
+                        <a href="#">@App.Resources.Views.Shared._Layout.PaymentMethods</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a href="#">@App.Resources.Views.Shared._Layout.Settings</a>
+                    </li>
+                }
             </ul>
         </nav>
         <div class="app-sidebar-footer">
