@@ -30,4 +30,7 @@
   <data name="NoMaintenanceData" xml:space="preserve"><value>No open maintenance issues.</value></data>
   <data name="UtilizationTrend" xml:space="preserve"><value>Utilization Trend</value></data>
   <data name="RevenueTrend" xml:space="preserve"><value>Revenue Trend</value></data>
+  <data name="TrendAverage" xml:space="preserve"><value>Average</value></data>
+  <data name="TrendPeak" xml:space="preserve"><value>Peak</value></data>
+  <data name="TrendLowest" xml:space="preserve"><value>Lowest</value></data>
 </root>

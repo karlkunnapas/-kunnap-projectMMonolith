@@ -30,4 +30,7 @@
   <data name="NoMaintenanceData" xml:space="preserve"><value>Avatud hooldusprobleeme pole.</value></data>
   <data name="UtilizationTrend" xml:space="preserve"><value>Kasutuse trend</value></data>
   <data name="RevenueTrend" xml:space="preserve"><value>Tulu trend</value></data>
+  <data name="TrendAverage" xml:space="preserve"><value>Keskmine</value></data>
+  <data name="TrendPeak" xml:space="preserve"><value>Tipp</value></data>
+  <data name="TrendLowest" xml:space="preserve"><value>Madalaim</value></data>
 </root>

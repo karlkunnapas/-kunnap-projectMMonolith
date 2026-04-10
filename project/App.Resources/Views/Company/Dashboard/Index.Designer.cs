@@ -56,5 +56,8 @@ namespace App.Resources.Views.Company.Dashboard {
         public static string NoMaintenanceData => ResourceManager.GetString("NoMaintenanceData", resourceCulture);
         public static string UtilizationTrend => ResourceManager.GetString("UtilizationTrend", resourceCulture);
         public static string RevenueTrend => ResourceManager.GetString("RevenueTrend", resourceCulture);
+        public static string TrendAverage => ResourceManager.GetString("TrendAverage", resourceCulture);
+        public static string TrendPeak => ResourceManager.GetString("TrendPeak", resourceCulture);
+        public static string TrendLowest => ResourceManager.GetString("TrendLowest", resourceCulture);
     }
 }

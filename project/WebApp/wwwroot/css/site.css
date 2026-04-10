@@ -592,40 +592,102 @@ body {
     font-weight: 700;
 }
 
-.chart-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-    gap: 8px;
-    min-height: 180px;
-    align-items: end;
-    padding-top: 8px;
-}
-
-.chart-bar-item {
+.trend-card .station-details {
     display: flex;
     flex-direction: column;
+    gap: 12px;
+}
+
+.trend-header {
+    display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    gap: 10px;
 }
 
-.chart-bar {
-    width: 100%;
-    max-width: 22px;
-    background: #00d9ff;
-    border-radius: 6px 6px 2px 2px;
-    min-height: 6%;
+.trend-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #e8f8ff;
+    color: #047da3;
+    font-weight: 700;
+    font-size: 0.82rem;
 }
 
-.chart-bar-revenue {
-    background: #4ecdc4;
+.trend-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
 }
 
-.chart-label {
-    font-size: 0.7rem;
-    color: #666;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    line-height: 1;
+.trend-summary-item {
+    background: #f8fbfd;
+    border: 1px solid #dce3e8;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.trend-summary-item span {
+    font-size: 0.73rem;
+    color: #64748b;
+}
+
+.trend-summary-item strong {
+    font-size: 0.95rem;
+    color: #172554;
+}
+
+.trend-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.trend-row {
+    display: grid;
+    grid-template-columns: minmax(66px, auto) 1fr auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.trend-label {
+    font-size: 0.76rem;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.trend-track {
+    height: 12px;
+    background: #e5ecf1;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.trend-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
+.trend-fill-utilization {
+    background: linear-gradient(90deg, #00d9ff, #40b8ff);
+}
+
+.trend-fill-revenue {
+    background: linear-gradient(90deg, #4ecdc4, #34d399);
+}
+
+.trend-value {
+    font-size: 0.78rem;
+    color: #1e293b;
+    font-weight: 600;
 }
 
 .maintenance-card {
