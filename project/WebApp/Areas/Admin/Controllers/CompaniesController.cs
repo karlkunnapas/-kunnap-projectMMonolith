@@ -69,7 +69,8 @@ namespace WebApp.Areas.Admin.Controllers
                     IsActive = model.IsActive,
                     Name = new LangStr()
                 };
-                company.Name.SetTranslation(model.Name);
+                company.Name.SetTranslation(model.NameEt, "et");
+                company.Name.SetTranslation(model.NameEn, "en");
                 _context.Add(company);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -121,7 +122,8 @@ namespace WebApp.Areas.Admin.Controllers
                     company.Slug = model.Slug;
                     company.IsActive = model.IsActive;
                     company.Name ??= new LangStr();
-                    company.Name.SetTranslation(model.Name);
+                    company.Name.SetTranslation(model.NameEt, "et");
+                    company.Name.SetTranslation(model.NameEn, "en");
                     _context.Entry(company).Property(x => x.Name).IsModified = true;
 
                     await _context.SaveChangesAsync();
@@ -186,6 +188,8 @@ namespace WebApp.Areas.Admin.Controllers
             {
                 Id = company.Id,
                 Name = company.Name?.Translate() ?? string.Empty,
+                NameEt = company.Name?.Translate("et") ?? string.Empty,
+                NameEn = company.Name?.Translate("en") ?? string.Empty,
                 ContactEmail = company.ContactEmail,
                 ContactPhone = company.ContactPhone,
                 Slug = company.Slug,

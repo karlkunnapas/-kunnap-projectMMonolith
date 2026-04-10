@@ -105,8 +105,9 @@
                         <details>
                             <summary>@App.Resources.Views.Shared._Layout.Admin</summary>
                             <ul class="app-admin-list">
-                                <li><a asp-area="Admin" asp-controller="Companies" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminCompanies</a></li>
-                                <li><a asp-area="Admin" asp-controller="AppUserCompanies" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminAppUserCompanies</a></li>
+                                 <li><a asp-area="Admin" asp-controller="Companies" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminCompanies</a></li>
+                                <li><a asp-area="Admin" asp-controller="AppUsers" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminAppUsers</a></li>
+                                 <li><a asp-area="Admin" asp-controller="AppUserCompanies" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminAppUserCompanies</a></li>
                                 <li><a asp-area="Admin" asp-controller="ChargingStations" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminChargingStations</a></li>
                                 <li><a asp-area="Admin" asp-controller="ChargingStationConnectors" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminStationConnectors</a></li>
                                 <li><a asp-area="Admin" asp-controller="ChargingSessions" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminChargingSessions</a></li>
@@ -175,15 +176,6 @@
                     }
                     <li class="app-nav-item">
                         <a asp-area="" asp-controller="Account" asp-action="CompanySelection" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString">@App.Resources.Views.Shared._Layout.SwitchCompany</a>
-                    </li>
-                }
-                @if (!isCompanyUser)
-                {
-                    <li class="app-nav-item">
-                        <a href="#">@App.Resources.Views.Shared._Layout.PaymentMethods</a>
-                    </li>
-                    <li class="app-nav-item">
-                        <a href="#">@App.Resources.Views.Shared._Layout.Settings</a>
                     </li>
                 }
             </ul>

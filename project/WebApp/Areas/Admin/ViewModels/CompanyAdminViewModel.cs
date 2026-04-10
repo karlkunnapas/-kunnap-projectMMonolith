@@ -7,8 +7,15 @@ public class CompanyAdminViewModel
 {
     public Guid Id { get; set; }
 
-    [Required]
     public string Name { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "Name (ET)")]
+    public string NameEt { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "Name (EN)")]
+    public string NameEn { get; set; } = string.Empty;
 
     [StringLength(128, MinimumLength = 1)]
     public string ContactEmail { get; set; } = string.Empty;
@@ -21,4 +28,3 @@ public class CompanyAdminViewModel
 
     public bool IsActive { get; set; } = true;
 }
-

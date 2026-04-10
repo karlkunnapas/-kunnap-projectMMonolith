@@ -98,6 +98,12 @@ namespace App.Resources.Views.Shared {
                 return ResourceManager.GetString("AdminCompanies", resourceCulture);
             }
         }
+
+        public static string AdminAppUsers {
+            get {
+                return ResourceManager.GetString("AdminAppUsers", resourceCulture);
+            }
+        }
         
         public static string AdminAppUserCompanies {
             get {

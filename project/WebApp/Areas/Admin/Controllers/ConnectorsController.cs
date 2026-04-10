@@ -67,7 +67,8 @@ namespace WebApp.Areas.Admin.Controllers
                     IsActive = model.IsActive,
                     Name = new LangStr()
                 };
-                connector.Name.SetTranslation(model.Name);
+                connector.Name.SetTranslation(model.NameEt, "et");
+                connector.Name.SetTranslation(model.NameEn, "en");
                 _context.Add(connector);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -117,7 +118,8 @@ namespace WebApp.Areas.Admin.Controllers
 
                     connector.IsActive = model.IsActive;
                     connector.Name ??= new LangStr();
-                    connector.Name.SetTranslation(model.Name);
+                    connector.Name.SetTranslation(model.NameEt, "et");
+                    connector.Name.SetTranslation(model.NameEn, "en");
                     _context.Entry(connector).Property(x => x.Name).IsModified = true;
 
                     await _context.SaveChangesAsync();
@@ -182,6 +184,8 @@ namespace WebApp.Areas.Admin.Controllers
             {
                 Id = connector.Id,
                 Name = connector.Name?.Translate() ?? string.Empty,
+                NameEt = connector.Name?.Translate("et") ?? string.Empty,
+                NameEn = connector.Name?.Translate("en") ?? string.Empty,
                 IsActive = connector.IsActive
             };
         }

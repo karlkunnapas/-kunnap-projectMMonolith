@@ -1,119 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
 <root>
-    <resheader name="resmimetype">
-        <value>text/microsoft-resx</value>
-    </resheader>
-    <resheader name="version">
-        <value>1.3</value>
-    </resheader>
-    <resheader name="reader">
-        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-    </resheader>
-    <resheader name="writer">
-        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-    </resheader>
-    <data name="Home" xml:space="preserve">
-        <value>Kodu</value>
-    </data>
-    <data name="Lang" xml:space="preserve">
-        <value>Keel</value>
-    </data>
-    <data name="Privacy" xml:space="preserve">
-        <value>Privaatsus</value>
-    </data>
-    <data name="Hello" xml:space="preserve">
-        <value>Tere</value>
-    </data>
-    <data name="Logout" xml:space="preserve">
-        <value>Välju</value>
-    </data>
-    <data name="Register" xml:space="preserve">
-        <value>Registreeru</value>
-    </data>
-    <data name="Login" xml:space="preserve">
-        <value>Sisene</value>
-    </data>
-    <data name="Admin" xml:space="preserve">
-        <value>Haldus</value>
-    </data>
-    <data name="AdminCompanies" xml:space="preserve">
-        <value>Ettevõtted</value>
-    </data>
-    <data name="AdminAppUserCompanies" xml:space="preserve">
-        <value>Rakenduse kasutaja ettevõtted</value>
-    </data>
-    <data name="AdminChargingStations" xml:space="preserve">
-        <value>Laadimisjaamad</value>
-    </data>
-    <data name="AdminStationConnectors" xml:space="preserve">
-        <value>Jaama pistikud</value>
-    </data>
-    <data name="AdminChargingSessions" xml:space="preserve">
-        <value>Laadimissessioonid</value>
-    </data>
-    <data name="AdminConnectors" xml:space="preserve">
-        <value>Pistikud</value>
-    </data>
-    <data name="AdminVehicles" xml:space="preserve">
-        <value>Sõidukid</value>
-    </data>
-    <data name="AdminVehicleConnectors" xml:space="preserve">
-        <value>Sõiduki pistikud</value>
-    </data>
-    <data name="AdminReservations" xml:space="preserve">
-        <value>Broneeringud</value>
-    </data>
-    <data name="AdminPromotions" xml:space="preserve">
-        <value>Kampaaniad</value>
-    </data>
-    <data name="AdminUserPromotions" xml:space="preserve">
-        <value>Kasutaja kampaaniad</value>
-    </data>
-    <data name="AdminMaintenances" xml:space="preserve">
-        <value>Hooldused</value>
-    </data>
-    <data name="AdminAuditLogs" xml:space="preserve">
-        <value>Auditilogid</value>
-    </data>
-    <data name="FindStations" xml:space="preserve">
-        <value>Leia jaamad</value>
-    </data>
-    <data name="MyReservations" xml:space="preserve">
-        <value>Minu broneeringud</value>
-    </data>
-    <data name="MySessions" xml:space="preserve">
-        <value>Minu seansid</value>
-    </data>
-    <data name="MyVehicles" xml:space="preserve">
-        <value>Minu sõidukid</value>
-    </data>
-    <data name="MyPromotions" xml:space="preserve">
-        <value>Minu kampaaniad</value>
-    </data>
-    <data name="CompanyAudit" xml:space="preserve">
-        <value>Ettevõtte audit</value>
-    </data>
-    <data name="CompanyDashboard" xml:space="preserve">
-        <value>Ettevõtte juhtpaneel</value>
-    </data>
-    <data name="CompanyStations" xml:space="preserve">
-        <value>Ettevõtte jaamad</value>
-    </data>
-    <data name="CompanyMaintenance" xml:space="preserve">
-        <value>Ettevõtte hooldus</value>
-    </data>
-    <data name="CompanyPromotions" xml:space="preserve">
-        <value>Ettevõtte kampaaniad</value>
-    </data>
-    <data name="CompanyUsers" xml:space="preserve">
-        <value>Ettevõtte kasutajad</value>
-    </data>
-    <data name="SwitchCompany" xml:space="preserve">
-        <value>Vaheta ettevõtet</value>
-    </data>
-    <data name="PaymentMethods" xml:space="preserve">
-        <value>Makselahendused</value>
-    </data>
-    <data name="Settings" xml:space="preserve">
-        <value>Seaded</value>
-    </data>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Home" xml:space="preserve">
+    <value>Kodu</value>
+  </data>
+  <data name="Lang" xml:space="preserve">
+    <value>Keel</value>
+  </data>
+  <data name="Privacy" xml:space="preserve">
+    <value>Privaatsus</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Tere</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Välju</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Registreeru</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Sisene</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Haldus</value>
+  </data>
+  <data name="AdminCompanies" xml:space="preserve">
+    <value>Ettevõtted</value>
+  </data>
+  <data name="AdminAppUsers" xml:space="preserve">
+    <value>Rakenduse kasutajad</value>
+  </data>
+  <data name="AdminAppUserCompanies" xml:space="preserve">
+    <value>Rakenduse kasutaja ettevõtted</value>
+  </data>
+  <data name="AdminChargingStations" xml:space="preserve">
+    <value>Laadimisjaamad</value>
+  </data>
+  <data name="AdminStationConnectors" xml:space="preserve">
+    <value>Jaama pistikud</value>
+  </data>
+  <data name="AdminChargingSessions" xml:space="preserve">
+    <value>Laadimissessioonid</value>
+  </data>
+  <data name="AdminConnectors" xml:space="preserve">
+    <value>Pistikud</value>
+  </data>
+  <data name="AdminVehicles" xml:space="preserve">
+    <value>Sõidukid</value>
+  </data>
+  <data name="AdminVehicleConnectors" xml:space="preserve">
+    <value>Sõiduki pistikud</value>
+  </data>
+  <data name="AdminReservations" xml:space="preserve">
+    <value>Broneeringud</value>
+  </data>
+  <data name="AdminPromotions" xml:space="preserve">
+    <value>Kampaaniad</value>
+  </data>
+  <data name="AdminUserPromotions" xml:space="preserve">
+    <value>Kasutaja kampaaniad</value>
+  </data>
+  <data name="AdminMaintenances" xml:space="preserve">
+    <value>Hooldused</value>
+  </data>
+  <data name="AdminAuditLogs" xml:space="preserve">
+    <value>Auditilogid</value>
+  </data>
+  <data name="FindStations" xml:space="preserve">
+    <value>Leia jaamad</value>
+  </data>
+  <data name="MyReservations" xml:space="preserve">
+    <value>Minu broneeringud</value>
+  </data>
+  <data name="MySessions" xml:space="preserve">
+    <value>Minu seansid</value>
+  </data>
+  <data name="MyVehicles" xml:space="preserve">
+    <value>Minu sõidukid</value>
+  </data>
+  <data name="MyPromotions" xml:space="preserve">
+    <value>Minu kampaaniad</value>
+  </data>
+  <data name="CompanyAudit" xml:space="preserve">
+    <value>Ettevõtte audit</value>
+  </data>
+  <data name="CompanyDashboard" xml:space="preserve">
+    <value>Ettevõtte juhtpaneel</value>
+  </data>
+  <data name="CompanyStations" xml:space="preserve">
+    <value>Ettevõtte jaamad</value>
+  </data>
+  <data name="CompanyMaintenance" xml:space="preserve">
+    <value>Ettevõtte hooldus</value>
+  </data>
+  <data name="CompanyPromotions" xml:space="preserve">
+    <value>Ettevõtte kampaaniad</value>
+  </data>
+  <data name="CompanyUsers" xml:space="preserve">
+    <value>Ettevõtte kasutajad</value>
+  </data>
+  <data name="SwitchCompany" xml:space="preserve">
+    <value>Vaheta ettevõtet</value>
+  </data>
+  <data name="PaymentMethods" xml:space="preserve">
+    <value>Makselahendused</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Seaded</value>
+  </data>
 </root>

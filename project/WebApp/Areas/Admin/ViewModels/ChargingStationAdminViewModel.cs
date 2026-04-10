@@ -8,8 +8,15 @@ public class ChargingStationAdminViewModel
 {
     public Guid Id { get; set; }
 
-    [Required]
     public string Name { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "Name (ET)")]
+    public string NameEt { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "Name (EN)")]
+    public string NameEn { get; set; } = string.Empty;
 
     [StringLength(128, MinimumLength = 1)]
     public string Location { get; set; } = string.Empty;
@@ -22,4 +29,3 @@ public class ChargingStationAdminViewModel
 
     public string CompanyContactEmail { get; set; } = string.Empty;
 }
-

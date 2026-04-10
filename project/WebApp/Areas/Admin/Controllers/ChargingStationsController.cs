@@ -88,7 +88,8 @@ namespace WebApp.Areas.Admin.Controllers
                     Name = new LangStr()
                 };
 
-                chargingStation.Name.SetTranslation(model.Name);
+                chargingStation.Name.SetTranslation(model.NameEt, "et");
+                chargingStation.Name.SetTranslation(model.NameEn, "en");
                 _context.Add(chargingStation);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -162,11 +163,17 @@ namespace WebApp.Areas.Admin.Controllers
                     chargingStation.IsActive = model.IsActive;
                     chargingStation.CompanyId = model.CompanyId;
                     chargingStation.Name ??= new LangStr();
-                    chargingStation.Name.SetTranslation(model.Name);
+                    chargingStation.Name.SetTranslation(model.NameEt, "et");
+                    chargingStation.Name.SetTranslation(model.NameEn, "en");
 
-                    // LangStr is a mutable JSON-backed value; force EF to persist Name-only edits.
+                    // LangStr is a mutable JSON-backed value; force EF to persist Name edits.
                     _context.Entry(chargingStation).Property(x => x.Name).IsModified = true;
+                    _context.Entry(chargingStation).Property(x => x.Location).IsModified = true;
                     _context.Entry(chargingStation).Property(x => x.Status).IsModified = true;
+                    _context.Entry(chargingStation).Property(x => x.PricePerKwh).IsModified = true;
+                    _context.Entry(chargingStation).Property(x => x.MaxPower).IsModified = true;
+                    _context.Entry(chargingStation).Property(x => x.IsActive).IsModified = true;
+                    _context.Entry(chargingStation).Property(x => x.CompanyId).IsModified = true;
 
                     await _context.SaveChangesAsync();
                 }
@@ -234,6 +241,8 @@ namespace WebApp.Areas.Admin.Controllers
             {
                 Id = station.Id,
                 Name = station.Name?.Translate() ?? string.Empty,
+                NameEt = station.Name?.Translate("et") ?? string.Empty,
+                NameEn = station.Name?.Translate("en") ?? string.Empty,
                 Location = station.Location,
                 Status = NormalizeStationStatus(station.Status),
                 PricePerKwh = station.PricePerKwh,
