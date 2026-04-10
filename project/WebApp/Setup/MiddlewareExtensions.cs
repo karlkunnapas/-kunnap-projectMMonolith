@@ -70,9 +70,25 @@ public static class MiddlewareExtensions
             .WithStaticAssets();
 
         app.MapControllerRoute(
+                name: "tenant-station-public",
+                pattern: "{companySlug}/Station/{id:guid}",
+                defaults: new { area = "Root", controller = "Station", action = "Details" })
+            .WithStaticAssets();
+
+        app.MapControllerRoute(
                 name: "station-public",
                 pattern: "Station/{id:guid}",
                 defaults: new { area = "Root", controller = "Station", action = "Details" })
+            .WithStaticAssets();
+
+        app.MapControllerRoute(
+                name: "tenant-area",
+                pattern: "{companySlug}/{area:exists}/{controller=Home}/{action=Index}/{id?}")
+            .WithStaticAssets();
+
+        app.MapControllerRoute(
+                name: "tenant-default",
+                pattern: "{companySlug}/{controller=Home}/{action=Index}/{id?}")
             .WithStaticAssets();
 
         app.MapControllerRoute(

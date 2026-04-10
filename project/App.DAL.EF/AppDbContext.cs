@@ -198,6 +198,11 @@ public class AppDbContext(
             return ResolveStationCompanyId(session.ChargingStationId);
         }
 
+        if (entry.Entity is Maintenance maintenance)
+        {
+            return ResolveStationCompanyId(maintenance.ChargingStationId);
+        }
+
         if (entry.Entity is UserPromotion userPromotion)
         {
             return ResolvePromotionCompanyId(userPromotion.PromotionId);

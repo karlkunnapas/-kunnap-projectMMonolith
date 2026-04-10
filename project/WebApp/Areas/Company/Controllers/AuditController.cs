@@ -14,15 +14,17 @@ public class AuditController : Controller
 {
     private readonly IAuditService _auditService;
     private readonly AppDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public AuditController(IAuditService auditService, AppDbContext context)
+    public AuditController(IAuditService auditService, AppDbContext context, ITenantContext tenantContext)
     {
         _auditService = auditService;
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     [HttpGet]
-    public async Task<IActionResult> CompanyLog(Guid? companyId = null, DateTime? fromUtc = null, DateTime? toUtc = null, string? entityName = null, string? action = null)
+    public async Task<IActionResult> CompanyLog(DateTime? fromUtc = null, DateTime? toUtc = null, string? entityName = null, string? actionFilter = null)
     {
         var membershipCompanyIds = await ResolveMembershipCompanyIdsAsync();
         if (membershipCompanyIds.Count == 0)
@@ -30,16 +32,28 @@ public class AuditController : Controller
             return Forbid();
         }
 
-        var resolvedCompanyId = companyId ?? membershipCompanyIds[0];
-        if (!membershipCompanyIds.Contains(resolvedCompanyId))
+        var resolvedCompanyId = _tenantContext.CompanyId;
+        if (!resolvedCompanyId.HasValue)
+        {
+            return Forbid();
+        }
+
+        if (!membershipCompanyIds.Contains(resolvedCompanyId.Value))
         {
             return StatusCode(StatusCodes.Status403Forbidden);
         }
 
         var normalizedFromUtc = NormalizeToUtc(fromUtc);
         var normalizedToUtc = NormalizeToUtc(toUtc);
+        var normalizedEntityName = string.IsNullOrWhiteSpace(entityName) ? null : entityName.Trim();
+        var normalizedActionFilter = string.IsNullOrWhiteSpace(actionFilter) ? null : actionFilter.Trim();
 
-        var result = await _auditService.GetCompanyAuditAsync(resolvedCompanyId, normalizedFromUtc, normalizedToUtc, entityName, action);
+        var result = await _auditService.GetCompanyAuditAsync(
+            resolvedCompanyId.Value,
+            normalizedFromUtc,
+            normalizedToUtc,
+            normalizedEntityName,
+            normalizedActionFilter);
         if (!result.Success)
         {
             return Forbid();
@@ -47,11 +61,11 @@ public class AuditController : Controller
 
         var model = new CompanyAuditViewModel
         {
-            CompanyId = resolvedCompanyId,
+            CompanyId = resolvedCompanyId.Value,
             FromUtc = normalizedFromUtc,
             ToUtc = normalizedToUtc,
-            EntityName = entityName,
-            Action = action,
+            EntityName = normalizedEntityName,
+            Action = normalizedActionFilter,
             Entries = result.Data?.Select(e => new AuditEntryViewModel
             {
                 Id = e.Id,

@@ -189,7 +189,7 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
     }
 
     [Fact]
-    public async Task CompanyAudit_WithMultipleMemberships_DeniesForeignCompany()
+    public async Task CompanyAudit_TenantSlug_DeniesForeignCompany()
     {
         var userId = Guid.NewGuid();
 
@@ -197,6 +197,8 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         Guid companyA;
         Guid companyB;
         Guid foreignCompany;
+        string companyASlug;
+        string foreignCompanySlug;
 
         using (var scope = authFactory.Services.CreateScope())
         {
@@ -205,12 +207,14 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
             companyA = Guid.NewGuid();
             companyB = Guid.NewGuid();
             foreignCompany = Guid.NewGuid();
+            companyASlug = $"a-{Guid.NewGuid():N}";
+            foreignCompanySlug = $"c-{Guid.NewGuid():N}";
 
             db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
             db.Companies.AddRange(
-                new Company { Id = companyA, Name = "A", ContactEmail = "a@test.local", ContactPhone = "+3723000000", Slug = $"a-{Guid.NewGuid():N}", IsActive = true },
+                new Company { Id = companyA, Name = "A", ContactEmail = "a@test.local", ContactPhone = "+3723000000", Slug = companyASlug, IsActive = true },
                 new Company { Id = companyB, Name = "B", ContactEmail = "b@test.local", ContactPhone = "+3723000001", Slug = $"b-{Guid.NewGuid():N}", IsActive = true },
-                new Company { Id = foreignCompany, Name = "C", ContactEmail = "c@test.local", ContactPhone = "+3723000002", Slug = $"c-{Guid.NewGuid():N}", IsActive = true }
+                new Company { Id = foreignCompany, Name = "C", ContactEmail = "c@test.local", ContactPhone = "+3723000002", Slug = foreignCompanySlug, IsActive = true }
             );
 
             db.AppUserCompanies.AddRange(
@@ -235,11 +239,216 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
 
         var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
 
-        var denied = await client.GetAsync($"/Company/Audit/CompanyLog?companyId={foreignCompany}");
+        var denied = await client.GetAsync($"/{foreignCompanySlug}/Company/Audit/CompanyLog");
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
 
-        var allowed = await client.GetAsync($"/Company/Audit/CompanyLog?companyId={companyA}");
+        var allowed = await client.GetAsync($"/{companyASlug}/Company/Audit/CompanyLog");
         Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+    }
+
+    [Fact]
+    public async Task CompanySidebar_AuditLink_PreservesCurrentCompanySlug()
+    {
+        var userId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var companySlug = $"audit-link-{Guid.NewGuid():N}";
+
+        await using var authFactory = CreateAuthenticatedFactory();
+        using (var scope = authFactory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            db.Companies.Add(new Company
+            {
+                Id = companyId,
+                Name = "Audit Link Company",
+                ContactEmail = "audit-link@test.local",
+                ContactPhone = "+3725000000",
+                Slug = companySlug,
+                IsActive = true
+            });
+            db.AppUserCompanies.Add(new AppUserCompany
+            {
+                Id = Guid.NewGuid(),
+                AppUserId = userId,
+                CompanyId = companyId,
+                Role = ECompanyRole.Owner,
+                IsActive = true,
+                JoinedAtUtc = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
+        var response = await client.GetAsync($"/{companySlug}/Company/Dashboard/Index");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var document = await HtmlHelpers.GetDocumentAsync(response);
+        var auditLink = document.QuerySelectorAll("a")
+            .OfType<IHtmlAnchorElement>()
+            .FirstOrDefault(link => link.PathName.EndsWith("/Company/Audit/CompanyLog", StringComparison.OrdinalIgnoreCase));
+
+        Assert.NotNull(auditLink);
+        Assert.Contains($"/{companySlug}/Company/Audit/CompanyLog", auditLink!.Href, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("companyId=", auditLink.Href, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CompanyFindStations_KeepsTenantSlug_AndAuditLinkStillTenantScoped()
+    {
+        var userId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var companySlug = $"find-stations-{Guid.NewGuid():N}";
+        var stationId = Guid.NewGuid();
+
+        await using var authFactory = CreateAuthenticatedFactory();
+        using (var scope = authFactory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            db.Companies.Add(new Company
+            {
+                Id = companyId,
+                Name = "Find Stations Company",
+                ContactEmail = "find-stations@test.local",
+                ContactPhone = "+3725100000",
+                Slug = companySlug,
+                IsActive = true
+            });
+            db.AppUserCompanies.Add(new AppUserCompany
+            {
+                Id = Guid.NewGuid(),
+                AppUserId = userId,
+                CompanyId = companyId,
+                Role = ECompanyRole.Owner,
+                IsActive = true,
+                JoinedAtUtc = DateTime.UtcNow
+            });
+            db.ChargingStations.Add(new ChargingStation
+            {
+                Id = stationId,
+                CompanyId = companyId,
+                Name = new LangStr { ["en"] = "Find Stations Test Station" },
+                Location = "Tallinn",
+                Status = EStationStatus.Available,
+                PricePerKwh = 0.30m,
+                MaxPower = 50m,
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
+        var dashboardResponse = await client.GetAsync($"/{companySlug}/Company/Dashboard/Index");
+        Assert.Equal(HttpStatusCode.OK, dashboardResponse.StatusCode);
+
+        var dashboardDocument = await HtmlHelpers.GetDocumentAsync(dashboardResponse);
+        var findStationsLink = dashboardDocument.QuerySelectorAll("a")
+            .OfType<IHtmlAnchorElement>()
+            .FirstOrDefault(link =>
+                link.PathName.Equals($"/{companySlug}", StringComparison.OrdinalIgnoreCase)
+                || link.PathName.EndsWith("/Home/Index", StringComparison.OrdinalIgnoreCase));
+
+        Assert.NotNull(findStationsLink);
+        Assert.Contains($"/{companySlug}", findStationsLink!.Href, StringComparison.OrdinalIgnoreCase);
+
+        var findStationsResponse = await client.GetAsync(findStationsLink.PathName);
+        Assert.Equal(HttpStatusCode.OK, findStationsResponse.StatusCode);
+
+        var findStationsDocument = await HtmlHelpers.GetDocumentAsync(findStationsResponse);
+        var auditLink = findStationsDocument.QuerySelectorAll("a")
+            .OfType<IHtmlAnchorElement>()
+            .FirstOrDefault(link => link.PathName.EndsWith("/Company/Audit/CompanyLog", StringComparison.OrdinalIgnoreCase));
+
+        Assert.NotNull(auditLink);
+        Assert.Contains($"/{companySlug}/Company/Audit/CompanyLog", auditLink!.Href, StringComparison.OrdinalIgnoreCase);
+
+        var stationDetailsLink = findStationsDocument.QuerySelectorAll("a.station-button")
+            .OfType<IHtmlAnchorElement>()
+            .FirstOrDefault();
+
+        Assert.NotNull(stationDetailsLink);
+        Assert.Contains($"/{companySlug}/", stationDetailsLink!.Href, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/Station/", stationDetailsLink.Href, StringComparison.OrdinalIgnoreCase);
+
+        var stationDetailsResponse = await client.GetAsync(stationDetailsLink.PathName);
+        Assert.Equal(HttpStatusCode.OK, stationDetailsResponse.StatusCode);
+
+        var stationDetailsDocument = await HtmlHelpers.GetDocumentAsync(stationDetailsResponse);
+        var stationDetailsAuditLink = stationDetailsDocument.QuerySelectorAll("a")
+            .OfType<IHtmlAnchorElement>()
+            .FirstOrDefault(link => link.PathName.EndsWith("/Company/Audit/CompanyLog", StringComparison.OrdinalIgnoreCase));
+
+        Assert.NotNull(stationDetailsAuditLink);
+        Assert.Contains($"/{companySlug}/Company/Audit/CompanyLog", stationDetailsAuditLink!.Href, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CompanyAuditLog_ShowsMaintenanceMutations_ForCompany()
+    {
+        var userId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var companySlug = $"maintenance-audit-{Guid.NewGuid():N}";
+        var stationId = Guid.NewGuid();
+
+        await using var authFactory = CreateAuthenticatedFactory();
+        using (var scope = authFactory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            db.Companies.Add(new Company
+            {
+                Id = companyId,
+                Name = "Maintenance Audit Company",
+                ContactEmail = "maintenance-audit@test.local",
+                ContactPhone = "+3726000000",
+                Slug = companySlug,
+                IsActive = true
+            });
+            db.AppUserCompanies.Add(new AppUserCompany
+            {
+                Id = Guid.NewGuid(),
+                AppUserId = userId,
+                CompanyId = companyId,
+                Role = ECompanyRole.Owner,
+                IsActive = true,
+                JoinedAtUtc = DateTime.UtcNow
+            });
+            db.ChargingStations.Add(new ChargingStation
+            {
+                Id = stationId,
+                CompanyId = companyId,
+                Name = new LangStr { ["en"] = "Maintenance Audit Station" },
+                Location = "Tallinn",
+                Status = EStationStatus.Available,
+                PricePerKwh = 0.35m,
+                MaxPower = 80m,
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+
+            db.Maintenances.Add(new Maintenance
+            {
+                Id = Guid.NewGuid(),
+                ChargingStationId = stationId,
+                ReportedByUserId = userId,
+                IssueDescription = "Connector overheating",
+                Status = EMaintenanceStatus.Reported,
+                ReportedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
+        var response = await client.GetAsync($"/{companySlug}/Company/Audit/CompanyLog?entityName=Maintenance");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("No audit entries found.", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Maintenance", html, StringComparison.OrdinalIgnoreCase);
     }
 
     private static WebApplicationFactory<Program> CreateAuthenticatedFactory()
@@ -287,4 +496,3 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         return db.ChargingSessions.Where(s => s.UserId == userId).Select(s => s.Id).First();
     }
 }
-

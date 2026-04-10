@@ -148,6 +148,8 @@ public class StationController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReportIssue([Bind(Prefix = "IssueReportForm")] StationIssueReportViewModel model)
     {
+        var companySlug = RouteData.Values["companySlug"]?.ToString();
+
         if (!User.IsInRole("Customer"))
         {
             return Forbid();
@@ -162,14 +164,14 @@ public class StationController : Controller
         if (!ModelState.IsValid)
         {
             TempData["IssueReportError"] = App.Resources.Views.Root.Station.Details.ReportIssueValidationError;
-            return RedirectToAction(nameof(Details), new { id = model.StationId });
+            return RedirectToAction(nameof(Details), new { id = model.StationId, companySlug });
         }
 
         var stationResult = await _reservationService.GetStationDetailsAsync(model.StationId);
         if (!stationResult.Success || stationResult.Data?.CompanyId == null || stationResult.Data.CompanyId == Guid.Empty)
         {
             TempData["IssueReportError"] = App.Resources.Views.Root.Station.Details.ReportIssueFailure;
-            return RedirectToAction(nameof(Details), new { id = model.StationId });
+            return RedirectToAction(nameof(Details), new { id = model.StationId, companySlug });
         }
 
         var reportResult = await _maintenanceService.CreateMaintenanceAsync(
@@ -181,11 +183,11 @@ public class StationController : Controller
         if (!reportResult.Success)
         {
             TempData["IssueReportError"] = App.Resources.Views.Root.Station.Details.ReportIssueFailure;
-            return RedirectToAction(nameof(Details), new { id = model.StationId });
+            return RedirectToAction(nameof(Details), new { id = model.StationId, companySlug });
         }
 
         TempData["IssueReportSuccess"] = App.Resources.Views.Root.Station.Details.ReportIssueSuccess;
-        return RedirectToAction(nameof(Details), new { id = model.StationId });
+        return RedirectToAction(nameof(Details), new { id = model.StationId, companySlug });
     }
 
     [HttpGet]

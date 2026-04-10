@@ -128,7 +128,7 @@ public class AccountController : Controller
             if (companiesResult.Data.Companies.Count == 1)
             {
                 var company = companiesResult.Data.Companies[0];
-                return RedirectToAction("Index", "Dashboard", new { area = "Company", companyId = company.CompanyId });
+                return RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug = company.CompanySlug });
             }
 
             return RedirectToAction(nameof(CompanySelection), new { returnUrl = model.ReturnUrl });
@@ -169,7 +169,7 @@ public class AccountController : Controller
         if (companiesResult.Data.Companies.Count == 1)
         {
             var company = companiesResult.Data.Companies.First();
-            return RedirectToAction("Index", "Dashboard", new { area = "Company", companyId = company.CompanyId });
+            return RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug = company.CompanySlug });
         }
 
         var viewModel = new CompanySelectionViewModel
@@ -223,7 +223,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        return RedirectToAction("Index", "Dashboard", new { area = "Company", companyId = company.CompanyId });
+        return RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug = company.CompanySlug });
     }
 
     // POST: /Account/Logout

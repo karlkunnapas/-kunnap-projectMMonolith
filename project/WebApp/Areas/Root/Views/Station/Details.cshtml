@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = App.Resources.Views.Root.Station.Details.Title;
     var isCompanyUser = User.IsInRole("CompanyOwner");
+    var companySlug = ViewContext.RouteData.Values["companySlug"]?.ToString();
     var statusText = Model.Status switch
     {
         EStationStatus.Available => App.Resources.Views.Root.Station.Details.StatusAvailable,
@@ -38,7 +39,14 @@
                 <div class="station-meta">@App.Resources.Views.Root.Station.Details.PricePerKwh: €@Model.PricePerKwh.ToString("0.00")/kWh | @App.Resources.Views.Root.Station.Details.MaxPower: @Model.MaxPower.ToString("0") kW</div>
             </div>
             <div class="station-actions">
-                <a class="filter-chip" asp-controller="Home" asp-action="Index" asp-area="">@App.Resources.Views.Root.Station.Details.BackToStations</a>
+                @if (isCompanyUser && !string.IsNullOrWhiteSpace(companySlug))
+                {
+                    <a class="filter-chip" asp-controller="Home" asp-action="Index" asp-area="" asp-route-companySlug="@companySlug">@App.Resources.Views.Root.Station.Details.BackToStations</a>
+                }
+                else
+                {
+                    <a class="filter-chip" asp-controller="Home" asp-action="Index" asp-area="">@App.Resources.Views.Root.Station.Details.BackToStations</a>
+                }
             </div>
         </div>
 

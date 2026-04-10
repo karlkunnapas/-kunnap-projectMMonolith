@@ -1,6 +1,8 @@
 ﻿@using System.Threading
+@using App.DAL.EF
 @using WebApp.Helpers
 @inject AppNameService AppNameService;
+@inject ITenantContext TenantContext;
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,12 +19,17 @@
 <div class="app-shell">
     @{
         var isCompanyUser = User.IsInRole("CompanyOwner");
+        var companySlugFromRoute = Context.Request.RouteValues["companySlug"]?.ToString();
+        var companySlugFromQuery = Context.Request.Query["companySlug"].ToString();
+        var currentCompanySlug = !string.IsNullOrWhiteSpace(companySlugFromRoute)
+            ? companySlugFromRoute
+            : (!string.IsNullOrWhiteSpace(companySlugFromQuery) ? companySlugFromQuery : TenantContext.CompanySlug);
     }
     <aside class="app-sidebar">
         <div class="app-brand">
             @if (isCompanyUser)
             {
-                <a asp-area="Company" asp-controller="Dashboard" asp-action="Index">@AppNameService.AppName</a>
+                <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@AppNameService.AppName</a>
             }
             else
             {
@@ -34,7 +41,7 @@
                 <li class="app-nav-item">
                     @if (isCompanyUser)
                     {
-                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.Home</a>
                     }
                     else
                     {
@@ -65,7 +72,14 @@
                     </li>
                 }
                 <li class="app-nav-item">
-                    <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
+                    @if (isCompanyUser)
+                    {
+                        <a asp-area="" asp-controller="Home" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.FindStations</a>
+                    }
+                    else
+                    {
+                        <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
+                    }
                 </li>
                 @if (User.IsInRole("Customer") && !isCompanyUser)
                 {
@@ -85,19 +99,19 @@
                 @if (isCompanyUser)
                 {
                     <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
+                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
                     </li>
                     <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Station" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyStations</a>
+                        <a asp-area="Company" asp-controller="Station" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyStations</a>
                     </li>
                     <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Maintenance" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
+                        <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
                     </li>
                     <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Promotion" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyPromotions</a>
+                        <a asp-area="Company" asp-controller="Promotion" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyPromotions</a>
                     </li>
                     <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Audit" asp-action="CompanyLog">@App.Resources.Views.Shared._Layout.CompanyAudit</a>
+                        <a asp-area="Company" asp-controller="Audit" asp-action="CompanyLog" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyAudit</a>
                     </li>
                 }
                 @if (!isCompanyUser)

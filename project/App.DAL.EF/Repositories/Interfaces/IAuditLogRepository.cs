@@ -13,4 +13,3 @@ public interface IAuditLogRepository
         string? action = null);
     Task<List<AuditLog>> GetRangeAsync(DateTime? fromUtc = null, DateTime? toUtc = null);
 }
-
