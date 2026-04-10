@@ -231,6 +231,18 @@ namespace App.Resources.Views.Shared {
             }
         }
 
+        public static string CompanyUsers {
+            get {
+                return ResourceManager.GetString("CompanyUsers", resourceCulture);
+            }
+        }
+
+        public static string SwitchCompany {
+            get {
+                return ResourceManager.GetString("SwitchCompany", resourceCulture);
+            }
+        }
+
         public static string PaymentMethods {
             get {
                 return ResourceManager.GetString("PaymentMethods", resourceCulture);

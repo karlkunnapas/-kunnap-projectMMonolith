@@ -2,6 +2,7 @@ using System.Security.Claims;
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
+using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ using WebApp.Areas.Company.ViewModels;
 namespace WebApp.Areas.Company.Controllers;
 
 [Area("Company")]
-[Authorize(Roles = "CompanyOwner")]
+[Authorize]
 public class PromotionController : Controller
 {
     private readonly IPromotionService _promotionService;
@@ -230,7 +231,7 @@ public class PromotionController : Controller
 
         return await _context.AppUserCompanies
             .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive)
+            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Role >= ECompanyRole.Manager)
             .OrderByDescending(uc => uc.JoinedAtUtc)
             .Select(uc => uc.CompanyId)
             .ToListAsync();

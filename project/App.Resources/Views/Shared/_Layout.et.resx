@@ -104,6 +104,12 @@
     <data name="CompanyPromotions" xml:space="preserve">
         <value>Ettevõtte kampaaniad</value>
     </data>
+    <data name="CompanyUsers" xml:space="preserve">
+        <value>Ettevõtte kasutajad</value>
+    </data>
+    <data name="SwitchCompany" xml:space="preserve">
+        <value>Vaheta ettevõtet</value>
+    </data>
     <data name="PaymentMethods" xml:space="preserve">
         <value>Makselahendused</value>
     </data>

@@ -135,6 +135,22 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>Edit.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\CompanyUsers\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\CompanyUsers\Add.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Add.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\CompanyUsers\AddResult.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>AddResult.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Company\CompanyUsers\Edit.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Edit.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
       <EmbeddedResource Update="Views\Root\Promotion\Index.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>Index.Designer.cs</LastGenOutput>
@@ -298,6 +314,26 @@
         <DependentUpon>Create.resx</DependentUpon>
       </Compile>
       <Compile Update="Views\Company\Promotion\Edit.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Edit.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\CompanyUsers\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\CompanyUsers\Add.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Add.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\CompanyUsers\AddResult.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>AddResult.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Company\CompanyUsers\Edit.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>Edit.resx</DependentUpon>

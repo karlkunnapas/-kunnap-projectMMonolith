@@ -3,22 +3,37 @@
     ViewData["Title"] = App.Resources.Views.Account.CompanySelection.Title;
 }
 
-<h1>@ViewData["Title"]</h1>
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@ViewData["Title"]</h2>
+        </div>
 
-@if (!ViewData.ModelState.IsValid)
-{
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-}
-
-<form asp-action="CompanySelection" method="post">
-    <input type="hidden" asp-for="ReturnUrl" />
-
-    <div class="list-group mb-3">
-        @foreach (var company in Model.Companies)
+        @if (!ViewData.ModelState.IsValid)
         {
-            <button type="submit" name="companyId" value="@company.CompanyId" class="list-group-item list-group-item-action">
-                <strong>@company.CompanyName</strong> (@company.CompanySlug) - @company.Role
-            </button>
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         }
-    </div>
-</form>
+
+        <form asp-action="CompanySelection" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div class="home-filters-title">@App.Resources.Views.Account.CompanySelection.Heading</div>
+            <div class="home-filter-row">
+                @foreach (var company in Model.Companies)
+                {
+                    <label class="station-card" style="cursor:pointer; width:100%;">
+                        <input type="radio" asp-for="SelectedCompanyId" value="@company.CompanyId" />
+                        <div class="station-details">
+                            <div class="station-name">@company.CompanyName</div>
+                            <div class="station-meta">@company.CompanySlug</div>
+                            <div class="station-meta">@App.Resources.Views.Account.CompanySelection.RoleLabel: @company.Role</div>
+                        </div>
+                    </label>
+                }
+            </div>
+
+            <button type="submit" class="station-button">@App.Resources.Views.Account.CompanySelection.ContinueAction</button>
+        </form>
+    </section>
+</div>

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace WebApp.ViewModels.Account;
 
 public class CompanySelectionItemViewModel
@@ -10,6 +12,8 @@ public class CompanySelectionItemViewModel
 
 public class CompanySelectionViewModel
 {
+    [Required]
+    public Guid SelectedCompanyId { get; set; }
     public List<CompanySelectionItemViewModel> Companies { get; set; } = new();
     public string? ReturnUrl { get; set; }
 }

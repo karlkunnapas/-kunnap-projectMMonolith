@@ -50,5 +50,23 @@ namespace App.Resources.Views.Account {
                 return ResourceManager.GetString("Title", resourceCulture);
             }
         }
+
+        public static string Heading {
+            get {
+                return ResourceManager.GetString("Heading", resourceCulture);
+            }
+        }
+
+        public static string RoleLabel {
+            get {
+                return ResourceManager.GetString("RoleLabel", resourceCulture);
+            }
+        }
+
+        public static string ContinueAction {
+            get {
+                return ResourceManager.GetString("ContinueAction", resourceCulture);
+            }
+        }
     }
 }

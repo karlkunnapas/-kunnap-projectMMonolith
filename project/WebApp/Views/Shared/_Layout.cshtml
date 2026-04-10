@@ -1,8 +1,12 @@
 ﻿@using System.Threading
+@using System.Security.Claims
+@using App.Domain
 @using App.DAL.EF
+@using Microsoft.EntityFrameworkCore
 @using WebApp.Helpers
 @inject AppNameService AppNameService;
 @inject ITenantContext TenantContext;
+@inject AppDbContext DbContext;
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,18 +22,58 @@
 <body>
 <div class="app-shell">
     @{
-        var isCompanyUser = User.IsInRole("CompanyOwner");
+        var isCompanyUser = false;
+        ECompanyRole? currentCompanyRole = null;
+        var canAccessManagerFeatures = false;
+        var canManageUsers = false;
         var companySlugFromRoute = Context.Request.RouteValues["companySlug"]?.ToString();
         var companySlugFromQuery = Context.Request.Query["companySlug"].ToString();
         var currentCompanySlug = !string.IsNullOrWhiteSpace(companySlugFromRoute)
             ? companySlugFromRoute
             : (!string.IsNullOrWhiteSpace(companySlugFromQuery) ? companySlugFromQuery : TenantContext.CompanySlug);
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (User.Identity?.IsAuthenticated == true && Guid.TryParse(userIdClaim, out var currentUserId))
+        {
+            var memberships = await DbContext.AppUserCompanies
+                .AsNoTracking()
+                .Include(uc => uc.Company)
+                .Where(uc => uc.AppUserId == currentUserId && uc.IsActive)
+                .OrderByDescending(uc => uc.JoinedAtUtc)
+                .ToListAsync();
+
+            isCompanyUser = memberships.Count > 0;
+            if (isCompanyUser)
+            {
+                var currentMembership = !string.IsNullOrWhiteSpace(currentCompanySlug)
+                    ? memberships.FirstOrDefault(uc => string.Equals(uc.Company?.Slug, currentCompanySlug, StringComparison.OrdinalIgnoreCase))
+                    : null;
+
+                currentMembership ??= TenantContext.CompanyId.HasValue
+                    ? memberships.FirstOrDefault(uc => uc.CompanyId == TenantContext.CompanyId.Value)
+                    : null;
+
+                currentMembership ??= memberships.First();
+
+                currentCompanyRole = currentMembership.Role;
+                currentCompanySlug = currentMembership.Company?.Slug ?? currentCompanySlug;
+                canAccessManagerFeatures = currentCompanyRole.Value >= ECompanyRole.Manager;
+                canManageUsers = currentCompanyRole == ECompanyRole.Owner;
+            }
+        }
     }
     <aside class="app-sidebar">
         <div class="app-brand">
             @if (isCompanyUser)
             {
-                <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@AppNameService.AppName</a>
+                @if (canAccessManagerFeatures)
+                {
+                    <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@AppNameService.AppName</a>
+                }
+                else
+                {
+                    <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@AppNameService.AppName</a>
+                }
             }
             else
             {
@@ -41,7 +85,14 @@
                 <li class="app-nav-item">
                     @if (isCompanyUser)
                     {
-                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.Home</a>
+                        @if (canAccessManagerFeatures)
+                        {
+                            <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.Home</a>
+                        }
+                        else
+                        {
+                            <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.Home</a>
+                        }
                     }
                     else
                     {
@@ -99,19 +150,31 @@
                 @if (isCompanyUser)
                 {
                     <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
-                    </li>
-                    <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Station" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyStations</a>
-                    </li>
-                    <li class="app-nav-item">
                         <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
                     </li>
+                    @if (canAccessManagerFeatures)
+                    {
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
+                        </li>
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Station" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyStations</a>
+                        </li>
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Promotion" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyPromotions</a>
+                        </li>
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Audit" asp-action="CompanyLog" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyAudit</a>
+                        </li>
+                    }
+                    @if (canManageUsers)
+                    {
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="CompanyUsers" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyUsers</a>
+                        </li>
+                    }
                     <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Promotion" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyPromotions</a>
-                    </li>
-                    <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Audit" asp-action="CompanyLog" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyAudit</a>
+                        <a asp-area="" asp-controller="Account" asp-action="CompanySelection" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString">@App.Resources.Views.Shared._Layout.SwitchCompany</a>
                     </li>
                 }
                 @if (!isCompanyUser)

@@ -124,6 +124,7 @@ public class MaintenanceListViewModel
 {
     public Guid CompanyId { get; set; }
     public bool IncludeResolved { get; set; }
+    public bool CanAccessDashboard { get; set; }
     public List<MaintenanceQueueItemViewModel> Issues { get; set; } = new();
 }
 

@@ -128,7 +128,7 @@ public class AccountController : Controller
             if (companiesResult.Data.Companies.Count == 1)
             {
                 var company = companiesResult.Data.Companies[0];
-                return RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug = company.CompanySlug });
+                return RedirectToCompanyHome(company.CompanySlug, company.Role);
             }
 
             return RedirectToAction(nameof(CompanySelection), new { returnUrl = model.ReturnUrl });
@@ -169,7 +169,7 @@ public class AccountController : Controller
         if (companiesResult.Data.Companies.Count == 1)
         {
             var company = companiesResult.Data.Companies.First();
-            return RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug = company.CompanySlug });
+            return RedirectToCompanyHome(company.CompanySlug, company.Role);
         }
 
         var viewModel = new CompanySelectionViewModel
@@ -181,7 +181,8 @@ public class AccountController : Controller
                 CompanyName = c.CompanyName,
                 CompanySlug = c.CompanySlug,
                 Role = c.Role
-            }).ToList()
+            }).ToList(),
+            SelectedCompanyId = companiesResult.Data.Companies.First().CompanyId
         };
 
         return View(viewModel);
@@ -191,7 +192,7 @@ public class AccountController : Controller
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CompanySelection(CompanySelectionViewModel model, Guid companyId)
+    public async Task<IActionResult> CompanySelection(CompanySelectionViewModel model)
     {
         var userId = GetCurrentUserId();
         if (userId == null)
@@ -207,8 +208,9 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Login));
         }
 
-        var company = companiesResult.Data.Companies.FirstOrDefault(c => c.CompanyId == companyId);
-        if (company == null)
+        var selectedCompanyId = model.SelectedCompanyId;
+        var company = companiesResult.Data.Companies.FirstOrDefault(c => c.CompanyId == selectedCompanyId);
+        if (company == null || !ModelState.IsValid)
         {
             // Reload the model with companies and show error
             model.Companies = companiesResult.Data.Companies.Select(c => new CompanySelectionItemViewModel
@@ -223,7 +225,75 @@ public class AccountController : Controller
             return View(model);
         }
 
-        return RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug = company.CompanySlug });
+        var activeCompany = await _identityService.SetActiveCompanyAsync(
+            userId.Value,
+            company.CompanyId,
+            User.Identity?.Name ?? userId.Value.ToString());
+
+        if (!activeCompany.Success || activeCompany.Data == null)
+        {
+            return Forbid();
+        }
+
+        var companySlugs = companiesResult.Data.Companies
+            .Select(c => c.CompanySlug)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var normalizedReturnUrl = NormalizeCompanyReturnUrl(
+            model.ReturnUrl,
+            activeCompany.Data.CompanySlug,
+            companySlugs);
+
+        if (!string.IsNullOrWhiteSpace(normalizedReturnUrl) && Url.IsLocalUrl(normalizedReturnUrl))
+        {
+            return Redirect(normalizedReturnUrl);
+        }
+
+        return RedirectToCompanyHome(activeCompany.Data.CompanySlug, activeCompany.Data.Role);
+    }
+
+    // POST: /Account/SwitchCompany
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SwitchCompany(Guid companyId, string? returnUrl = null)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return RedirectToAction(nameof(Login));
+        }
+
+        var activeCompany = await _identityService.SetActiveCompanyAsync(
+            userId.Value,
+            companyId,
+            User.Identity?.Name ?? userId.Value.ToString());
+
+        if (!activeCompany.Success || activeCompany.Data == null)
+        {
+            return Forbid();
+        }
+
+        var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
+        var companySlugs = companiesResult.Success && companiesResult.Data != null
+            ? companiesResult.Data.Companies
+                .Select(c => c.CompanySlug)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var normalizedReturnUrl = NormalizeCompanyReturnUrl(
+            returnUrl,
+            activeCompany.Data.CompanySlug,
+            companySlugs);
+
+        if (!string.IsNullOrWhiteSpace(normalizedReturnUrl) && Url.IsLocalUrl(normalizedReturnUrl))
+        {
+            return Redirect(normalizedReturnUrl);
+        }
+
+        return RedirectToCompanyHome(activeCompany.Data.CompanySlug, activeCompany.Data.Role);
     }
 
     // POST: /Account/Logout
@@ -258,5 +328,43 @@ public class AccountController : Controller
             return null;
         }
         return userId;
+    }
+
+    private IActionResult RedirectToCompanyHome(string companySlug, string? role)
+    {
+        var isEmployee = string.Equals(role, ECompanyRole.Employee.ToString(), StringComparison.OrdinalIgnoreCase);
+        return isEmployee
+            ? RedirectToAction("Index", "Maintenance", new { area = "Company", companySlug })
+            : RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug });
+    }
+
+    private static string? NormalizeCompanyReturnUrl(string? returnUrl, string targetCompanySlug, ISet<string> knownCompanySlugs)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl) || string.IsNullOrWhiteSpace(targetCompanySlug))
+        {
+            return returnUrl;
+        }
+
+        var hashIndex = returnUrl.IndexOf('#');
+        var hashPart = hashIndex >= 0 ? returnUrl[hashIndex..] : string.Empty;
+        var pathAndQuery = hashIndex >= 0 ? returnUrl[..hashIndex] : returnUrl;
+
+        var queryIndex = pathAndQuery.IndexOf('?');
+        var pathPart = queryIndex >= 0 ? pathAndQuery[..queryIndex] : pathAndQuery;
+        var queryPart = queryIndex >= 0 ? pathAndQuery[queryIndex..] : string.Empty;
+
+        var segments = pathPart.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+        {
+            return returnUrl;
+        }
+
+        if (!knownCompanySlugs.Contains(segments[0]))
+        {
+            return returnUrl;
+        }
+
+        segments[0] = targetCompanySlug;
+        return "/" + string.Join('/', segments) + queryPart + hashPart;
     }
 }

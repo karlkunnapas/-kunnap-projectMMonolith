@@ -11,7 +11,7 @@ using WebApp.Areas.Company.ViewModels;
 namespace WebApp.Areas.Company.Controllers;
 
 [Area("Company")]
-[Authorize(Roles = "CompanyOwner")]
+[Authorize]
 public class StationController : Controller
 {
     private readonly IChargingStationCompanyService _stationService;
@@ -404,7 +404,7 @@ public class StationController : Controller
 
         return await _context.AppUserCompanies
             .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Role == ECompanyRole.Owner)
+            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Role >= ECompanyRole.Manager)
             .OrderByDescending(uc => uc.JoinedAtUtc)
             .Select(uc => uc.CompanyId)
             .ToListAsync();

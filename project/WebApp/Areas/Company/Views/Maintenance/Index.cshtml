@@ -8,7 +8,10 @@
         <div class="vehicle-header-row">
             <h2>@App.Resources.Views.Company.Maintenance.Index.Heading</h2>
             <div class="vehicle-actions">
-                <a class="filter-chip" asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Maintenance.Index.BackToDashboard</a>
+                @if (Model.CanAccessDashboard)
+                {
+                    <a class="filter-chip" asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Maintenance.Index.BackToDashboard</a>
+                }
             </div>
         </div>
 

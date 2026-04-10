@@ -111,6 +111,12 @@
     <data name="CompanyPromotions" xml:space="preserve">
         <value>Company Promotions</value>
     </data>
+    <data name="CompanyUsers" xml:space="preserve">
+        <value>Company Users</value>
+    </data>
+    <data name="SwitchCompany" xml:space="preserve">
+        <value>Switch Company</value>
+    </data>
     <data name="PaymentMethods" xml:space="preserve">
         <value>Payment Methods</value>
     </data>

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace WebApp.Areas.Company.Controllers;
 
 [Area("Company")]
-[Authorize(Roles = "CompanyOwner")]
+[Authorize]
 public class ConnectorController : Controller
 {
     private readonly IChargingStationCompanyService _stationService;
@@ -105,7 +105,7 @@ public class ConnectorController : Controller
 
         return await _context.AppUserCompanies
             .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Role == ECompanyRole.Owner)
+            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Role >= ECompanyRole.Manager)
             .OrderByDescending(uc => uc.JoinedAtUtc)
             .Select(uc => uc.CompanyId)
             .ToListAsync();

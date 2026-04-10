@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
+using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ using WebApp.ViewModels;
 namespace WebApp.Areas.Company.Controllers;
 
 [Area("Company")]
-[Authorize(Roles = "CompanyOwner")]
+[Authorize]
 public class AuditController : Controller
 {
     private readonly IAuditService _auditService;
@@ -91,7 +92,7 @@ public class AuditController : Controller
 
         return await _context.AppUserCompanies
             .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive)
+            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Role >= ECompanyRole.Manager)
             .OrderByDescending(uc => uc.JoinedAtUtc)
             .Select(uc => uc.CompanyId)
             .ToListAsync();

@@ -11,21 +11,24 @@ using WebApp.Areas.Company.ViewModels;
 namespace WebApp.Areas.Company.Controllers;
 
 [Area("Company")]
-[Authorize(Roles = "CompanyOwner")]
+[Authorize]
 public class MaintenanceController : Controller
 {
     private readonly IMaintenanceService _maintenanceService;
     private readonly IChargingStationCompanyService _chargingStationCompanyService;
     private readonly AppDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
     public MaintenanceController(
         IMaintenanceService maintenanceService,
         IChargingStationCompanyService chargingStationCompanyService,
-        AppDbContext context)
+        AppDbContext context,
+        ITenantContext tenantContext)
     {
         _maintenanceService = maintenanceService;
         _chargingStationCompanyService = chargingStationCompanyService;
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     [HttpGet]
@@ -47,6 +50,7 @@ public class MaintenanceController : Controller
         {
             CompanyId = resolvedCompany.Value,
             IncludeResolved = includeResolved,
+            CanAccessDashboard = await CanAccessDashboardAsync(resolvedCompany.Value),
             Issues = result.Data?.Select(MapIssue).ToList() ?? new List<MaintenanceQueueItemViewModel>()
         };
 
@@ -180,7 +184,7 @@ public class MaintenanceController : Controller
             return null;
         }
 
-        var resolvedCompanyId = requestedCompanyId ?? membershipCompanyIds[0];
+        var resolvedCompanyId = requestedCompanyId ?? _tenantContext.CompanyId ?? membershipCompanyIds[0];
         return membershipCompanyIds.Contains(resolvedCompanyId) ? resolvedCompanyId : null;
     }
 
@@ -204,6 +208,23 @@ public class MaintenanceController : Controller
     {
         var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> CanAccessDashboardAsync(Guid companyId)
+    {
+        var userId = ResolveCurrentUserId();
+        if (userId == null)
+        {
+            return false;
+        }
+
+        return await _context.AppUserCompanies
+            .AsNoTracking()
+            .AnyAsync(uc =>
+                uc.CompanyId == companyId
+                && uc.AppUserId == userId.Value
+                && uc.IsActive
+                && uc.Role >= ECompanyRole.Manager);
     }
 
     private static MaintenanceQueueItemViewModel MapIssue(App.BLL.DTOs.MaintenanceIssueDto issue)

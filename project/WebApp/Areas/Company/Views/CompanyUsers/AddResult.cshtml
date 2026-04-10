@@ -1,0 +1,37 @@
+@model WebApp.Areas.Company.ViewModels.AddCompanyUserResultViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.CompanyUsers.AddResult.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.CompanyUsers.AddResult.Heading</h2>
+            <a class="filter-chip" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.CompanyUsers.AddResult.BackAction</a>
+        </div>
+
+        <div class="station-card" style="display:block;">
+            <div class="station-name">@Model.Email</div>
+            <div class="station-meta">@App.Resources.Views.Company.CompanyUsers.AddResult.RoleLabel: @Model.Role</div>
+            <div class="station-meta">@App.Resources.Views.Company.CompanyUsers.AddResult.AccessStatusLabel: @Model.AccessStatus</div>
+            <div class="station-meta">@App.Resources.Views.Company.CompanyUsers.AddResult.NextActionLabel: @Model.NextAction</div>
+
+            @if (Model.MembershipAlreadyActive)
+            {
+                <div class="station-status status-ok">@App.Resources.Views.Company.CompanyUsers.AddResult.AlreadyActiveStatus</div>
+            }
+            else if (Model.MembershipReactivated)
+            {
+                <div class="station-status status-warn">@App.Resources.Views.Company.CompanyUsers.AddResult.ReactivatedStatus</div>
+            }
+            else if (!Model.IsExistingUser)
+            {
+                <div class="station-status status-ok">@App.Resources.Views.Company.CompanyUsers.AddResult.NewUserStatus</div>
+            }
+            else
+            {
+                <div class="station-status status-ok">@App.Resources.Views.Company.CompanyUsers.AddResult.LinkedStatus</div>
+            }
+        </div>
+    </section>
+</div>
