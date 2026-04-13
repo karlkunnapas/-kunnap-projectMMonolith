@@ -1,0 +1,52 @@
+@model WebApp.Areas.Company.ViewModels.CompanyStationDetailsViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Station.Details.Title;
+    var companyId = ViewData["CompanyId"] is Guid value ? value : Guid.Empty;
+    var statusClass = Model.Status switch
+    {
+        EStationStatus.Available => "status-ok",
+        EStationStatus.InUse => "status-warn",
+        _ => "status-bad"
+    };
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Station.Details.Heading</h2>
+            <div class="vehicle-actions">
+                <a class="station-button" asp-area="Company" asp-controller="Station" asp-action="Edit" asp-route-id="@Model.Id" asp-route-companyId="@companyId">@App.Resources.Views.Company.Station.Details.EditAction</a>
+                <a class="filter-chip" asp-area="Company" asp-controller="Station" asp-action="Index" asp-route-companyId="@companyId">@App.Resources.Views.Company.Station.Details.BackToStations</a>
+            </div>
+        </div>
+
+        <div class="station-card">
+            <div class="station-icon">⚡</div>
+            <div class="station-details">
+                <div class="station-name">@Model.Name</div>
+                <div class="station-meta">@Model.Location</div>
+                <div class="station-status @statusClass">@Model.Status</div>
+                <div class="station-meta">€@Model.PricePerKwh.ToString("0.00")/kWh | @App.Resources.Views.Company.Station.Details.MaxPower: @Model.MaxPower.ToString("0")kW</div>
+                <div class="station-meta">@App.Resources.Views.Company.Station.Details.Connectors: @string.Join(", ", Model.Connectors)</div>
+                <div class="station-meta">@App.Resources.Views.Company.Station.Details.ActiveMaintenance: @Model.MaintenanceIssueCount</div>
+            </div>
+        </div>
+
+        <div class="station-card">
+            <div class="station-details">
+                <div class="station-name">@App.Resources.Views.Company.Station.Details.RecentMaintenanceHeading</div>
+                @if (!Model.RecentMaintenance.Any())
+                {
+                    <div class="station-empty">@App.Resources.Views.Company.Station.Details.NoMaintenance</div>
+                }
+                else
+                {
+                    @foreach (var issue in Model.RecentMaintenance)
+                    {
+                        <partial name="_MaintenanceCard" model="issue" />
+                    }
+                }
+            </div>
+        </div>
+    </section>
+</div>

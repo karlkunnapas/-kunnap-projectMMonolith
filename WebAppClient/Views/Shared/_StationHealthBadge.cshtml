@@ -1,0 +1,12 @@
+@model WebApp.ViewModels.Shared.StationHealthBadgeViewModel
+
+@{
+    var badgeClass = Model.HealthStatus switch
+    {
+        "Critical" => "status-bad",
+        "Warning" => "status-warn",
+        _ => "status-ok"
+    };
+}
+
+<span class="station-status @badgeClass">@Model.HealthStatus</span>

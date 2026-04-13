@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Laadimisseansi detailid</value></data>
+  <data name="Heading" xml:space="preserve"><value>Seansi detailid</value></data>
+  <data name="StartTime" xml:space="preserve"><value>Algusaeg</value></data>
+  <data name="EndTime" xml:space="preserve"><value>Loppaeg</value></data>
+  <data name="DurationMinutes" xml:space="preserve"><value>Kestus (minutid)</value></data>
+  <data name="EnergyConsumed" xml:space="preserve"><value>Tarbimine</value></data>
+  <data name="StatusActive" xml:space="preserve"><value>Aktiivne</value></data>
+  <data name="StatusCompleted" xml:space="preserve"><value>Lopetatud</value></data>
+  <data name="FinalCost" xml:space="preserve"><value>Loppmaksumus</value></data>
+  <data name="BackToHistory" xml:space="preserve"><value>Tagasi ajalukku</value></data>
+  <data name="EnergyInputPlaceholder" xml:space="preserve"><value>Tarbimine (kWh)</value></data>
+  <data name="DurationInputPlaceholder" xml:space="preserve"><value>Kestus minutites (valikuline)</value></data>
+  <data name="PromotionCodePlaceholder" xml:space="preserve"><value>Kampaaniakood (valikuline)</value></data>
+  <data name="PromotionCodeLabel" xml:space="preserve"><value>Kampaaniakood</value></data>
+  <data name="CostBeforeDiscount" xml:space="preserve"><value>Hind enne soodustust</value></data>
+  <data name="DiscountPercent" xml:space="preserve"><value>Soodustus</value></data>
+  <data name="DiscountAmount" xml:space="preserve"><value>Soodustuse summa</value></data>
+  <data name="PromotionLockedMessage" xml:space="preserve"><value>Kampaania valiti broneeringus ja seda ei saa selles seansis muuta.</value></data>
+  <data name="PromotionNoneOption" xml:space="preserve"><value>Ilma kampaaniata</value></data>
+  <data name="StopSession" xml:space="preserve"><value>Peata seanss</value></data>
+</root>

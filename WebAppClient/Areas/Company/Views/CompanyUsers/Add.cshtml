@@ -1,0 +1,67 @@
+@model WebApp.Areas.Company.ViewModels.AddCompanyUserViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.CompanyUsers.Add.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.CompanyUsers.Add.Heading</h2>
+            <a class="filter-chip" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.CompanyUsers.Add.BackAction</a>
+        </div>
+
+        <form asp-action="Add" method="post" class="station-card" style="display:block;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="CompanyId" />
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="Email" class="form-label">@App.Resources.Views.Company.CompanyUsers.Add.EmailLabel</label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Role" class="form-label">@App.Resources.Views.Company.CompanyUsers.Add.RoleLabel</label>
+                <select asp-for="Role" class="form-control" asp-items="Html.GetEnumSelectList<ECompanyRole>()"></select>
+                <span asp-validation-for="Role" class="text-danger"></span>
+            </div>
+
+            <div class="station-meta mb-2">@App.Resources.Views.Company.CompanyUsers.Add.NewUserFieldsHint</div>
+
+            <div class="form-group">
+                <label asp-for="FirstName" class="form-label">@App.Resources.Views.Company.CompanyUsers.Add.FirstNameLabel</label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="LastName" class="form-label">@App.Resources.Views.Company.CompanyUsers.Add.LastNameLabel</label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PhoneNumber" class="form-label">@App.Resources.Views.Company.CompanyUsers.Add.PhoneLabel</label>
+                <input asp-for="PhoneNumber" class="form-control" />
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Password" class="form-label">@App.Resources.Views.Company.CompanyUsers.Add.PasswordLabel</label>
+                <input asp-for="Password" class="form-control" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ConfirmPassword" class="form-label">@App.Resources.Views.Company.CompanyUsers.Add.ConfirmPasswordLabel</label>
+                <input asp-for="ConfirmPassword" class="form-control" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="station-button">@App.Resources.Views.Company.CompanyUsers.Add.SubmitAction</button>
+        </form>
+    </section>
+</div>

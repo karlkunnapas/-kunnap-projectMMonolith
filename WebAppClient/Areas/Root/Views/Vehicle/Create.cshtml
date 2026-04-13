@@ -1,0 +1,45 @@
+@model WebApp.Areas.Root.ViewModels.VehicleEditViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.Vehicle.Create.Title;
+}
+
+<div class="home-page vehicle-page">
+    <section class="home-content">
+        <h2>@App.Resources.Views.Root.Vehicle.Create.Heading</h2>
+
+        <form asp-action="Create" method="post" class="station-card vehicle-form-card">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label asp-for="Make" class="home-filters-title">@App.Resources.Views.Root.Vehicle.Create.Make</label>
+                    <input asp-for="Make" class="form-control" />
+                    <span asp-validation-for="Make" class="text-danger"></span>
+                </div>
+
+                <div class="vehicle-form-field">
+                    <label asp-for="Model" class="home-filters-title">@App.Resources.Views.Root.Vehicle.Create.Model</label>
+                    <input asp-for="Model" class="form-control" />
+                    <span asp-validation-for="Model" class="text-danger"></span>
+                </div>
+
+                <div class="vehicle-form-field">
+                    <label asp-for="BatteryCapacity" class="home-filters-title">@App.Resources.Views.Root.Vehicle.Create.BatteryCapacity</label>
+                    <input asp-for="BatteryCapacity" class="form-control" />
+                    <span asp-validation-for="BatteryCapacity" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="vehicle-form-field">
+                <label class="home-filters-title">@App.Resources.Views.Root.Vehicle.Create.CompatibleConnectors</label>
+                <partial name="_CompatibleConnectors" model="Model.AllConnectors" />
+            </div>
+
+            <div class="home-filter-row">
+                <button type="submit" class="station-button">@App.Resources.Views.Root.Vehicle.Create.Save</button>
+                <a asp-action="Index" class="filter-chip">@App.Resources.Views.Root.Vehicle.Create.Cancel</a>
+            </div>
+        </form>
+    </section>
+</div>

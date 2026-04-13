@@ -1,0 +1,18 @@
+@model WebApp.Areas.Company.ViewModels.MaintenanceQueueItemViewModel
+
+<div class="station-card maintenance-card">
+    <div class="station-icon">🔧</div>
+    <div class="station-details">
+        <div class="station-name">@Model.StationName</div>
+        <div class="station-meta">@Model.IssueDescription</div>
+        <div class="station-meta">@Model.ReportedAtUtc.ToString("u")</div>
+        <div class="station-status @(Model.Status == EMaintenanceStatus.Resolved ? "status-ok" : "status-warn")">
+            @Model.Status
+        </div>
+    </div>
+    <div class="station-actions">
+        <a class="station-button" asp-area="Company" asp-controller="Maintenance" asp-action="Details" asp-route-id="@Model.Id">
+            @App.Resources.Views.Company.Dashboard.Index.DetailsAction
+        </a>
+    </div>
+</div>

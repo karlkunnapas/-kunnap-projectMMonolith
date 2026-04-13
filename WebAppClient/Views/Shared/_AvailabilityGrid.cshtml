@@ -1,0 +1,30 @@
+@model IReadOnlyList<WebApp.Areas.Root.ViewModels.AvailabilitySlotViewModel>
+
+@if (!Model.Any())
+{
+    <div class="station-empty">@App.Resources.Views.Root.Station.Details.NoAvailability</div>
+}
+else
+{
+    var grouped = Model
+        .OrderBy(s => s.StartTimeUtc)
+        .GroupBy(s => s.StartTimeUtc.Date)
+        .Take(7)
+        .ToList();
+
+    <div class="availability-calendar-grid">
+        @foreach (var day in grouped)
+        {
+            <div class="availability-day-col">
+                <div class="availability-day-title">@day.Key.ToLocalTime().ToString("ddd")</div>
+                @foreach (var slot in day.Take(3))
+                {
+                    <div class="filter-chip @(slot.IsAvailable ? "" : "filter-chip-danger")">
+                        @slot.StartTimeUtc.ToLocalTime().ToString("HH:mm")-@slot.EndTimeUtc.ToLocalTime().ToString("HH:mm")
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+

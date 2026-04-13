@@ -1,0 +1,60 @@
+@model List<WebApp.Areas.Company.ViewModels.ChartPointViewModel>
+
+@{
+    var points = Model ?? new List<WebApp.Areas.Company.ViewModels.ChartPointViewModel>();
+    var hasPoints = points.Count > 0;
+    var average = hasPoints ? points.Average(point => point.Value) : 0m;
+    var peak = hasPoints ? points.Max(point => point.Value) : 0m;
+    var lowest = hasPoints ? points.Min(point => point.Value) : 0m;
+    var maxValue = hasPoints ? Math.Max(peak, 1m) : 1m;
+}
+
+<div class="station-card dashboard-chart-card trend-card">
+    <div class="station-details">
+        <div class="trend-header">
+            <div class="station-name">@App.Resources.Views.Company.Dashboard.Index.RevenueTrend</div>
+            @if (hasPoints)
+            {
+                <div class="trend-pill">€@average.ToString("0.00")</div>
+            }
+        </div>
+
+        @if (!hasPoints)
+        {
+            <div class="station-empty">@App.Resources.Views.Company.Dashboard.Index.NoStationData</div>
+        }
+        else
+        {
+            <div class="trend-summary">
+                <div class="trend-summary-item">
+                    <span>@App.Resources.Views.Company.Dashboard.Index.TrendAverage</span>
+                    <strong>€@average.ToString("0.00")</strong>
+                </div>
+                <div class="trend-summary-item">
+                    <span>@App.Resources.Views.Company.Dashboard.Index.TrendPeak</span>
+                    <strong>€@peak.ToString("0.00")</strong>
+                </div>
+                <div class="trend-summary-item">
+                    <span>@App.Resources.Views.Company.Dashboard.Index.TrendLowest</span>
+                    <strong>€@lowest.ToString("0.00")</strong>
+                </div>
+            </div>
+
+            <div class="trend-list">
+                @foreach (var point in points)
+                {
+                    var width = point.Value <= 0
+                        ? 4m
+                        : Math.Max(4m, Math.Min(100m, (point.Value / maxValue) * 100m));
+                    <div class="trend-row">
+                        <div class="trend-label">@point.Label</div>
+                        <div class="trend-track">
+                            <div class="trend-fill trend-fill-revenue" style="width:@(width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                        </div>
+                        <div class="trend-value">€@point.Value.ToString("0.00")</div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

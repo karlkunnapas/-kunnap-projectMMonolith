@@ -1,0 +1,51 @@
+@model WebApp.Areas.Company.ViewModels.CompanyPromotionFormViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Promotion.Edit.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <h2>@App.Resources.Views.Company.Promotion.Edit.Heading</h2>
+
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="station-card vehicle-form-card">
+            @Html.AntiForgeryToken()
+            <input asp-for="CompanyId" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label asp-for="Code" class="home-filters-title">@App.Resources.Views.Company.Promotion.Edit.CodeLabel</label>
+                    <input asp-for="Code" class="form-control" />
+                    <span asp-validation-for="Code" class="text-danger"></span>
+                </div>
+                <div class="vehicle-form-field">
+                    <label asp-for="DiscountValue" class="home-filters-title">@App.Resources.Views.Company.Promotion.Edit.DiscountLabel</label>
+                    <input asp-for="DiscountValue" class="form-control" />
+                    <span asp-validation-for="DiscountValue" class="text-danger"></span>
+                </div>
+                <div class="vehicle-form-field">
+                    <label asp-for="ValidFromUtc" class="home-filters-title">@App.Resources.Views.Company.Promotion.Edit.ValidFromLabel</label>
+                    <input asp-for="ValidFromUtc" type="datetime-local" class="form-control" value="@Model.ValidFromUtc.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="ValidFromUtc" class="text-danger"></span>
+                </div>
+                <div class="vehicle-form-field">
+                    <label asp-for="ValidToUtc" class="home-filters-title">@App.Resources.Views.Company.Promotion.Edit.ValidToLabel</label>
+                    <input asp-for="ValidToUtc" type="datetime-local" class="form-control" value="@Model.ValidToUtc.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="ValidToUtc" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="vehicle-form-field">
+                <label class="filter-chip">
+                    <input asp-for="IsActive" />
+                    @App.Resources.Views.Company.Promotion.Edit.IsActiveLabel
+                </label>
+            </div>
+
+            <div class="home-filter-row">
+                <button type="submit" class="station-button">@App.Resources.Views.Company.Promotion.Edit.SaveAction</button>
+                <a asp-action="Index" asp-route-companyId="@Model.CompanyId" class="filter-chip">@App.Resources.Views.Company.Promotion.Edit.BackAction</a>
+            </div>
+        </form>
+    </section>
+</div>

@@ -151,7 +151,7 @@ public class StationController : ControllerBase
     /// Estimate charging cost for a given duration at a station.
     /// </summary>
     [HttpGet("{stationId:guid}/estimate")]
-    [AllowAnonymous]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ProducesResponseType(typeof(CostEstimate), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(Message), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CostEstimate>> EstimateCost(
@@ -209,7 +209,7 @@ public class StationController : ControllerBase
     /// List all available connector types.
     /// </summary>
     [HttpGet("connectors")]
-    [AllowAnonymous]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ProducesResponseType(typeof(List<ConnectorOption>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ConnectorOption>>> GetConnectors()
     {

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>1.3</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>User Added</value></data>
+  <data name="Heading" xml:space="preserve"><value>User access result</value></data>
+  <data name="BackAction" xml:space="preserve"><value>Back to users</value></data>
+  <data name="RoleLabel" xml:space="preserve"><value>Role</value></data>
+  <data name="AccessStatusLabel" xml:space="preserve"><value>Access status</value></data>
+  <data name="NextActionLabel" xml:space="preserve"><value>Next action</value></data>
+  <data name="AlreadyActiveStatus" xml:space="preserve"><value>User already had active access.</value></data>
+  <data name="ReactivatedStatus" xml:space="preserve"><value>Membership was reactivated.</value></data>
+  <data name="NewUserStatus" xml:space="preserve"><value>New user created with immediate access.</value></data>
+  <data name="LinkedStatus" xml:space="preserve"><value>Existing user linked successfully.</value></data>
+  <data name="TemporaryPasswordLabel" xml:space="preserve"><value>Temporary password</value></data>
+</root>

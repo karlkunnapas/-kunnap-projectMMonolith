@@ -1,0 +1,47 @@
+@model WebApp.Areas.Root.ViewModels.ChargingSessionListViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.ChargingSession.History.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Root.ChargingSession.History.Heading</h2>
+        </div>
+
+        @if (!Model.Sessions.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Root.ChargingSession.History.NoSessions</div>
+        }
+        else
+        {
+            @foreach (var session in Model.Sessions)
+            {
+                <div class="station-card">
+                    <div class="station-icon">EV</div>
+                    <div class="station-details">
+                        <div class="station-name">@session.StationName</div>
+                        <div class="station-meta">
+                            @session.StartTimeUtc.ToLocalTime().ToString("g")
+                            @if (session.EndTimeUtc.HasValue)
+                            {
+                                <span> - @session.EndTimeUtc.Value.ToLocalTime().ToString("g")</span>
+                            }
+                        </div>
+                        <div class="station-status @(session.IsActive ? "status-warn" : "status-ok")">
+                            @(session.IsActive
+                                ? App.Resources.Views.Root.ChargingSession.History.StatusActive
+                                : App.Resources.Views.Root.ChargingSession.History.StatusCompleted)
+                            | @App.Resources.Views.Root.ChargingSession.History.EnergyLabel: @session.EnergyConsumedKwh.ToString("0.##") kWh
+                            | @App.Resources.Views.Root.ChargingSession.History.CostLabel: @session.Cost.ToString("0.00")
+                        </div>
+                    </div>
+                    <div class="station-actions vehicle-actions">
+                        <a class="filter-chip" asp-action="Details" asp-route-id="@session.Id">@App.Resources.Views.Root.ChargingSession.History.Details</a>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>
+

@@ -1,0 +1,70 @@
+@model WebApp.Areas.Root.ViewModels.ReservationListViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.Reservation.Index.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Root.Reservation.Index.Heading</h2>
+        </div>
+
+        @if (!Model.Reservations.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Root.Reservation.Index.NoReservations</div>
+        }
+        else
+        {
+            @foreach (var reservation in Model.Reservations)
+            {
+                var statusClass = reservation.Status switch
+                {
+                    EReservationStatus.Active => "status-ok",
+                    EReservationStatus.Started => "status-warn",
+                    EReservationStatus.Cancelled => "status-bad",
+                    _ => "status-bad"
+                };
+
+                var localizedStatus = reservation.Status switch
+                {
+                    EReservationStatus.Active => App.Resources.Views.Root.Reservation.Index.StatusActive,
+                    EReservationStatus.Started => App.Resources.Views.Root.Reservation.Index.StatusStarted,
+                    _ => reservation.Status.ToString()
+                };
+
+                <div class="station-card">
+                    <div class="station-icon">📅</div>
+                    <div class="station-details">
+                        <div class="station-name">@reservation.StationName</div>
+                        <div class="station-meta">
+                            @reservation.StartTimeUtc.ToLocalTime().ToString("g") - @reservation.EndTimeUtc.ToLocalTime().ToString("g")
+                        </div>
+                        <div class="station-status @statusClass">
+                            @localizedStatus | €@reservation.EstimatedCost.ToString("0.00")
+                        </div>
+                    </div>
+                    <div class="station-actions vehicle-actions">
+                        <a class="filter-chip" asp-action="Details" asp-route-id="@reservation.Id">@App.Resources.Views.Root.Reservation.Index.Details</a>
+                        @if (reservation.CanStart)
+                        {
+                            <a class="filter-chip"
+                               asp-area="Root"
+                               asp-controller="ChargingSession"
+                               asp-action="Start"
+                               asp-route-reservationId="@reservation.Id">
+                                @App.Resources.Views.Root.Reservation.Index.Start
+                            </a>
+                        }
+                        @if (reservation.Status == EReservationStatus.Active)
+                        {
+                            <form asp-action="Cancel" asp-route-id="@reservation.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Root.Reservation.Index.Cancel</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

@@ -1,0 +1,49 @@
+@model WebApp.Areas.Root.ViewModels.ReservationDetailViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.Reservation.Details.Title;
+
+    var statusClass = Model.Status switch
+    {
+        EReservationStatus.Active => "status-ok",
+        EReservationStatus.Started => "status-warn",
+        _ => "status-bad"
+    };
+
+    var localizedStatus = Model.Status switch
+    {
+        EReservationStatus.Active => App.Resources.Views.Root.Reservation.Details.StatusActive,
+        EReservationStatus.Started => App.Resources.Views.Root.Reservation.Details.StatusStarted,
+        _ => Model.Status.ToString()
+    };
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <h2>@App.Resources.Views.Root.Reservation.Details.Heading</h2>
+
+        <div class="station-card">
+            <div class="station-icon">📄</div>
+            <div class="station-details">
+                <div class="station-name">@Model.StationName</div>
+                <div class="station-meta">@App.Resources.Views.Root.Reservation.Details.StartTime: @Model.StartTimeUtc.ToLocalTime().ToString("f")</div>
+                <div class="station-meta">@App.Resources.Views.Root.Reservation.Details.EndTime: @Model.EndTimeUtc.ToLocalTime().ToString("f")</div>
+                <div class="station-meta">@App.Resources.Views.Root.Reservation.Details.ExpiresAt: @Model.ExpiresAtUtc.ToLocalTime().ToString("f")</div>
+                @if (Model.CancelledAtUtc.HasValue)
+                {
+                    <div class="station-meta">@App.Resources.Views.Root.Reservation.Details.CancelledAt: @Model.CancelledAtUtc.Value.ToLocalTime().ToString("f")</div>
+                }
+                <div class="station-status @statusClass">@localizedStatus | €@Model.EstimatedCost.ToString("0.00")</div>
+            </div>
+            <div class="station-actions vehicle-actions">
+                <a class="filter-chip" asp-action="Index">@App.Resources.Views.Root.Reservation.Details.BackToList</a>
+                @if (Model.Status == EReservationStatus.Active)
+                {
+                    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Root.Reservation.Details.Cancel</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>1.3</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>My Promotions</value></data>
+  <data name="Heading" xml:space="preserve"><value>Promotion Wallet</value></data>
+  <data name="RedeemCodeLabel" xml:space="preserve"><value>Promotion code</value></data>
+  <data name="RedeemAction" xml:space="preserve"><value>Redeem code</value></data>
+  <data name="NoPromotions" xml:space="preserve"><value>You have no active promotions.</value></data>
+  <data name="DiscountLabel" xml:space="preserve"><value>Discount</value></data>
+  <data name="ValidWindowLabel" xml:space="preserve"><value>Valid</value></data>
+  <data name="RemoveAction" xml:space="preserve"><value>Remove</value></data>
+  <data name="RedeemSuccess" xml:space="preserve"><value>Promotion was added to your wallet.</value></data>
+</root>

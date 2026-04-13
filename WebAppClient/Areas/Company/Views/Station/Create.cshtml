@@ -1,0 +1,77 @@
+@model WebApp.Areas.Company.ViewModels.CompanyStationFormViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Station.Create.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <h2>@App.Resources.Views.Company.Station.Create.Heading</h2>
+
+        <form asp-action="Create" method="post" class="station-card vehicle-form-card">
+            @Html.AntiForgeryToken()
+            <input asp-for="CompanyId" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="vehicle-form-grid">
+                <partial name="_BilingualInput" model='new WebApp.ViewModels.Shared.BilingualInputViewModel
+                {
+                    NameEnLabel = App.Resources.Views.Company.Station.Create.NameEnLabel,
+                    NameEtLabel = App.Resources.Views.Company.Station.Create.NameEtLabel,
+                    NameEnFieldName = nameof(Model.NameEn),
+                    NameEtFieldName = nameof(Model.NameEt),
+                    NameEnValue = Model.NameEn,
+                    NameEtValue = Model.NameEt,
+                    NameEnPlaceholder = App.Resources.Views.Company.Station.Create.NameEnPlaceholder,
+                    NameEtPlaceholder = App.Resources.Views.Company.Station.Create.NameEtPlaceholder
+                }' />
+                <span data-valmsg-for="NameEn" class="text-danger"></span>
+                <span data-valmsg-for="NameEt" class="text-danger"></span>
+
+                <div class="vehicle-form-field">
+                    <label asp-for="Location" class="home-filters-title">@App.Resources.Views.Company.Station.Create.LocationLabel</label>
+                    <input asp-for="Location" class="form-control" />
+                    <span asp-validation-for="Location" class="text-danger"></span>
+                </div>
+                <div class="vehicle-form-field">
+                    <label asp-for="PricePerKwh" class="home-filters-title">@App.Resources.Views.Company.Station.Create.PriceLabel</label>
+                    <input asp-for="PricePerKwh" class="form-control" />
+                    <span asp-validation-for="PricePerKwh" class="text-danger"></span>
+                </div>
+                <div class="vehicle-form-field">
+                    <label asp-for="MaxPower" class="home-filters-title">@App.Resources.Views.Company.Station.Create.MaxPowerLabel</label>
+                    <input asp-for="MaxPower" class="form-control" />
+                    <span asp-validation-for="MaxPower" class="text-danger"></span>
+                </div>
+                <div class="vehicle-form-field">
+                    <label asp-for="Status" class="home-filters-title">@App.Resources.Views.Company.Station.Create.StatusLabel</label>
+                    <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<EStationStatus>()"></select>
+                    <span asp-validation-for="Status" class="text-danger"></span>
+                </div>
+
+                <partial name="_ConnectorList" model='new WebApp.ViewModels.Shared.ConnectorChecklistViewModel
+                {
+                    Heading = App.Resources.Views.Company.Station.Create.ConnectorsLabel,
+                    InputName = nameof(Model.SelectedConnectorIds),
+                    Items = Model.AvailableConnectors.Select(connector => new WebApp.ViewModels.Shared.ConnectorChecklistItemViewModel
+                    {
+                        ConnectorId = connector.ConnectorId,
+                        ConnectorName = connector.ConnectorName,
+                        IsAssigned = Model.SelectedConnectorIds.Contains(connector.ConnectorId)
+                    }).ToList()
+                }' />
+            </div>
+
+            <div class="vehicle-form-field">
+                <label class="filter-chip">
+                    <input asp-for="IsActive" />
+                    @App.Resources.Views.Company.Station.Create.IsActiveLabel
+                </label>
+            </div>
+
+            <div class="home-filter-row">
+                <button type="submit" class="station-button">@App.Resources.Views.Company.Station.Create.SaveAction</button>
+                <a asp-action="Index" asp-route-companyId="@Model.CompanyId" class="filter-chip">@App.Resources.Views.Company.Station.Create.BackAction</a>
+            </div>
+        </form>
+    </section>
+</div>

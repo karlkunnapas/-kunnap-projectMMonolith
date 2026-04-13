@@ -1,0 +1,203 @@
+@model WebApp.Areas.Root.ViewModels.StationDetailsViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.Station.Details.Title;
+    var isCompanyUser = !string.IsNullOrWhiteSpace(Context.Session.GetString("SelectedCompanyId"));
+    var companySlug = ViewContext.RouteData.Values["companySlug"]?.ToString();
+    var statusText = Model.Status switch
+    {
+        EStationStatus.Available => App.Resources.Views.Root.Station.Details.StatusAvailable,
+        EStationStatus.InUse => App.Resources.Views.Root.Station.Details.StatusInUse,
+        _ => App.Resources.Views.Root.Station.Details.StatusMaintenance
+    };
+    var statusClass = Model.Status switch
+    {
+        EStationStatus.Available => "status-ok",
+        EStationStatus.InUse => "status-warn",
+        _ => "status-bad"
+    };
+}
+
+<div class="home-page reservation-page figure2-page" id="station-details-page"
+     data-estimate-url="@Url.Action("EstimateCost", "Station", new { area = "Root" })"
+     data-station-id="@Model.Id"
+     data-can-reserve="@Model.ReservationForm.CanReserve.ToString().ToLowerInvariant()"
+     data-max-power="@Model.MaxPower.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+     data-label-current="@App.Resources.Views.Root.Station.Details.CurrentBattery"
+     data-label-desired="@App.Resources.Views.Root.Station.Details.DesiredBattery"
+     data-label-energy="@App.Resources.Views.Root.Station.Details.EnergyLabel"
+     data-label-duration="@App.Resources.Views.Root.Station.Details.DurationLabel"
+     data-label-cost="@App.Resources.Views.Root.Station.Details.CostLabel"
+     data-label-minute="@App.Resources.Views.Root.Station.Details.MinuteShort"
+     data-label-currency="@App.Resources.Views.Root.Station.Details.CurrencyCode">
+    <section class="home-content">
+        <div class="station-card reservation-station-header">
+            <div class="station-details">
+                <div class="station-status @statusClass">@statusText</div>
+                <div class="station-name">@Model.Name</div>
+                <div class="station-meta">📍 @Model.Location</div>
+                <div class="station-meta">@App.Resources.Views.Root.Station.Details.PricePerKwh: €@Model.PricePerKwh.ToString("0.00")/kWh | @App.Resources.Views.Root.Station.Details.MaxPower: @Model.MaxPower.ToString("0") kW</div>
+            </div>
+            <div class="station-actions">
+                @if (isCompanyUser && !string.IsNullOrWhiteSpace(companySlug))
+                {
+                    <a class="filter-chip" asp-controller="Home" asp-action="Index" asp-area="" asp-route-companySlug="@companySlug">@App.Resources.Views.Root.Station.Details.BackToStations</a>
+                }
+                else
+                {
+                    <a class="filter-chip" asp-controller="Home" asp-action="Index" asp-area="">@App.Resources.Views.Root.Station.Details.BackToStations</a>
+                }
+            </div>
+        </div>
+
+        <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.Connectors</h3>
+        <div class="figure2-card-grid">
+            @foreach (var connector in Model.Connectors)
+            {
+                var isSelected = Model.SelectedConnectorId == connector.ConnectorId;
+                <button type="button"
+                        class="figure2-option-card connector-option @(isSelected ? "active" : string.Empty)"
+                        data-connector-id="@connector.ConnectorId"
+                        data-connector-name="@connector.Name"
+                        data-available="@connector.AvailableQuantity"
+                        data-total="@connector.Quantity">
+                    <span class="figure2-option-title">@connector.Name</span>
+                    <span class="figure2-option-meta">@connector.AvailableQuantity/@connector.Quantity @App.Resources.Views.Root.Station.Details.Available</span>
+                </button>
+            }
+        </div>
+
+        @if (!isCompanyUser)
+        {
+            <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.CalculatorTitle</h3>
+            <div class="station-card reservation-section-card figure2-calculator">
+                <div class="station-details">
+                    <div class="home-filters-title">@App.Resources.Views.Root.Station.Details.SelectVehicle</div>
+                    <div class="figure2-card-grid" id="vehicle-options">
+                        @foreach (var vehicle in Model.Vehicles)
+                        {
+                            <button type="button"
+                                    class="figure2-option-card vehicle-option @(vehicle.IsSelected ? "active" : string.Empty)"
+                                    data-vehicle-id="@vehicle.Id"
+                                    data-battery="@vehicle.BatteryCapacityKwh.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                <span class="figure2-option-title">@vehicle.DisplayName</span>
+                                <span class="figure2-option-meta">@vehicle.BatteryCapacityKwh.ToString("0.#") kWh</span>
+                            </button>
+                        }
+                    </div>
+
+                    @if (Model.Vehicles.Count == 0)
+                    {
+                        <div class="station-empty">@App.Resources.Views.Root.Station.Details.NoVehicles</div>
+                    }
+
+                    <div class="home-filters-title">@App.Resources.Views.Root.Station.Details.BatteryLevelTitle</div>
+                    <div class="figure2-battery-grid">
+                        <div class="vehicle-form-field">
+                            <label>@App.Resources.Views.Root.Station.Details.CurrentBattery %</label>
+                            <input id="current-battery" type="range" min="0" max="95" value="@Model.CurrentBatteryPercent" />
+                        </div>
+                        <div class="vehicle-form-field">
+                            <label>@App.Resources.Views.Root.Station.Details.DesiredBattery %</label>
+                            <input id="desired-battery" type="range" min="5" max="100" value="@Model.DesiredBatteryPercent" />
+                        </div>
+                    </div>
+                    <div id="battery-label" class="station-meta">@App.Resources.Views.Root.Station.Details.CurrentBattery: @Model.CurrentBatteryPercent% | @App.Resources.Views.Root.Station.Details.DesiredBattery: @Model.DesiredBatteryPercent%</div>
+
+                    <div class="figure2-result-box" id="calculation-result"
+                         data-default-energy="@Model.CalculatedEnergyKwh.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                         data-default-duration="@Model.CalculatedDurationMinutes"
+                         data-default-cost="@Model.CalculatedCost.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                        <div id="calc-energy">@App.Resources.Views.Root.Station.Details.EnergyLabel: @Model.CalculatedEnergyKwh.ToString("0.##") kWh</div>
+                        <div id="calc-summary">@App.Resources.Views.Root.Station.Details.DurationLabel: @Model.CalculatedDurationMinutes @App.Resources.Views.Root.Station.Details.MinuteShort | @App.Resources.Views.Root.Station.Details.CostLabel: @App.Resources.Views.Root.Station.Details.CurrencyCode @Model.CalculatedCost.ToString("0.00")</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.ExistingReservations</h3>
+        <div class="station-card reservation-section-card">
+            <div class="station-details">
+                @if (Model.ExistingReservations.Count == 0)
+                {
+                    <div class="station-empty">@App.Resources.Views.Root.Station.Details.NoStationReservations</div>
+                }
+                else
+                {
+                    var groupedReservations = Model.ExistingReservations
+                        .OrderBy(r => r.StartTimeUtc)
+                        .GroupBy(r => r.StartTimeUtc.Date)
+                        .ToList();
+
+                    <div class="station-reservation-list">
+                        @foreach (var dayGroup in groupedReservations)
+                        {
+                            <div class="station-reservation-day">
+                                <div class="availability-day-title">@dayGroup.Key.ToLocalTime().ToString("dddd, dd MMM")</div>
+                                @foreach (var reservation in dayGroup)
+                                {
+                                    var reservationStatusClass = reservation.Status switch
+                                    {
+                                        EReservationStatus.Active => "status-ok",
+                                        EReservationStatus.Started => "status-warn",
+                                        _ => "status-bad"
+                                    };
+                                    var localizedReservationStatus = reservation.Status switch
+                                    {
+                                        EReservationStatus.Active => App.Resources.Views.Root.Station.Details.StatusActive,
+                                        EReservationStatus.Started => App.Resources.Views.Root.Station.Details.StatusStarted,
+                                        _ => reservation.Status.ToString()
+                                    };
+                                    <div class="station-meta">
+                                        @reservation.StartTimeUtc.ToLocalTime().ToString("HH:mm")-@reservation.EndTimeUtc.ToLocalTime().ToString("HH:mm")
+                                        <span class="station-status @reservationStatusClass">@localizedReservationStatus</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (!isCompanyUser)
+        {
+            <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.Reservation</h3>
+            <div class="station-card reservation-section-card">
+                <partial name="~/Views/Shared/_ReservationForm.cshtml" model="Model.ReservationForm" />
+            </div>
+
+            <h3 class="home-filters-title">@App.Resources.Views.Root.Station.Details.ReportIssueTitle</h3>
+            <div class="station-card reservation-section-card">
+                <div class="station-details">
+                    @if (TempData["IssueReportSuccess"] is string successMessage)
+                    {
+                        <div class="station-status status-ok">@successMessage</div>
+                    }
+                    @if (TempData["IssueReportError"] is string errorMessage)
+                    {
+                        <div class="station-status status-bad">@errorMessage</div>
+                    }
+                    <form asp-action="ReportIssue" method="post" class="vehicle-form-grid">
+                        @Html.AntiForgeryToken()
+                        <input asp-for="IssueReportForm.StationId" type="hidden" />
+                        <div class="vehicle-form-field">
+                            <label asp-for="IssueReportForm.IssueDescription">@App.Resources.Views.Root.Station.Details.ReportIssueDescriptionLabel</label>
+                            <textarea asp-for="IssueReportForm.IssueDescription" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="IssueReportForm.IssueDescription" class="text-danger"></span>
+                        </div>
+                        <div class="home-filter-row">
+                            <button type="submit" class="station-button station-button-compact">@App.Resources.Views.Root.Station.Details.ReportIssueSubmit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    @if (!isCompanyUser)
+    {
+        <script src="~/js/station-details.js" asp-append-version="true"></script>
+    }
+}

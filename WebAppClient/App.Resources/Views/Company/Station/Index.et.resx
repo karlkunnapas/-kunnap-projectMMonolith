@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>1.3</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Ettevõtte jaamad</value></data>
+  <data name="Heading" xml:space="preserve"><value>Ettevõtte jaamad</value></data>
+  <data name="BackToDashboard" xml:space="preserve"><value>Tagasi juhtpaneelile</value></data>
+  <data name="NoStations" xml:space="preserve"><value>Jaamu ei leitud.</value></data>
+  <data name="Connectors" xml:space="preserve"><value>Pistikud</value></data>
+  <data name="MaintenanceIssues" xml:space="preserve"><value>Hooldusprobleemid</value></data>
+  <data name="DetailsAction" xml:space="preserve"><value>Vaata</value></data>
+  <data name="CreateAction" xml:space="preserve"><value>Loo jaam</value></data>
+  <data name="EditAction" xml:space="preserve"><value>Muuda</value></data>
+  <data name="DeleteAction" xml:space="preserve"><value>Kustuta</value></data>
+  <data name="SetAvailableAction" xml:space="preserve"><value>Määra vabaks</value></data>
+  <data name="SetInUseAction" xml:space="preserve"><value>Määra kasutuses</value></data>
+  <data name="SetMaintenanceAction" xml:space="preserve"><value>Määra hooldusesse</value></data>
+  <data name="PriceLabel" xml:space="preserve"><value>Hind</value></data>
+  <data name="MaxPowerLabel" xml:space="preserve"><value>Maks. võimsus</value></data>
+</root>

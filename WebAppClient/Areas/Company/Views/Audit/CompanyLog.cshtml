@@ -1,0 +1,58 @@
+@model WebApp.ViewModels.CompanyAuditViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Audit.CompanyLog.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Audit.CompanyLog.Heading</h2>
+        </div>
+
+        <form method="get" class="station-card mb-3">
+            <div class="station-details">
+                <div class="station-meta">
+                    <label>@App.Resources.Views.Company.Audit.CompanyLog.FromUtc</label>
+                    <input type="datetime-local" name="fromUtc" value="@(Model.FromUtc?.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
+                </div>
+                <div class="station-meta">
+                    <label>@App.Resources.Views.Company.Audit.CompanyLog.ToUtc</label>
+                    <input type="datetime-local" name="toUtc" value="@(Model.ToUtc?.ToString("yyyy-MM-ddTHH:mm"))" class="form-control" />
+                </div>
+                <div class="station-meta">
+                    <label>@App.Resources.Views.Company.Audit.CompanyLog.EntityName</label>
+                    <input type="text" name="entityName" value="@Model.EntityName" class="form-control" />
+                </div>
+                <div class="station-meta">
+                    <label>@App.Resources.Views.Company.Audit.CompanyLog.Action</label>
+                    <input type="text" name="actionFilter" value="@Model.Action" class="form-control" />
+                </div>
+                <div class="station-actions vehicle-actions">
+                    <button type="submit" class="station-button">@App.Resources.Views.Company.Audit.CompanyLog.ApplyFilters</button>
+                </div>
+            </div>
+        </form>
+
+        @if (!Model.Entries.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Company.Audit.CompanyLog.NoEntries</div>
+        }
+        else
+        {
+            @foreach (var entry in Model.Entries)
+            {
+                var badge = string.IsNullOrWhiteSpace(entry.Action) ? "?" : entry.Action[..1].ToUpperInvariant();
+                <div class="station-card">
+                    <div class="station-icon">@badge</div>
+                    <div class="station-details">
+                        <div class="station-name">@entry.EntityName</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Audit.CompanyLog.Action: @entry.Action</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Audit.CompanyLog.Actor: @entry.UserName</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Audit.CompanyLog.AtUtc: @entry.AtUtc.ToString("u")</div>
+                        <div class="station-meta">@App.Resources.Views.Company.Audit.CompanyLog.Changes: @entry.ChangesSummary</div>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

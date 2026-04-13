@@ -1,0 +1,65 @@
+@model WebApp.Areas.Root.ViewModels.ReservationCreateViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.Reservation.Create.Title;
+    var startLocal = Model.StartTimeUtc.Kind == DateTimeKind.Utc
+        ? Model.StartTimeUtc.ToLocalTime()
+        : Model.StartTimeUtc;
+    var endLocal = Model.EndTimeUtc.Kind == DateTimeKind.Utc
+        ? Model.EndTimeUtc.ToLocalTime()
+        : Model.EndTimeUtc;
+    var canReserve = Model.CanReserve;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <h2>@App.Resources.Views.Root.Reservation.Create.Heading</h2>
+
+        <form asp-action="Create" method="post" class="station-card vehicle-form-card">
+            @Html.AntiForgeryToken()
+            <input asp-for="StationId" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label asp-for="StartTimeUtc" class="home-filters-title">@App.Resources.Views.Root.Reservation.Create.StartTime</label>
+                    <input asp-for="StartTimeUtc" type="datetime-local" class="form-control" value="@startLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!canReserve)" />
+                    <span asp-validation-for="StartTimeUtc" class="text-danger"></span>
+                </div>
+
+                <div class="vehicle-form-field">
+                    <label asp-for="EndTimeUtc" class="home-filters-title">@App.Resources.Views.Root.Reservation.Create.EndTime</label>
+                    <input asp-for="EndTimeUtc" type="datetime-local" class="form-control" value="@endLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!canReserve)" />
+                    <span asp-validation-for="EndTimeUtc" class="text-danger"></span>
+                </div>
+
+                <div class="vehicle-form-field">
+                    <label asp-for="EstimatedEnergyKwh" class="home-filters-title">@App.Resources.Views.Root.Reservation.Create.EstimatedEnergy</label>
+                    <input asp-for="EstimatedEnergyKwh" class="form-control" disabled="@(!canReserve)" />
+                    <span asp-validation-for="EstimatedEnergyKwh" class="text-danger"></span>
+                </div>
+
+                <div class="vehicle-form-field">
+                    <label asp-for="PromotionCode" class="home-filters-title">@App.Resources.Views.Root.Reservation.Create.PromotionCode</label>
+                    <select asp-for="PromotionCode" class="form-control" disabled="@(!canReserve)">
+                        <option value="">@App.Resources.Views.Root.Reservation.Create.PromotionNoneOption</option>
+                        @foreach (var promo in Model.AvailablePromotions)
+                        {
+                            <option value="@promo.Code">@promo.DisplayText</option>
+                        }
+                    </select>
+                    <span asp-validation-for="PromotionCode" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="station-status status-ok">
+                @App.Resources.Views.Root.Reservation.Create.EstimatedCost: €@Model.EstimatedCost.ToString("0.00")
+            </div>
+
+            <div class="home-filter-row">
+                <button type="submit" class="station-button" disabled="@(!canReserve)">@App.Resources.Views.Root.Reservation.Create.Confirm</button>
+                <a asp-area="Root" asp-controller="Station" asp-action="Details" asp-route-id="@Model.StationId" class="filter-chip">@App.Resources.Views.Root.Reservation.Create.Back</a>
+            </div>
+        </form>
+    </section>
+</div>

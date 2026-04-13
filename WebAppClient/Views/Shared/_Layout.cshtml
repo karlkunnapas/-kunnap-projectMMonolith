@@ -1,0 +1,122 @@
+﻿@using System.Threading
+@{
+    var appName = "EV Charging";
+    var selectedCompanyId = Context.Session.GetString("SelectedCompanyId");
+    var selectedCompanySlug = Context.Session.GetString("SelectedCompanySlug");
+    var selectedCompanyRole = Context.Session.GetString("SelectedCompanyRole");
+    var isCompanyUser = !string.IsNullOrWhiteSpace(selectedCompanyId);
+    var companyRole = EnumParser.ParseCompanyRole(selectedCompanyRole ?? "Employee");
+    var canAccessManagerFeatures = companyRole >= ECompanyRole.Manager;
+    var canManageUsers = companyRole == ECompanyRole.Owner;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@ViewData["Title"]</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/WebApp.styles.css" asp-append-version="true"/>
+    @await RenderSectionAsync("HeaderScripts", required: false)
+</head>
+<body>
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <div class="app-brand">
+            @if (isCompanyUser && !string.IsNullOrWhiteSpace(selectedCompanySlug))
+            {
+                @if (canAccessManagerFeatures)
+                {
+                    <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@appName</a>
+                }
+                else
+                {
+                    <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@appName</a>
+                }
+            }
+            else
+            {
+                <a asp-area="" asp-controller="Home" asp-action="Index">@appName</a>
+            }
+        </div>
+        <nav class="app-nav">
+            <ul class="app-nav-list">
+                <li class="app-nav-item">
+                    <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                </li>
+                <li class="app-nav-item">
+                    <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
+                </li>
+                @if (User.Identity?.IsAuthenticated == true && !isCompanyUser)
+                {
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Shared._Layout.MyReservations</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="ChargingSession" asp-action="History">@App.Resources.Views.Shared._Layout.MySessions</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="Vehicle" asp-action="Index">@App.Resources.Views.Shared._Layout.MyVehicles</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Root" asp-controller="Promotion" asp-action="Index">@App.Resources.Views.Shared._Layout.MyPromotions</a>
+                    </li>
+                }
+                @if (isCompanyUser && !string.IsNullOrWhiteSpace(selectedCompanySlug))
+                {
+                    <li class="app-nav-item">
+                        <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
+                    </li>
+                    @if (canAccessManagerFeatures)
+                    {
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
+                        </li>
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Station" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyStations</a>
+                        </li>
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Promotion" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyPromotions</a>
+                        </li>
+                    }
+                    @if (canManageUsers)
+                    {
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="CompanyUsers" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyUsers</a>
+                        </li>
+                    }
+                    <li class="app-nav-item">
+                        <a asp-area="" asp-controller="Account" asp-action="CompanySelection" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString">@App.Resources.Views.Shared._Layout.SwitchCompany</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+        <div class="app-sidebar-footer">
+            <ul class="app-nav-list">
+                <partial name="_LanguageSelection"/>
+                <partial name="_LoginPartial"/>
+            </ul>
+        </div>
+    </aside>
+    <div class="app-main">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+        <footer class="border-top footer text-muted">
+            <div class="container">
+                @appName - <a asp-area="" asp-controller="Home" asp-action="Privacy">@App.Resources.Views.Shared._Layout.Privacy</a> |
+                @Thread.CurrentThread.CurrentCulture.Name
+            </div>
+        </footer>
+    </div>
+</div>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/lib/htmx.org/dist/htmx.min.js"></script>
+<script src="~/lib/alpinejs/dist/cdn.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

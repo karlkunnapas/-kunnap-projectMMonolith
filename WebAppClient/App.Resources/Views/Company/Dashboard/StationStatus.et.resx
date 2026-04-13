@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>1.3</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Jaamade seisund</value></data>
+  <data name="Heading" xml:space="preserve"><value>Jaamade seisund</value></data>
+  <data name="BackToDashboard" xml:space="preserve"><value>Tagasi juhtpaneelile</value></data>
+  <data name="NoStations" xml:space="preserve"><value>Selle ettevõtte jaoks jaamu ei leitud.</value></data>
+  <data name="StationColumn" xml:space="preserve"><value>Jaam</value></data>
+  <data name="HealthColumn" xml:space="preserve"><value>Seisund</value></data>
+  <data name="UtilizationColumn" xml:space="preserve"><value>Kasutus</value></data>
+  <data name="ActiveSessionsColumn" xml:space="preserve"><value>Aktiivsed seansid</value></data>
+  <data name="ReservationsColumn" xml:space="preserve"><value>Tänased broneeringud</value></data>
+  <data name="PendingMaintenanceColumn" xml:space="preserve"><value>Ootel hooldus</value></data>
+  <data name="ActionsColumn" xml:space="preserve"><value>Tegevused</value></data>
+  <data name="DetailsAction" xml:space="preserve"><value>Vaata</value></data>
+</root>

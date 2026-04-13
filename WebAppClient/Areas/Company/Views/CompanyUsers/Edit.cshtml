@@ -1,0 +1,33 @@
+@model WebApp.Areas.Company.ViewModels.EditCompanyUserRoleViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.CompanyUsers.Edit.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.CompanyUsers.Edit.Heading</h2>
+            <a class="filter-chip" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.CompanyUsers.Edit.BackAction</a>
+        </div>
+
+        <form asp-action="Edit" method="post" class="station-card" style="display:block;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="CompanyId" />
+            <input type="hidden" asp-for="MembershipId" />
+            <input type="hidden" asp-for="UserId" />
+            <input type="hidden" asp-for="Email" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="station-name">@Model.Email</div>
+
+            <div class="form-group">
+                <label asp-for="Role" class="form-label">@App.Resources.Views.Company.CompanyUsers.Edit.RoleLabel</label>
+                <select asp-for="Role" class="form-control" asp-items="Html.GetEnumSelectList<ECompanyRole>()"></select>
+                <span asp-validation-for="Role" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="station-button">@App.Resources.Views.Company.CompanyUsers.Edit.SaveAction</button>
+        </form>
+    </section>
+</div>

@@ -1,0 +1,55 @@
+@model WebApp.Areas.Company.ViewModels.CompanyUserListViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Company.CompanyUsers.Index.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.CompanyUsers.Index.Heading</h2>
+            <div class="vehicle-actions">
+                <a class="station-button" asp-action="Add" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.CompanyUsers.Index.AddAction</a>
+                <a class="filter-chip" asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.CompanyUsers.Index.BackToDashboard</a>
+            </div>
+        </div>
+        
+        @if (TempData["CompanyUsersError"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="station-empty text-danger">@errorMessage</div>
+        }
+
+        @if (!Model.Users.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Company.CompanyUsers.Index.NoUsers</div>
+        }
+        else
+        {
+            @foreach (var user in Model.Users)
+            {
+                var statusClass = user.IsActive ? "status-ok" : "status-bad";
+                <div class="station-card">
+                    <div class="station-icon">👤</div>
+                    <div class="station-details">
+                        <div class="station-name">@user.Email</div>
+                        <div class="station-meta">@App.Resources.Views.Company.CompanyUsers.Index.RoleLabel: @user.Role</div>
+                        <div class="station-meta">@App.Resources.Views.Company.CompanyUsers.Index.JoinedAtLabel: @user.JoinedAtUtc.ToLocalTime().ToString("g")</div>
+                        <div class="station-status @statusClass">
+                            @(user.IsActive
+                                ? App.Resources.Views.Company.CompanyUsers.Index.ActiveStatus
+                                : App.Resources.Views.Company.CompanyUsers.Index.InactiveStatus)
+                        </div>
+                    </div>
+                    <div class="station-actions vehicle-actions">
+                        <a class="filter-chip" asp-action="Edit" asp-route-membershipId="@user.MembershipId" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.CompanyUsers.Index.EditAction</a>
+                        <form asp-action="Remove" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                            <input type="hidden" name="membershipId" value="@user.MembershipId" />
+                            <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Company.CompanyUsers.Index.RemoveAction</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

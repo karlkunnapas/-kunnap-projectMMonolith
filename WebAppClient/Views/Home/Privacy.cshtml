@@ -1,0 +1,64 @@
+﻿@using System.Threading
+@using Microsoft.AspNetCore.Hosting
+@inject IWebHostEnvironment WebHostEnvironment
+@{
+    ViewData["Title"] = "Privacy Policy";
+}
+<h1>@ViewData["Title"]</h1>
+
+
+<p>No privacy!</p>
+
+
+<h3>Env - @(WebHostEnvironment.EnvironmentName)</h3>
+
+<h3>IP</h3>
+<ul>
+    <li>Remote ip: @Context.Connection.RemoteIpAddress</li>
+    <li>Local ip: @Context.Connection.LocalIpAddress</li>
+</ul>
+
+
+<h3>Culture</h3>
+<ul>
+    <li>CurrentCulture : @Thread.CurrentThread.CurrentCulture.Name</li>
+    <li>CurrentUICulture ip: @Thread.CurrentThread.CurrentUICulture.Name</li>
+</ul>
+
+
+<h3>Claims</h3>
+<table class="table">
+
+    <thead>
+    <tr>
+        <th>Type</th>
+        <th>Value</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    @foreach (var userClaim in User.Claims)
+    {
+        <tr>
+            <td>
+                @userClaim.Type
+            </td>
+            <td>
+                @userClaim.Value
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+
+<h3>Headers</h3>
+<ul>
+    @foreach (var header in Context.Request.Headers)
+    {
+        foreach (var stringValue in header.Value)
+        {
+            <li>@header.Key - @stringValue</li>
+        }
+    }
+</ul>

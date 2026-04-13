@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Charging session details</value></data>
+  <data name="Heading" xml:space="preserve"><value>Session details</value></data>
+  <data name="StartTime" xml:space="preserve"><value>Start time</value></data>
+  <data name="EndTime" xml:space="preserve"><value>End time</value></data>
+  <data name="DurationMinutes" xml:space="preserve"><value>Duration (minutes)</value></data>
+  <data name="EnergyConsumed" xml:space="preserve"><value>Energy consumed</value></data>
+  <data name="StatusActive" xml:space="preserve"><value>Active</value></data>
+  <data name="StatusCompleted" xml:space="preserve"><value>Completed</value></data>
+  <data name="FinalCost" xml:space="preserve"><value>Final cost</value></data>
+  <data name="BackToHistory" xml:space="preserve"><value>Back to history</value></data>
+  <data name="EnergyInputPlaceholder" xml:space="preserve"><value>Consumed energy (kWh)</value></data>
+  <data name="DurationInputPlaceholder" xml:space="preserve"><value>Duration in minutes (optional)</value></data>
+  <data name="PromotionCodePlaceholder" xml:space="preserve"><value>Promotion code (optional)</value></data>
+  <data name="PromotionCodeLabel" xml:space="preserve"><value>Promotion code</value></data>
+  <data name="CostBeforeDiscount" xml:space="preserve"><value>Cost before discount</value></data>
+  <data name="DiscountPercent" xml:space="preserve"><value>Discount</value></data>
+  <data name="DiscountAmount" xml:space="preserve"><value>Discount amount</value></data>
+  <data name="PromotionLockedMessage" xml:space="preserve"><value>Promotion was selected in reservation and cannot be changed for this session.</value></data>
+  <data name="PromotionNoneOption" xml:space="preserve"><value>No promotion</value></data>
+  <data name="StopSession" xml:space="preserve"><value>Stop session</value></data>
+</root>

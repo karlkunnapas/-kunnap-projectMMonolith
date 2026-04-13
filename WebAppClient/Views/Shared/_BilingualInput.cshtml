@@ -1,0 +1,10 @@
+@model WebApp.ViewModels.Shared.BilingualInputViewModel
+
+<div class="vehicle-form-field">
+    <label class="home-filters-title">@Model.NameEnLabel</label>
+    <input name="@Model.NameEnFieldName" value="@Model.NameEnValue" class="form-control" placeholder="@Model.NameEnPlaceholder" />
+</div>
+<div class="vehicle-form-field">
+    <label class="home-filters-title">@Model.NameEtLabel</label>
+    <input name="@Model.NameEtFieldName" value="@Model.NameEtValue" class="form-control" placeholder="@Model.NameEtPlaceholder" />
+</div>

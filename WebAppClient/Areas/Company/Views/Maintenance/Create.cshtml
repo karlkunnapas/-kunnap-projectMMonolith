@@ -1,0 +1,34 @@
+@model WebApp.Areas.Company.ViewModels.MaintenanceCreateViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = App.Resources.Views.Company.Maintenance.Create.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Company.Maintenance.Create.Heading</h2>
+        </div>
+
+        <form method="post" class="station-card vehicle-form-card">
+            <input type="hidden" name="companyId" value="@ViewData["CompanyId"]" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label asp-for="StationId" class="home-filters-title">@App.Resources.Views.Company.Maintenance.Create.Station</label>
+                    <select asp-for="StationId" asp-items="ViewBag.StationOptions" class="form-control"></select>
+                    <span asp-validation-for="StationId" class="text-danger"></span>
+                </div>
+                <div class="vehicle-form-field">
+                    <label asp-for="IssueDescription" class="home-filters-title">@App.Resources.Views.Company.Maintenance.Create.IssueDescription</label>
+                    <input asp-for="IssueDescription" class="form-control" />
+                    <span asp-validation-for="IssueDescription" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="vehicle-actions">
+                <button type="submit" class="station-button">@App.Resources.Views.Company.Maintenance.Create.Submit</button>
+                <a class="filter-chip" asp-area="Company" asp-controller="Maintenance" asp-action="Index">@App.Resources.Views.Company.Maintenance.Create.Cancel</a>
+            </div>
+        </form>
+    </section>
+</div>

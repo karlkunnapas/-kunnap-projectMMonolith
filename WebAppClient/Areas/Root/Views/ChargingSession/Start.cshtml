@@ -1,0 +1,32 @@
+@model WebApp.Areas.Root.ViewModels.ChargingSessionStartViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Root.ChargingSession.Start.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <h2>@App.Resources.Views.Root.ChargingSession.Start.Heading</h2>
+
+        <div class="station-card">
+            <div class="station-icon">EV</div>
+            <div class="station-details">
+                <div class="station-name">@Model.StationName</div>
+                <div class="station-meta">@App.Resources.Views.Root.ChargingSession.Start.EstimatedDuration: @Model.EstimatedDurationMinutes @App.Resources.Views.Root.ChargingSession.Start.Minutes</div>
+                <div class="station-status status-ok">@App.Resources.Views.Root.ChargingSession.Start.EstimatedCost: @Model.EstimatedCost.ToString("0.00")</div>
+            </div>
+            <div class="station-actions vehicle-actions">
+                <form asp-action="Start" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="StationId" type="hidden" />
+                    <input asp-for="ReservationId" type="hidden" />
+                    <input asp-for="StationName" type="hidden" />
+                    <input asp-for="EstimatedDurationMinutes" type="hidden" />
+                    <input asp-for="EstimatedCost" type="hidden" />
+                    <button type="submit" class="station-button">@App.Resources.Views.Root.ChargingSession.Start.Confirm</button>
+                </form>
+                <a class="filter-chip" asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Root.ChargingSession.Start.BackToReservations</a>
+            </div>
+        </div>
+    </section>
+</div>
+
