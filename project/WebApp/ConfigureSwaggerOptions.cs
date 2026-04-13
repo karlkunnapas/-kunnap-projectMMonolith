@@ -45,14 +45,8 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
             Scheme = "Bearer",
             BearerFormat = "JWT"
         });
-        
-        options.AddSecurityRequirement(_ =>
-        {
-            var securityRequirement = new OpenApiSecurityRequirement();
-            var schemeReference = new OpenApiSecuritySchemeReference("Bearer");
-            securityRequirement[schemeReference] = new List<string>();
-            return securityRequirement;
-        });
+
+        options.OperationFilter<AuthorizeOperationFilter>();
 
         
     }
