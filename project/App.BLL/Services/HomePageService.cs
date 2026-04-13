@@ -38,6 +38,11 @@ public class HomePageService : IHomePageService
             {
                 Id = station.Id,
                 Name = station.Name?.Translate() ?? station.Name?.ToString() ?? string.Empty,
+                NameTranslations = new Dictionary<string, string>
+                {
+                    ["en"] = station.Name?.Translate("en") ?? string.Empty,
+                    ["et"] = station.Name?.Translate("et") ?? string.Empty
+                },
                 Location = station.Location,
                 Status = station.Status,
                 PricePerKwh = station.PricePerKwh,

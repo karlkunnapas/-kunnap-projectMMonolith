@@ -22,6 +22,7 @@ public class HomeStationDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public Dictionary<string, string> NameTranslations { get; set; } = new();
     public string Location { get; set; } = string.Empty;
     public EStationStatus Status { get; set; }
     public decimal PricePerKwh { get; set; }

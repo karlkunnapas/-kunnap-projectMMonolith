@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -39,19 +36,14 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         options.CustomSchemaIds(t => t.FullName);
         
         
-        // include xml comments (enable creation in csproj file)
-        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-        // options.IncludeXmlComments(xmlPath);
-        
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
         {
-            Description =
-                "foo bar",
+            Description = "Enter JWT token only (without 'Bearer ' prefix).",
             Name = "Authorization",
             In = ParameterLocation.Header,
-            Type = SecuritySchemeType.ApiKey,
-            Scheme = "Bearer"
+            Type = SecuritySchemeType.Http,
+            Scheme = "Bearer",
+            BearerFormat = "JWT"
         });
         
         options.AddSecurityRequirement(_ =>

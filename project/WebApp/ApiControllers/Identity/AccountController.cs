@@ -232,11 +232,14 @@ public class AccountController : ControllerBase
         int? refreshTokenExpiresInSeconds
     )
     {
+        var normalizedJwt = StripBearerPrefix(refreshTokenModel.Jwt);
+        var normalizedRefreshToken = refreshTokenModel.RefreshToken?.Trim() ?? string.Empty;
+
         JwtSecurityToken jwtToken;
         // get user info from jwt
         try
         {
-            jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(refreshTokenModel.Jwt);
+            jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(normalizedJwt);
             if (jwtToken == null)
             {
                 return BadRequest(new App.Dto.v1.Message("No token"));
@@ -249,7 +252,7 @@ public class AccountController : ControllerBase
 
         // validate jwt, ignore expiration date
         if (!IdentityExtensions.ValidateJwt(
-                refreshTokenModel.Jwt,
+                normalizedJwt,
                 _configuration.GetValue<string>(SettingsJWTKey)!,
                 _configuration.GetValue<string>(SettingsJWTIssuer)!,
                 _configuration.GetValue<string>(SettingsJWTAudience)!
@@ -272,30 +275,24 @@ public class AccountController : ControllerBase
         }
 
 
-        // load and compare refresh tokens
-
-        await _context.Entry(appUser).Collection(u => u.RefreshTokens!)
-            .Query()
+        // load and compare refresh tokens directly from DbSet
+        var matchingRefreshTokens = await _context.RefreshTokens
             .Where(x =>
-                (x.RefreshToken == refreshTokenModel.RefreshToken && x.Expiration > DateTime.UtcNow) ||
-                (x.PreviousRefreshToken == refreshTokenModel.RefreshToken &&
-                 x.PreviousExpiration > DateTime.UtcNow)
-            )
+                x.UserId == appUser.Id &&
+                (
+                    (x.RefreshToken == normalizedRefreshToken && x.Expiration > DateTime.UtcNow) ||
+                    (x.PreviousRefreshToken == normalizedRefreshToken && x.PreviousExpiration > DateTime.UtcNow)
+                ))
             .ToListAsync();
 
-        if (appUser.RefreshTokens == null)
+        if (matchingRefreshTokens.Count == 0)
         {
-            return Problem("RefreshTokens collection is null");
+            return BadRequest(new App.Dto.v1.Message("Refresh token is invalid or expired."));
         }
 
-        if (appUser.RefreshTokens.Count == 0)
+        if (matchingRefreshTokens.Count != 1)
         {
-            return Problem("RefreshTokens collection is empty, no valid refresh tokens found");
-        }
-
-        if (appUser.RefreshTokens.Count != 1)
-        {
-            return Problem("More than one valid refresh token found.");
+            return BadRequest(new App.Dto.v1.Message("More than one valid refresh token found."));
         }
 
         // generate new jwt
@@ -313,8 +310,8 @@ public class AccountController : ControllerBase
         );
 
         // make new refresh token, obsolete old ones
-        var refreshToken = appUser.RefreshTokens.First();
-        if (refreshToken.RefreshToken == refreshTokenModel.RefreshToken)
+        var refreshToken = matchingRefreshTokens[0];
+        if (refreshToken.RefreshToken == normalizedRefreshToken)
         {
             refreshToken.PreviousRefreshToken = refreshToken.RefreshToken;
             refreshToken.PreviousExpiration = DateTime.UtcNow.AddMinutes(1);
@@ -383,5 +380,20 @@ public class AccountController : ControllerBase
             : _configuration.GetValue<int>(settingsKey);
 
         return DateTime.UtcNow.AddSeconds(expiresInSeconds ?? 60);
+    }
+
+    private static string StripBearerPrefix(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return string.Empty;
+        }
+
+        const string bearer = "Bearer ";
+        var normalized = token.StartsWith(bearer, StringComparison.OrdinalIgnoreCase)
+            ? token[bearer.Length..].Trim()
+            : token.Trim();
+
+        return normalized.Trim('"').Trim('\'');
     }
 }

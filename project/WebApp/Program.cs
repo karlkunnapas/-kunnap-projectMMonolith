@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Service registration
 builder.Services.AddAppDatabase(builder.Configuration, builder.Environment);
-builder.Services.AddAppIdentity();
+builder.Services.AddAppIdentity(builder.Configuration);
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<AppNameService>();
 builder.Services.AddAppControllers();
@@ -19,6 +19,7 @@ builder.Services.AddAppSwagger();
 builder.Services.AddAppLocalization(builder.Configuration);
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
+builder.Services.AddScoped<IHomePageService, HomePageService>();
 builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleCompatibilityService, VehicleCompatibilityService>();

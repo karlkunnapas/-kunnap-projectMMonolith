@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
+using System.IO;
 using System.Text.Json;
 using Asp.Versioning;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -94,7 +95,21 @@ public static class WebApiExtensions
     {
         services.AddEndpointsApiExplorer();
         services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(c =>
+        {
+            var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            if (File.Exists(xmlPath))
+            {
+                c.IncludeXmlComments(xmlPath, true);
+            }
+
+            var dtoXmlPath = Path.Combine(AppContext.BaseDirectory, "App.DTO.xml");
+            if (File.Exists(dtoXmlPath))
+            {
+                c.IncludeXmlComments(dtoXmlPath, true);
+            }
+        });
 
         return services;
     }
