@@ -14,9 +14,6 @@ deploy:
     - test -f project/Dockerfile
     - test -f WebAppClient/docker-compose.yml
     - test -f WebAppClient/Dockerfile
-    - docker compose -f project/docker-compose.yml -p saas config
-    - docker compose -f WebAppClient/docker-compose.yml -p saas config
-    - docker compose -f project/docker-compose.yml -p saas pull
-    - docker compose -f WebAppClient/docker-compose.yml -p saas pull
-    - docker compose -f project/docker-compose.yml -p saas up --build --remove-orphans --detach || (docker compose -f project/docker-compose.yml -p saas logs --tail=200 postgres aspnet && false)
-    - docker compose -f WebAppClient/docker-compose.yml -p saas up --build --remove-orphans --detach || (docker compose -f WebAppClient/docker-compose.yml -p saas logs --tail=200 webappclient && false)
+    - docker compose -f project/docker-compose.yml -f WebAppClient/docker-compose.yml -p kunnap-csharpproject config
+    - docker compose -f project/docker-compose.yml -f WebAppClient/docker-compose.yml -p kunnap-csharpproject pull
+    - docker compose -f project/docker-compose.yml -f WebAppClient/docker-compose.yml -p kunnap-csharpproject up --build --remove-orphans --detach || (docker compose -f project/docker-compose.yml -f WebAppClient/docker-compose.yml -p kunnap-csharpproject logs --tail=200 postgres aspnet webappclient && false)
