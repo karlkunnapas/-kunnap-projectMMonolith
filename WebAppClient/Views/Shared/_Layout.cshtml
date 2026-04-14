@@ -5,6 +5,7 @@
     var selectedCompanySlug = Context.Session.GetString("SelectedCompanySlug");
     var selectedCompanyRole = Context.Session.GetString("SelectedCompanyRole");
     var isCompanyUser = !string.IsNullOrWhiteSpace(selectedCompanyId);
+    var isCustomer = User.IsInRole("Customer");
     var companyRole = EnumParser.ParseCompanyRole(selectedCompanyRole ?? "Employee");
     var canAccessManagerFeatures = companyRole >= ECompanyRole.Manager;
     var canManageUsers = companyRole == ECompanyRole.Owner;
@@ -49,7 +50,7 @@
                 <li class="app-nav-item">
                     <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
                 </li>
-                @if (User.Identity?.IsAuthenticated == true && !isCompanyUser)
+                @if (User.Identity?.IsAuthenticated == true && !isCompanyUser && isCustomer)
                 {
                     <li class="app-nav-item">
                         <a asp-area="Root" asp-controller="Reservation" asp-action="Index">@App.Resources.Views.Shared._Layout.MyReservations</a>

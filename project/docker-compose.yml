@@ -1,0 +1,39 @@
+services:
+  aspnet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aspnet
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_started
+    ports:
+      - "8081:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=project;Username=postgres;Password=postgres"
+
+
+  postgres:
+    container_name: "projectpostgres"
+    pull_policy: always
+    # https://github.com/baosystems/docker-postgis/pkgs/container/postgis
+    image: ghcr.io/baosystems/postgis:18
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=project
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U postgres -d project"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql
+
+volumes:
+  postgres-dev-data:

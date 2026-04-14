@@ -1,0 +1,13 @@
+services:
+  webappclient:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webappclient
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8080"
+      ApiBaseUrl: "http://aspnet:8080/"

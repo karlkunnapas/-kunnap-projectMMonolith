@@ -10,7 +10,7 @@ using WebAppClient.Enums;
 namespace WebApp.Areas.Root.Controllers;
 
 [Area("Root")]
-[Authorize]
+[Authorize(Roles = "Customer")]
 public class ReservationController : Controller
 {
     private readonly IApiClient _apiClient;

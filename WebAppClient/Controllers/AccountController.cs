@@ -243,6 +243,25 @@ public class AccountController : Controller
         var token = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
         var claims = token.Claims.ToList();
 
+        // Normalize role claims so Cookie auth role checks (User.IsInRole / [Authorize(Roles=...)]) work reliably.
+        var roleClaimTypes = new[]
+        {
+            ClaimTypes.Role,
+            "role",
+            "roles",
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        };
+        var roleValues = claims
+            .Where(c => roleClaimTypes.Contains(c.Type, StringComparer.OrdinalIgnoreCase))
+            .Select(c => c.Value)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        foreach (var role in roleValues)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties

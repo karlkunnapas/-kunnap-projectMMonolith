@@ -7,7 +7,7 @@ using WebAppClient.Services;
 namespace WebApp.Areas.Root.Controllers;
 
 [Area("Root")]
-[Authorize]
+[Authorize(Roles = "Customer")]
 public class PromotionController : Controller
 {
     private readonly IApiClient _apiClient;

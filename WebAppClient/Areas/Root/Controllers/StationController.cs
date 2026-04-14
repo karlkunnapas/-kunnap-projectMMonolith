@@ -9,7 +9,7 @@ using WebAppClient.Enums;
 namespace WebApp.Areas.Root.Controllers;
 
 [Area("Root")]
-[Authorize]
+[Authorize(Roles = "Customer,CompanyOwner")]
 public class StationController : Controller
 {
     private readonly IApiClient _apiClient;

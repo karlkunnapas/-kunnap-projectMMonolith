@@ -1,0 +1,38 @@
+@model WebApp.ViewModels.AuditTrailViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Admin.Audit.Trail.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <h2>@App.Resources.Views.Admin.Audit.Trail.Heading</h2>
+
+        <div class="station-card">
+            <div class="station-details">
+                <div class="station-name">@Model.EntityName</div>
+                <div class="station-meta">@App.Resources.Views.Admin.Audit.Trail.EntityId: @Model.EntityId</div>
+            </div>
+        </div>
+
+        @if (!Model.Entries.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Admin.Audit.Trail.NoEntries</div>
+        }
+        else
+        {
+            @foreach (var entry in Model.Entries)
+            {
+                var badge = string.IsNullOrWhiteSpace(entry.Action) ? "?" : entry.Action[..1].ToUpperInvariant();
+                <div class="station-card">
+                    <div class="station-icon">@badge</div>
+                    <div class="station-details">
+                        <div class="station-name">@entry.Action</div>
+                        <div class="station-meta">@App.Resources.Views.Admin.Audit.Trail.Actor: @entry.UserName</div>
+                        <div class="station-meta">@App.Resources.Views.Admin.Audit.Trail.AtUtc: @entry.AtUtc.ToString("u")</div>
+                        <div class="station-meta">@App.Resources.Views.Admin.Audit.Trail.Changes: @entry.ChangesSummary</div>
+                    </div>
+                </div>
+            }
+        }
+    </section>
+</div>

@@ -7,7 +7,7 @@ using WebAppClient.Services;
 namespace WebApp.Areas.Root.Controllers;
 
 [Area("Root")]
-[Authorize]
+[Authorize(Roles = "Customer")]
 public class VehicleController : Controller
 {
     private readonly IApiClient _apiClient;
