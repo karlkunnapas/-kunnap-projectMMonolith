@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: aspnet
     restart: unless-stopped
     depends_on:
       postgres:
@@ -17,7 +16,6 @@ services:
 
 
   postgres:
-    container_name: "projectpostgres"
     pull_policy: always
     # https://github.com/baosystems/docker-postgis/pkgs/container/postgis
     image: ghcr.io/baosystems/postgis:18
