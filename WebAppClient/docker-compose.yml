@@ -1,7 +1,7 @@
 services:
   webappclient:
     build:
-      context: .
+      context: ../WebAppClient
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
