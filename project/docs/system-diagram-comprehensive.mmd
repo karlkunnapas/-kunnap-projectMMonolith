@@ -7,11 +7,16 @@ classDiagram
         +Guid Id
     }
 
+    class LangStr {
+        +Guid Id
+    }
+
     class AppUser {
         +Guid Id
         +string UserName
         +string Email
         +string PhoneNumber
+        +ICollection~AppRefreshToken~ RefreshTokens
     }
 
     class AppRole {
@@ -23,7 +28,7 @@ classDiagram
         +Guid Id
         +string RefreshToken
         +DateTime Expiration
-        +string? PreviousRefreshToken
+        +string PreviousRefreshToken
         +DateTime PreviousExpiration
         +Guid UserId
     }
@@ -33,7 +38,19 @@ classDiagram
         +LangStr Name
         +string ContactEmail
         +string ContactPhone
+        +string Slug
         +bool IsActive
+    }
+
+    class AuditLog {
+        +Guid Id
+        +Guid CompanyId
+        +string UserName
+        +string EntityName
+        +Guid EntityId
+        +string Action
+        +DateTime AtUtc
+        +string ChangesJson
     }
 
     class ChargingStation {
@@ -41,10 +58,10 @@ classDiagram
         +LangStr Name
         +string Location
         +EStationStatus Status
-        +decimal PricePerHour
+        +decimal PricePerKwh
         +decimal MaxPower
         +bool IsActive
-        +Guid? CompanyId
+        +Guid CompanyId
     }
 
     class Connector {
@@ -58,7 +75,7 @@ classDiagram
         +Guid UserId
         +string Make
         +string Model
-        +decimal? BatteryCapacity
+        +decimal BatteryCapacity
     }
 
     class Reservation {
@@ -67,16 +84,21 @@ classDiagram
         +Guid ChargingStationId
         +DateTime StartTime
         +DateTime EndTime
+        +DateTime ExpiresAtUtc
+        +DateTime CancelledAtUtc
+        +decimal EstimatedCost
         +EReservationStatus Status
+        +Guid PromotionId
     }
 
     class ChargingSession {
         +Guid Id
         +Guid UserId
         +Guid ChargingStationId
-        +Guid? ReservationId
+        +Guid ReservationId
+        +Guid PromotionId
         +DateTime StartTime
-        +DateTime? EndTime
+        +DateTime EndTime
         +decimal EnergyConsumed
         +decimal Cost
     }
@@ -84,13 +106,13 @@ classDiagram
     class Maintenance {
         +Guid Id
         +Guid ChargingStationId
-        +Guid? ReportedByUserId
+        +Guid ReportedByUserId
         +string IssueDescription
         +EMaintenanceStatus Status
         +DateTime ReportedAt
-        +DateTime? ResolvedAt
-        +Guid? AssignedToUserId
-        +string? Notes
+        +DateTime ResolvedAt
+        +Guid AssignedToUserId
+        +string Notes
     }
 
     class Promotion {
@@ -100,13 +122,16 @@ classDiagram
         +DateTime ValidFrom
         +DateTime ValidTo
         +bool IsActive
-        +Guid? CompanyId
+        +Guid CompanyId
     }
 
     class AppUserCompany {
         +Guid Id
         +Guid AppUserId
         +Guid CompanyId
+        +ECompanyRole Role
+        +bool IsActive
+        +DateTime JoinedAtUtc
     }
 
     class AppUserRole {
@@ -132,11 +157,11 @@ classDiagram
         +Guid UserId
         +Guid PromotionId
         +DateTime AddedAt
+        +bool IsUsed
     }
 
     class EStationStatus {
         Available
-        Reserved
         InUse
         Maintenance
     }
@@ -145,6 +170,7 @@ classDiagram
         Active
         Cancelled
         Expired
+        Started
     }
 
     class EMaintenanceStatus {
@@ -153,10 +179,16 @@ classDiagram
         Resolved
     }
 
-    %% Inheritance relationships
+    class ECompanyRole {
+        Employee
+        Manager
+        Owner
+    }
+
     IBaseEntity <|-- BaseEntity
     BaseEntity <|-- AppRefreshToken
     BaseEntity <|-- Company
+    BaseEntity <|-- AuditLog
     BaseEntity <|-- ChargingStation
     BaseEntity <|-- Connector
     BaseEntity <|-- Vehicle
@@ -165,45 +197,50 @@ classDiagram
     BaseEntity <|-- Maintenance
     BaseEntity <|-- Promotion
     BaseEntity <|-- AppUserCompany
+    BaseEntity <|-- AppUserRole
     BaseEntity <|-- ChargingStationConnector
     BaseEntity <|-- VehicleConnector
     BaseEntity <|-- UserPromotion
-    BaseEntity <|-- AppUserRole
     IBaseEntity <|.. AppUser
     IBaseEntity <|.. AppRole
 
-    %% Core business relationships
-    AppUser --> AppRefreshToken : has
-    AppUser --> Reservation : makes
-    AppUser --> ChargingSession : participates in
-    AppUser --> Vehicle : owns
-    AppUser --> Maintenance : reports
-    Maintenance --> AppUser : assigned to
-
+    Company --> AuditLog : has
     Company --> ChargingStation : owns
     Company --> Promotion : offers
+    Company --> AppUserCompany : has members
+
+    AppUser --> AppRefreshToken : has
+    AppUser --> Vehicle : owns
+    AppUser --> Reservation : makes
+    AppUser --> ChargingSession : starts
+    AppUser --> Maintenance : reports
+    AppUser --> Maintenance : assigned to
+    AppUser --> AppUserCompany : linked through
+    AppUser --> AppUserRole : has roles
+    AppUser --> UserPromotion : has
+
+    AppRole --> AppUserRole : assigned to users
 
     ChargingStation --> Reservation : accepts
     ChargingStation --> ChargingSession : hosts
-    ChargingStation --> Maintenance : requires
-    ChargingStation --> ChargingStationConnector : has
+    ChargingStation --> Maintenance : has issues
+    ChargingStation --> ChargingStationConnector : has connectors
 
-    Connector --> ChargingStationConnector : connects to station
-    VehicleConnector --> Connector : compatible with
+    Connector --> ChargingStationConnector : station mapping
+    Connector --> VehicleConnector : vehicle mapping
+    Vehicle --> VehicleConnector : supports connectors
 
-    Vehicle --> VehicleConnector : has
+    Promotion --> UserPromotion : assigned to users
+    Promotion --> Reservation : applied to
+    Promotion --> ChargingSession : applied to
 
-    Reservation --> ChargingSession : leads to
+    Reservation --> ChargingSession : source for
 
-    %% Many-to-many relationships
-    AppUser --> AppUserCompany : associated with
-    Company --> AppUserCompany : has employees
-    AppUser --> UserPromotion : has
-    Promotion --> UserPromotion : gets added to
-    AppUser --> AppUserRole : has roles
-    AppRole --> AppUserRole : assigned to users
+    Company --> LangStr : Name
+    ChargingStation --> LangStr : Name
+    Connector --> LangStr : Name
 
-    %% Enum relationships
     ChargingStation --> EStationStatus : status
     Reservation --> EReservationStatus : status
     Maintenance --> EMaintenanceStatus : status
+    AppUserCompany --> ECompanyRole : role

@@ -25,7 +25,19 @@ erDiagram
         LangStr Name
         string ContactEmail
         string ContactPhone
+        string Slug
         bool IsActive
+    }
+
+    AuditLog {
+        Guid Id PK
+        Guid CompanyId FK
+        string UserName
+        string EntityName
+        Guid EntityId
+        string Action
+        DateTime AtUtc
+        string ChangesJson
     }
 
     ChargingStation {
@@ -33,7 +45,7 @@ erDiagram
         LangStr Name
         string Location
         EStationStatus Status
-        decimal PricePerHour
+        decimal PricePerKwh
         decimal MaxPower
         bool IsActive
         Guid CompanyId FK
@@ -59,7 +71,11 @@ erDiagram
         Guid ChargingStationId FK
         DateTime StartTime
         DateTime EndTime
+        DateTime ExpiresAtUtc
+        DateTime CancelledAtUtc
+        decimal EstimatedCost
         EReservationStatus Status
+        Guid PromotionId FK
     }
 
     ChargingSession {
@@ -67,6 +83,7 @@ erDiagram
         Guid UserId FK
         Guid ChargingStationId FK
         Guid ReservationId FK
+        Guid PromotionId FK
         DateTime StartTime
         DateTime EndTime
         decimal EnergyConsumed
@@ -99,6 +116,9 @@ erDiagram
         Guid Id PK
         Guid AppUserId FK
         Guid CompanyId FK
+        ECompanyRole Role
+        bool IsActive
+        DateTime JoinedAtUtc
     }
 
     AppUserRole {
@@ -124,36 +144,37 @@ erDiagram
         Guid UserId FK
         Guid PromotionId FK
         DateTime AddedAt
+        bool IsUsed
     }
 
-
     AppUser ||--o{ AppRefreshToken : has
-    AppUser ||--o{ Reservation : makes
-    AppUser ||--o{ ChargingSession : participates_in
     AppUser ||--o{ Vehicle : owns
-    AppUser ||--o{ Maintenance : reports
-    AppUser ||--o{ UserPromotion : has
-    AppUser ||--o{ AppUserCompany : associated_with
+    AppUser ||--o{ Reservation : makes
+    AppUser ||--o{ ChargingSession : starts
+    AppUser o|--o{ Maintenance : reports
+    AppUser o|--o{ Maintenance : assigned_to
+    AppUser ||--o{ AppUserCompany : linked_to
     AppUser ||--o{ AppUserRole : has_roles
+    AppUser ||--o{ UserPromotion : has
 
-    Company ||--o{ ChargingStation : owns
-    Company ||--o{ Promotion : offers
-    Company ||--o{ AppUserCompany : has_employees
+    AppRole ||--o{ AppUserRole : assigned_to_users
+
+    Company o|--o{ ChargingStation : owns
+    Company o|--o{ Promotion : offers
+    Company ||--o{ AppUserCompany : has_members
+    Company ||--o{ AuditLog : has_audit_entries
 
     ChargingStation ||--o{ Reservation : accepts
     ChargingStation ||--o{ ChargingSession : hosts
-    ChargingStation ||--o{ Maintenance : requires
+    ChargingStation ||--o{ Maintenance : has_issues
     ChargingStation ||--o{ ChargingStationConnector : has
 
-    Connector ||--o{ ChargingStationConnector : connects_to_station
-    Connector ||--o{ VehicleConnector : compatible_with
-
+    Connector ||--o{ ChargingStationConnector : station_compatibility
+    Connector ||--o{ VehicleConnector : vehicle_compatibility
     Vehicle ||--o{ VehicleConnector : has
 
-    Reservation ||--o| ChargingSession : leads_to
+    Promotion o|--o{ Reservation : applies_to
+    Promotion o|--o{ ChargingSession : applies_to
+    Promotion ||--o{ UserPromotion : assigned_to_users
 
-    Promotion ||--o{ UserPromotion : gets_added_to
-
-    Maintenance }o--|| AppUser : assigned_to
-
-    AppRole ||--o{ AppUserRole : assigned_to_users
+    Reservation o|--o{ ChargingSession : source_for
