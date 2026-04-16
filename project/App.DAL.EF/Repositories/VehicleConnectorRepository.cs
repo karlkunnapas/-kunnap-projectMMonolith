@@ -48,5 +48,20 @@ public class VehicleConnectorRepository : IVehicleConnectorRepository
             });
         }
     }
-}
 
+    public async Task RemoveAllForVehicleAsync(Guid vehicleId)
+    {
+        if (_context.Database.ProviderName?.Contains("InMemory") == true)
+        {
+            var existing = await _context.VehicleConnectors
+                .Where(vc => vc.VehicleId == vehicleId)
+                .ToListAsync();
+            _context.VehicleConnectors.RemoveRange(existing);
+            return;
+        }
+
+        await _context.VehicleConnectors
+            .Where(vc => vc.VehicleId == vehicleId)
+            .ExecuteDeleteAsync();
+    }
+}

@@ -73,12 +73,13 @@ public class VehicleService : IVehicleService
 
     public async Task<ServiceResult> DeleteVehicleAsync(Guid id, Guid userId)
     {
-        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserAsync(id, userId);
+        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserForUpdateAsync(id, userId);
         if (vehicle == null)
         {
             return ServiceResult.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
+        await _unitOfWork.VehicleConnectors.RemoveAllForVehicleAsync(vehicle.Id);
         _unitOfWork.Vehicles.Remove(vehicle);
         await _unitOfWork.SaveAsync();
         return ServiceResult.Ok();

@@ -27,17 +27,58 @@ public class HomeController : Controller
             SelectedConnector = connector,
             LocationQuery = location,
             SelectedVehicleId = vehicleId,
-            ShowVehicleFilters = User.Identity?.IsAuthenticated == true
+            ShowVehicleFilters = User.IsInRole("Customer")
         };
 
         try
         {
             var stations = await _apiClient.GetAsync<List<StationSummaryDto>>("api/v1/station");
             var filtered = stations.AsEnumerable();
+            HashSet<string>? selectedVehicleConnectorNames = null;
 
             if (!string.IsNullOrWhiteSpace(status))
             {
                 filtered = filtered.Where(s => string.Equals(s.Status, status, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (model.ShowVehicleFilters)
+            {
+                try
+                {
+                    var vehicles = await _apiClient.GetAsync<List<VehicleResponseDto>>("api/v1/vehicle");
+                    model.VehicleOptions = vehicles
+                        .Select(v => new HomeVehicleOptionViewModel
+                        {
+                            Id = v.Id,
+                            DisplayName = $"{v.Make} {v.Model}"
+                        })
+                        .ToList();
+
+                    if (vehicleId.HasValue)
+                    {
+                        var selectedVehicle = vehicles.FirstOrDefault(v => v.Id == vehicleId.Value);
+                        if (selectedVehicle == null)
+                        {
+                            model.SelectedVehicleId = null;
+                        }
+                        else
+                        {
+                            selectedVehicleConnectorNames = selectedVehicle.CompatibleConnectors
+                                .Select(c => c.Name)
+                                .Where(name => !string.IsNullOrWhiteSpace(name))
+                                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                            filtered = filtered.Where(s =>
+                                s.ConnectorNames.Any(c => selectedVehicleConnectorNames.Contains(c)));
+                        }
+                    }
+                }
+                catch (ApiUnauthorizedException ex)
+                {
+                    _logger.LogWarning(ex, "Vehicle filter data unauthorized. Showing stations without vehicle filtering.");
+                    model.SelectedVehicleId = null;
+                    model.VehicleOptions = new List<HomeVehicleOptionViewModel>();
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(connector))
@@ -61,20 +102,10 @@ public class HomeController : Controller
                 PricePerKwh = s.PricePerKwh,
                 MaxPower = s.MaxPower,
                 ConnectorNames = s.ConnectorNames,
-                IsCompatibleWithSelectedVehicle = s.IsCompatibleWithSelectedVehicle
+                IsCompatibleWithSelectedVehicle = selectedVehicleConnectorNames == null
+                    ? s.IsCompatibleWithSelectedVehicle
+                    : s.ConnectorNames.Any(c => selectedVehicleConnectorNames.Contains(c))
             }).ToList();
-
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                var vehicles = await _apiClient.GetAsync<List<VehicleResponseDto>>("api/v1/vehicle");
-                model.VehicleOptions = vehicles
-                    .Select(v => new HomeVehicleOptionViewModel
-                    {
-                        Id = v.Id,
-                        DisplayName = $"{v.Make} {v.Model}"
-                    })
-                    .ToList();
-            }
         }
         catch (ApiException ex)
         {

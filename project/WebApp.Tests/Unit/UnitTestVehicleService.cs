@@ -179,6 +179,35 @@ public class UnitTestVehicleService
         Assert.Equal(connector2.Id, updateResult.Data.CompatibleConnectors[0].ConnectorId);
     }
 
+    [Fact]
+    public async Task DeleteVehicleAsync_RemovesCompatibilityLinks_AndVehicle()
+    {
+        await using var context = BuildContext();
+
+        var userId = Guid.NewGuid();
+        var connector = new Connector { Id = Guid.NewGuid(), Name = new LangStr { ["en"] = "CCS" }, IsActive = true };
+        var vehicle = new Vehicle { Id = Guid.NewGuid(), UserId = userId, Make = "Tesla", Model = "Model Y" };
+
+        context.Connectors.Add(connector);
+        context.Vehicles.Add(vehicle);
+        context.VehicleConnectors.Add(new VehicleConnector
+        {
+            Id = Guid.NewGuid(),
+            VehicleId = vehicle.Id,
+            ConnectorId = connector.Id
+        });
+        await context.SaveChangesAsync();
+
+        await using var uow = new UnitOfWork(context);
+        var service = new VehicleService(uow);
+
+        var result = await service.DeleteVehicleAsync(vehicle.Id, userId);
+
+        Assert.True(result.Success);
+        Assert.False(await context.Vehicles.AnyAsync(v => v.Id == vehicle.Id));
+        Assert.False(await context.VehicleConnectors.AnyAsync(vc => vc.VehicleId == vehicle.Id));
+    }
+
     private static AppDbContext BuildContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
