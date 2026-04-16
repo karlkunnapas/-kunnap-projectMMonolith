@@ -1,13 +1,13 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Globalization;
 using WebApp.Areas.Root.ViewModels;
+using WebAppClient.Enums;
 using WebAppClient.Helpers;
 using WebAppClient.Models;
 using WebAppClient.Services;
-using WebAppClient.Enums;
 
-namespace WebApp.Areas.Root.Controllers;
+namespace WebAppClient.Areas.Root.Controllers;
 
 [Area("Root")]
 [Authorize(Roles = "Customer")]

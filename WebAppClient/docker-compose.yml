@@ -10,3 +10,4 @@ services:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:8080"
       ApiBaseUrl: "http://aspnet:8080/"
+      TZ: "Europe/Tallinn"
