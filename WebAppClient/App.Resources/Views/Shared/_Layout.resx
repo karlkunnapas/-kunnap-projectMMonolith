@@ -82,34 +82,34 @@
     <value>Find Stations</value>
   </data>
   <data name="MyReservations" xml:space="preserve">
-    <value>My Reservations</value>
+    <value>Reservations</value>
   </data>
   <data name="MySessions" xml:space="preserve">
-    <value>My Sessions</value>
+    <value>Sessions</value>
   </data>
   <data name="MyVehicles" xml:space="preserve">
-    <value>My Vehicles</value>
+    <value>Vehicles</value>
   </data>
   <data name="MyPromotions" xml:space="preserve">
-    <value>My Promotions</value>
+    <value>Promotions</value>
   </data>
   <data name="CompanyAudit" xml:space="preserve">
     <value>Company Audit</value>
   </data>
   <data name="CompanyDashboard" xml:space="preserve">
-    <value>Company Dashboard</value>
+    <value>Dashboard</value>
   </data>
   <data name="CompanyStations" xml:space="preserve">
-    <value>Company Stations</value>
+    <value>Stations</value>
   </data>
   <data name="CompanyMaintenance" xml:space="preserve">
-    <value>Company Maintenance</value>
+    <value>Maintenance</value>
   </data>
   <data name="CompanyPromotions" xml:space="preserve">
-    <value>Company Promotions</value>
+    <value>Promotions</value>
   </data>
   <data name="CompanyUsers" xml:space="preserve">
-    <value>Company Users</value>
+    <value>Users</value>
   </data>
   <data name="SwitchCompany" xml:space="preserve">
     <value>Switch Company</value>

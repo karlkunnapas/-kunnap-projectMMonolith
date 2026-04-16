@@ -123,16 +123,12 @@
                         </details>
                     </li>
                 }
-                <li class="app-nav-item">
-                    @if (isCompanyUser)
-                    {
+                @if (isCompanyUser)
+                {
+                    <li class="app-nav-item">
                         <a asp-area="" asp-controller="Home" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.FindStations</a>
-                    }
-                    else
-                    {
-                        <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
-                    }
-                </li>
+                    </li>
+                }
                 @if (User.IsInRole("Customer") && !isCompanyUser)
                 {
                     <li class="app-nav-item">

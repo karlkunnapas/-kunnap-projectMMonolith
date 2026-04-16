@@ -3,6 +3,8 @@
 
 @{
     var companySlug = ViewContext.RouteData.Values["companySlug"]?.ToString();
+    var canOpenStationDetails = User.Identity?.IsAuthenticated == true
+                                && (User.IsInRole("Customer") || User.IsInRole("CompanyOwner"));
 
     var statusText = Model.Status switch
     {
@@ -41,14 +43,17 @@
             </div>
         }
     </div>
-    <div class="station-actions">
-        @if (User.IsInRole("CompanyOwner") && !string.IsNullOrWhiteSpace(companySlug))
-        {
-            <a class="station-button" asp-route="tenant-station-public" asp-route-id="@Model.Id" asp-route-companySlug="@companySlug">@App.Resources.Views.Home.Index.Details</a>
-        }
-        else
-        {
-            <a class="station-button" asp-area="Root" asp-controller="Station" asp-action="Details" asp-route-id="@Model.Id">@App.Resources.Views.Home.Index.Details</a>
-        }
-    </div>
+    @if (canOpenStationDetails)
+    {
+        <div class="station-actions">
+            @if (User.IsInRole("CompanyOwner") && !string.IsNullOrWhiteSpace(companySlug))
+            {
+                <a class="station-button" asp-route="tenant-station-public" asp-route-id="@Model.Id" asp-route-companySlug="@companySlug">@App.Resources.Views.Home.Index.Details</a>
+            }
+            else
+            {
+                <a class="station-button" asp-area="Root" asp-controller="Station" asp-action="Details" asp-route-id="@Model.Id">@App.Resources.Views.Home.Index.Details</a>
+            }
+        </div>
+    }
 </div>

@@ -1,6 +1,9 @@
 @model WebApp.ViewModels.HomeStationViewModel
 
 @{
+    var canOpenStationDetails = User.Identity?.IsAuthenticated == true
+                                && (User.IsInRole("Customer") || User.IsInRole("CompanyOwner"));
+
     var statusText = Model.Status switch
     {
         EStationStatus.Available => App.Resources.Views.Home.Index.StatusAvailable,
@@ -38,7 +41,10 @@
             </div>
         }
     </div>
-    <div class="station-actions">
-        <a class="station-button" asp-area="Root" asp-controller="Station" asp-action="Details" asp-route-id="@Model.Id">@App.Resources.Views.Home.Index.Details</a>
-    </div>
+    @if (canOpenStationDetails)
+    {
+        <div class="station-actions">
+            <a class="station-button" asp-area="Root" asp-controller="Station" asp-action="Details" asp-route-id="@Model.Id">@App.Resources.Views.Home.Index.Details</a>
+        </div>
+    }
 </div>

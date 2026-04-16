@@ -1,6 +1,6 @@
 ﻿@using System.Threading
 @{
-    var appName = "EV Charging";
+    var appName = "ChargeHub";
     var selectedCompanyId = Context.Session.GetString("SelectedCompanyId");
     var selectedCompanySlug = Context.Session.GetString("SelectedCompanySlug");
     var selectedCompanyRole = Context.Session.GetString("SelectedCompanyRole");
@@ -45,11 +45,28 @@
         <nav class="app-nav">
             <ul class="app-nav-list">
                 <li class="app-nav-item">
-                    <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                    @if (isCompanyUser)
+                    {
+                        @if (canAccessManagerFeatures)
+                        {
+                            <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
+                        }
+                        else
+                        {
+                            <a asp-area="Company" asp-controller="Maintenance" asp-action="Index">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
+                        }
+                    }
+                    else
+                    {
+                        <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                    }
                 </li>
-                <li class="app-nav-item">
-                    <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
-                </li>
+                @if (isCompanyUser)
+                {
+                    <li class="app-nav-item">
+                        <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.FindStations</a>
+                    </li>
+                }
                 @if (User.Identity?.IsAuthenticated == true && !isCompanyUser && isCustomer)
                 {
                     <li class="app-nav-item">
@@ -67,19 +84,16 @@
                 }
                 @if (isCompanyUser && !string.IsNullOrWhiteSpace(selectedCompanySlug))
                 {
-                    <li class="app-nav-item">
-                        <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
-                    </li>
                     @if (canAccessManagerFeatures)
                     {
-                        <li class="app-nav-item">
-                            <a asp-area="Company" asp-controller="Dashboard" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyDashboard</a>
-                        </li>
                         <li class="app-nav-item">
                             <a asp-area="Company" asp-controller="Station" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyStations</a>
                         </li>
                         <li class="app-nav-item">
                             <a asp-area="Company" asp-controller="Promotion" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyPromotions</a>
+                        </li>
+                        <li class="app-nav-item">
+                            <a asp-area="Company" asp-controller="Maintenance" asp-action="Index" asp-route-companySlug="@selectedCompanySlug">@App.Resources.Views.Shared._Layout.CompanyMaintenance</a>
                         </li>
                     }
                     @if (canManageUsers)
