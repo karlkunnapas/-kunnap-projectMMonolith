@@ -56,6 +56,9 @@ public class ReservationController : Controller
             return RedirectToAction("Index", "Home", new { area = string.Empty });
         }
 
+        startTimeUtc = NormalizeClientUtc(startTimeUtc);
+        endTimeUtc = NormalizeClientUtc(endTimeUtc);
+
         var durationMinutes = (int)Math.Ceiling((endTimeUtc - startTimeUtc).TotalMinutes);
         if (durationMinutes <= 0)
         {
@@ -106,11 +109,14 @@ public class ReservationController : Controller
 
         try
         {
+            var startTimeUtc = NormalizeClientUtc(model.StartTimeUtc);
+            var endTimeUtc = NormalizeClientUtc(model.EndTimeUtc);
+
             await _apiClient.PostAsync<ReservationResponseDto>("api/v1/reservation", new ReservationCreateRequestDto
             {
                 StationId = model.StationId,
-                StartTimeUtc = model.StartTimeUtc,
-                EndTimeUtc = model.EndTimeUtc,
+                StartTimeUtc = startTimeUtc,
+                EndTimeUtc = endTimeUtc,
                 EstimatedEnergyKwh = model.EstimatedEnergyKwh,
                 PromotionCode = model.PromotionCode
             });
@@ -230,6 +236,16 @@ public class ReservationController : Controller
             DateTimeKind.Utc => value,
             DateTimeKind.Local => value.ToUniversalTime(),
             _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+    }
+
+    private static DateTime NormalizeClientUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime()
         };
     }
 }
