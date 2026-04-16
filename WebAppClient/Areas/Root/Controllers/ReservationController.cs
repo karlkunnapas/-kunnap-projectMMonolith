@@ -30,16 +30,18 @@ public class ReservationController : Controller
         {
             Reservations = reservations.Select(r =>
             {
+                var startUtc = NormalizeApiUtc(r.StartTimeUtc);
+                var endUtc = NormalizeApiUtc(r.EndTimeUtc);
                 var status = EnumParser.ParseReservation(r.Status);
                 return new ReservationListItemViewModel
                 {
                     Id = r.Id,
                     StationName = localizedNameByStationId.GetValueOrDefault(r.StationId, r.StationName),
-                    StartTimeUtc = r.StartTimeUtc,
-                    EndTimeUtc = r.EndTimeUtc,
+                    StartTimeUtc = startUtc,
+                    EndTimeUtc = endUtc,
                     Status = status,
                     EstimatedCost = r.EstimatedCost,
-                    CanStart = status == EReservationStatus.Active && r.StartTimeUtc <= nowUtc && nowUtc < r.EndTimeUtc
+                    CanStart = status == EReservationStatus.Active && startUtc <= nowUtc && nowUtc < endUtc
                 };
             }).ToList()
         };
@@ -219,5 +221,15 @@ public class ReservationController : Controller
         return stations.ToDictionary(
             s => s.Id,
             s => LocalizationHelper.GetLocalizedName(s.Name, s.NameTranslations));
+    }
+
+    private static DateTime NormalizeApiUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
     }
 }
