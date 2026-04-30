@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -93,11 +94,9 @@ public class ChargingSessionController : Controller
             return View(model);
         }
 
-        var result = await _chargingSessionService.StartSessionAsync(userId.Value, new ChargingSessionStartRequestDto
-        {
-            StationId = model.StationId,
-            ReservationId = model.ReservationId
-        });
+        var result = await _chargingSessionService.StartSessionAsync(
+            userId.Value,
+            BllDtoFactory.CreateChargingSessionStartRequestDto(model.StationId, model.ReservationId));
 
         if (!result.Success)
         {
@@ -164,10 +163,10 @@ public class ChargingSessionController : Controller
             return BadRequest();
         }
 
-        var result = await _chargingSessionService.StopSessionAsync(userId.Value, model.Id, new ChargingSessionStopRequestDto
-        {
-            PromotionCode = model.PromotionCode
-        });
+        var result = await _chargingSessionService.StopSessionAsync(
+            userId.Value,
+            model.Id,
+            BllDtoFactory.CreateChargingSessionStopRequestDto(model.PromotionCode));
         if (!result.Success)
         {
             if (result.Errors.Any(e => e.Code == "FORBIDDEN"))

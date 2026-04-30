@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -58,13 +59,18 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
 
         var connectors = await GetConnectorOptionsAsync(Array.Empty<Guid>());
 
-        return ServiceResult<CompanyStationFormDto>.Ok(new CompanyStationFormDto
-        {
-            CompanyId = companyId,
-            Status = EStationStatus.Available,
-            IsActive = true,
-            AvailableConnectors = connectors
-        });
+        return ServiceResult<CompanyStationFormDto>.Ok(BllDtoFactory.CreateCompanyStationFormDto(
+            id: null,
+            companyId: companyId,
+            nameEn: string.Empty,
+            nameEt: string.Empty,
+            location: string.Empty,
+            pricePerKwh: 0m,
+            maxPower: 0m,
+            status: EStationStatus.Available,
+            isActive: true,
+            selectedConnectorIds: new List<Guid>(),
+            availableConnectors: connectors));
     }
 
     public async Task<ServiceResult<CompanyStationFormDto>> GetEditFormAsync(Guid stationId, Guid companyId)
@@ -85,20 +91,18 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             .Distinct()
             .ToList() ?? new List<Guid>();
 
-        return ServiceResult<CompanyStationFormDto>.Ok(new CompanyStationFormDto
-        {
-            Id = station.Id,
-            CompanyId = companyId,
-            NameEn = station.Name.Translate("en") ?? string.Empty,
-            NameEt = station.Name.Translate("et") ?? string.Empty,
-            Location = station.Location,
-            PricePerKwh = station.PricePerKwh,
-            MaxPower = station.MaxPower,
-            Status = NormalizeStationStatus(station.Status),
-            IsActive = station.IsActive,
-            SelectedConnectorIds = selectedConnectorIds,
-            AvailableConnectors = await GetConnectorOptionsAsync(selectedConnectorIds)
-        });
+        return ServiceResult<CompanyStationFormDto>.Ok(BllDtoFactory.CreateCompanyStationFormDto(
+            id: station.Id,
+            companyId: companyId,
+            nameEn: station.Name.Translate("en") ?? string.Empty,
+            nameEt: station.Name.Translate("et") ?? string.Empty,
+            location: station.Location,
+            pricePerKwh: station.PricePerKwh,
+            maxPower: station.MaxPower,
+            status: NormalizeStationStatus(station.Status),
+            isActive: station.IsActive,
+            selectedConnectorIds: selectedConnectorIds,
+            availableConnectors: await GetConnectorOptionsAsync(selectedConnectorIds)));
     }
 
     public async Task<ServiceResult<CompanyStationDto>> CreateStationAsync(Guid companyId, Guid userId, string userName, CompanyStationUpsertDto dto)
@@ -401,12 +405,9 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
         var connectors = _unitOfWork.Connectors.GetQueryable()
             .Where(connector => connector.IsActive)
             .ToList()
-            .Select(connector => new CompanyStationConnectorOptionDto
-            {
-                ConnectorId = connector.Id,
-                ConnectorName = connector.Name.Translate() ?? connector.Name.ToString() ?? string.Empty,
-                IsAssigned = selectedConnectorIds.Contains(connector.Id)
-            })
+            .Select(connector => BllDtoFactory.CreateCompanyStationConnectorOptionDto(
+                connector,
+                selectedConnectorIds.Contains(connector.Id)))
             .OrderBy(connector => connector.ConnectorName)
             .ToList();
 
@@ -543,24 +544,7 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
 
     private static CompanyStationDto MapStation(ChargingStation station)
     {
-        return new CompanyStationDto
-        {
-            Id = station.Id,
-            Name = station.Name.Translate() ?? station.Name.ToString() ?? string.Empty,
-            Location = station.Location,
-            Status = station.Status,
-            PricePerKwh = station.PricePerKwh,
-            MaxPower = station.MaxPower,
-            IsActive = station.IsActive,
-            Connectors = station.ChargingStationConnectors?
-                .Where(link => link.Connector != null && link.Connector.IsActive)
-                .Select(link => link.Connector!.Name.Translate() ?? link.Connector.Name.ToString() ?? string.Empty)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Distinct()
-                .OrderBy(value => value)
-                .ToList() ?? new List<string>(),
-            MaintenanceIssueCount = station.MaintenanceIssues?.Count(issue => issue.Status != EMaintenanceStatus.Resolved) ?? 0
-        };
+        return BllDtoFactory.CreateCompanyStationDto(station);
     }
 
     private static EStationStatus NormalizeStationStatus(EStationStatus status)

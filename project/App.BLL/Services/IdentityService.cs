@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
 using App.DAL.EF.Repositories.Interfaces;
@@ -60,21 +61,9 @@ public class IdentityService : IIdentityService
             .Include(uc => uc.Company)
             .ToListAsync();
 
-        var companyDtos = userCompanies.Select(uc => new CompanySelectionItemDto
-        {
-            MembershipId = uc.Id,
-            CompanyId = uc.CompanyId,
-            CompanyName = uc.Company?.Name ?? "Unknown",
-            CompanySlug = uc.Company?.Slug ?? "",
-            Role = uc.Role.ToString()
-        }).ToList();
+        var companyDtos = userCompanies.Select(uc => BllDtoFactory.CreateCompanySelectionItemDto(uc, translatedName: false)).ToList();
 
-        var result = new UserCompanyListResultDto
-        {
-            UserId = userId,
-            Email = user.Email ?? "",
-            Companies = companyDtos
-        };
+        var result = BllDtoFactory.CreateUserCompanyListResultDto(userId, user.Email ?? "", companyDtos);
 
         return ServiceResult<UserCompanyListResultDto>.Ok(result);
     }
@@ -100,15 +89,7 @@ public class IdentityService : IIdentityService
             .ThenByDescending(uc => uc.JoinedAtUtc)
             .ToListAsync();
 
-        var result = memberships.Select(uc => new CompanyUserMembershipDto
-        {
-            MembershipId = uc.Id,
-            UserId = uc.AppUserId,
-            Email = uc.AppUser?.Email ?? string.Empty,
-            Role = uc.Role,
-            IsActive = uc.IsActive,
-            JoinedAtUtc = uc.JoinedAtUtc
-        }).ToList();
+        var result = memberships.Select(BllDtoFactory.CreateCompanyUserMembershipDto).ToList();
 
         return ServiceResult<List<CompanyUserMembershipDto>>.Ok(result);
     }
@@ -365,14 +346,7 @@ public class IdentityService : IIdentityService
             "CompanySwitched",
             $"{{\"userId\":\"{userId}\",\"role\":\"{membership.Role}\"}}");
 
-        return ServiceResult<CompanySelectionItemDto>.Ok(new CompanySelectionItemDto
-        {
-            MembershipId = membership.Id,
-            CompanyId = membership.CompanyId,
-            CompanyName = membership.Company.Name.Translate() ?? membership.Company.Name.ToString() ?? string.Empty,
-            CompanySlug = membership.Company.Slug,
-            Role = membership.Role.ToString()
-        });
+        return ServiceResult<CompanySelectionItemDto>.Ok(BllDtoFactory.CreateCompanySelectionItemDto(membership, translatedName: true));
     }
 
     public async Task<ServiceResult<Guid>> RegisterCompanyOwnerAsync(RegisterCompanyOwnerDto dto)
@@ -722,32 +696,22 @@ public class IdentityService : IIdentityService
         bool membershipReactivated = false,
         bool membershipAlreadyActive = false)
     {
-        return new AddCompanyUserResultDto
-        {
-            CompanyId = companyId,
-            MembershipId = membershipId,
-            UserId = userId,
-            Email = email,
-            Role = role,
-            IsExistingUser = isExistingUser,
-            AccessStatus = accessStatus,
-            NextAction = nextAction,
-            MembershipReactivated = membershipReactivated,
-            MembershipAlreadyActive = membershipAlreadyActive
-        };
+        return BllDtoFactory.CreateAddCompanyUserResultDto(
+            companyId,
+            membershipId,
+            userId,
+            email,
+            role,
+            isExistingUser,
+            accessStatus,
+            nextAction,
+            membershipReactivated,
+            membershipAlreadyActive);
     }
 
     private static CompanyUserMembershipDto MapMembershipDto(AppUserCompany membership)
     {
-        return new CompanyUserMembershipDto
-        {
-            MembershipId = membership.Id,
-            UserId = membership.AppUserId,
-            Email = membership.AppUser?.Email ?? string.Empty,
-            Role = membership.Role,
-            IsActive = membership.IsActive,
-            JoinedAtUtc = membership.JoinedAtUtc
-        };
+        return BllDtoFactory.CreateCompanyUserMembershipDto(membership);
     }
 
     private static List<ServiceError> ValidateNewUserInput(AddCompanyUserRequestDto dto)

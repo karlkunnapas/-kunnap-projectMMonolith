@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
 using App.Domain;
@@ -366,20 +367,18 @@ public class StationController : Controller
 
     private static CompanyStationUpsertDto MapUpsert(CompanyStationFormViewModel model)
     {
-        return new CompanyStationUpsertDto
-        {
-            NameEn = model.NameEn,
-            NameEt = model.NameEt,
-            Location = model.Location,
-            PricePerKwh = model.PricePerKwh,
-            MaxPower = model.MaxPower,
-            Status = model.Status,
-            IsActive = model.IsActive,
-            SelectedConnectorIds = model.SelectedConnectorIds
+        return BllDtoFactory.CreateCompanyStationUpsertDto(
+            model.NameEn,
+            model.NameEt,
+            model.Location,
+            model.PricePerKwh,
+            model.MaxPower,
+            model.Status,
+            model.IsActive,
+            model.SelectedConnectorIds
                 .Where(id => id != Guid.Empty)
                 .Distinct()
-                .ToList()
-        };
+                .ToList());
     }
 
     private async Task<Guid?> ResolveCompanyAsync(Guid? requestedCompanyId)

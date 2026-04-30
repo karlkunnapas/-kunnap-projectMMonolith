@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1;
 
@@ -38,7 +39,7 @@ public class VehicleController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _vehicleService.GetUserVehiclesAsync(userId);
-        var response = result.Data?.Select(MapVehicle).ToList() ?? new List<VehicleResponse>();
+        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<VehicleResponse>();
         return Ok(response);
     }
 
@@ -62,7 +63,7 @@ public class VehicleController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapVehicle(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -74,20 +75,14 @@ public class VehicleController : ControllerBase
     public async Task<ActionResult<VehicleResponse>> CreateVehicle([FromBody] VehicleCreate request)
     {
         var userId = User.UserId();
-        var result = await _vehicleService.CreateVehicleAsync(userId, new VehicleCreateDto
-        {
-            Make = request.Make,
-            Model = request.Model,
-            BatteryCapacity = request.BatteryCapacity,
-            ConnectorIds = request.ConnectorIds
-        });
+        var result = await _vehicleService.CreateVehicleAsync(userId, ApiDtoFactory.CreateDto(request));
 
         if (!result.Success || result.Data == null)
         {
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapVehicle(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -100,13 +95,7 @@ public class VehicleController : ControllerBase
     public async Task<ActionResult<VehicleResponse>> UpdateVehicle(Guid id, [FromBody] VehicleUpdate request)
     {
         var userId = User.UserId();
-        var result = await _vehicleService.UpdateVehicleAsync(id, userId, new VehicleUpdateDto
-        {
-            Make = request.Make,
-            Model = request.Model,
-            BatteryCapacity = request.BatteryCapacity,
-            ConnectorIds = request.ConnectorIds
-        });
+        var result = await _vehicleService.UpdateVehicleAsync(id, userId, ApiDtoFactory.CreateDto(request));
 
         if (HasForbidden(result.Errors))
         {
@@ -118,7 +107,7 @@ public class VehicleController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapVehicle(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -183,31 +172,11 @@ public class VehicleController : ControllerBase
             .ToListAsync();
 
         var response = connectors
-            .Select(c => new VehicleConnectorResponse
-            {
-                ConnectorId = c.Id,
-                Name = c.Name.Translate() ?? c.Name.ToString() ?? string.Empty
-            })
+            .Select(ApiDtoFactory.CreateDto)
             .OrderBy(c => c.Name)
             .ToList();
 
         return Ok(response);
-    }
-
-    private static VehicleResponse MapVehicle(VehicleDto dto)
-    {
-        return new VehicleResponse
-        {
-            Id = dto.Id,
-            Make = dto.Make,
-            Model = dto.Model,
-            BatteryCapacity = dto.BatteryCapacity,
-            CompatibleConnectors = dto.CompatibleConnectors.Select(c => new VehicleConnectorResponse
-            {
-                ConnectorId = c.ConnectorId,
-                Name = c.Name
-            }).ToList()
-        };
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

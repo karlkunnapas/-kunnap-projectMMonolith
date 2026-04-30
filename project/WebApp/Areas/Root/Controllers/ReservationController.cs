@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -71,7 +72,7 @@ public class ReservationController : Controller
 
         var estimateResult = canReserve
             ? await _reservationService.EstimateCostAsync(stationId, durationMinutes, estimatedEnergyKwh)
-            : ServiceResult<CostEstimateDto>.Ok(new CostEstimateDto { EstimatedCost = 0, DurationMinutes = durationMinutes });
+            : ServiceResult<CostEstimateDto>.Ok(BllDtoFactory.CreateCostEstimateDto(durationMinutes, 0));
 
         var model = new ReservationCreateViewModel
         {
@@ -105,14 +106,14 @@ public class ReservationController : Controller
             return View(model);
         }
 
-        var result = await _reservationService.ReserveAsync(userId.Value, new ReservationCreateDto
-        {
-            StationId = model.StationId,
-            StartTimeUtc = model.StartTimeUtc,
-            EndTimeUtc = model.EndTimeUtc,
-            EstimatedEnergyKwh = model.EstimatedEnergyKwh,
-            PromotionCode = model.PromotionCode
-        });
+        var result = await _reservationService.ReserveAsync(
+            userId.Value,
+            BllDtoFactory.CreateReservationCreateDto(
+                model.StationId,
+                model.StartTimeUtc,
+                model.EndTimeUtc,
+                model.EstimatedEnergyKwh,
+                model.PromotionCode));
 
         if (!result.Success)
         {

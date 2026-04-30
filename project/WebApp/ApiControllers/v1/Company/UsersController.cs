@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1.Company;
 
@@ -55,7 +56,7 @@ public class UsersController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(result.Data?.Select(MapMembership).ToList() ?? new List<CompanyUserResponse>());
+        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<CompanyUserResponse>());
     }
 
     /// <summary>
@@ -84,7 +85,7 @@ public class UsersController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapMembership(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -112,16 +113,7 @@ public class UsersController : ControllerBase
             companyId,
             userId,
             userName,
-            new AddCompanyUserRequestDto
-            {
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                PhoneNumber = request.PhoneNumber,
-                Password = request.Password,
-                ConfirmPassword = request.ConfirmPassword,
-                Role = (ECompanyRole)request.Role
-            });
+            ApiDtoFactory.CreateDto(request));
 
         if (HasNotOwnerOrForbidden(result.Errors))
         {
@@ -133,16 +125,7 @@ public class UsersController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(new AddCompanyUserResponse
-        {
-            MembershipId = result.Data.MembershipId,
-            UserId = result.Data.UserId,
-            Email = result.Data.Email,
-            Role = result.Data.Role.ToString(),
-            IsExistingUser = result.Data.IsExistingUser,
-            AccessStatus = result.Data.AccessStatus,
-            NextAction = result.Data.NextAction
-        });
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -171,10 +154,7 @@ public class UsersController : ControllerBase
             userId,
             userName,
             membershipId,
-            new UpdateCompanyUserRoleRequestDto
-            {
-                Role = (ECompanyRole)request.Role
-            });
+            ApiDtoFactory.CreateDto(request));
 
         if (HasNotOwnerOrForbidden(result.Errors))
         {
@@ -224,19 +204,6 @@ public class UsersController : ControllerBase
         return await _context.AppUserCompanies
             .AsNoTracking()
             .AnyAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive && uc.Role == ECompanyRole.Owner);
-    }
-
-    private static CompanyUserResponse MapMembership(CompanyUserMembershipDto dto)
-    {
-        return new CompanyUserResponse
-        {
-            MembershipId = dto.MembershipId,
-            UserId = dto.UserId,
-            Email = dto.Email,
-            Role = dto.Role.ToString(),
-            IsActive = dto.IsActive,
-            JoinedAtUtc = dto.JoinedAtUtc
-        };
     }
 
     private static bool HasNotOwnerOrForbidden(IEnumerable<ServiceError> errors)

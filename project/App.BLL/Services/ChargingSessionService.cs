@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -125,12 +126,10 @@ public class ChargingSessionService : IChargingSessionService
                 return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Promotion code is not available in your wallet.");
             }
 
-            appliedPromotion = new AppliedPromotionDto
-            {
-                PromotionId = lockedPromotion.Id,
-                Code = lockedPromotion.Code,
-                DiscountValue = lockedPromotion.DiscountValue
-            };
+            appliedPromotion = BllDtoFactory.CreateAppliedPromotionDto(
+                lockedPromotion.Id,
+                lockedPromotion.Code,
+                lockedPromotion.DiscountValue);
         }
         else if (!string.IsNullOrWhiteSpace(dto.PromotionCode))
         {
@@ -210,22 +209,7 @@ public class ChargingSessionService : IChargingSessionService
         var baseCost = discountPercent > 0m ? RecoverBaseCost(session.Cost, discountPercent) : session.Cost;
         var discountAmount = Math.Max(0m, baseCost - session.Cost);
 
-        return new ChargingSessionDto
-        {
-            Id = session.Id,
-            StationId = session.ChargingStationId,
-            StationName = session.ChargingStation?.Name.Translate() ?? session.ChargingStation?.Name.ToString() ?? string.Empty,
-            ReservationId = session.ReservationId,
-            StartTimeUtc = session.StartTime,
-            EndTimeUtc = session.EndTime,
-            EnergyConsumedKwh = session.EnergyConsumed,
-            Cost = session.Cost,
-            BaseCostBeforeDiscount = baseCost,
-            DiscountPercent = discountPercent,
-            DiscountAmount = discountAmount,
-            PromotionCode = promotionCode,
-            IsActive = session.EndTime == null
-        };
+        return BllDtoFactory.CreateChargingSessionDto(session, baseCost, discountPercent, discountAmount, promotionCode);
     }
 
     private static ChargingSessionDetailsDto MapSessionDetails(ChargingSession session)
@@ -251,23 +235,15 @@ public class ChargingSessionService : IChargingSessionService
             : calculatedCost;
         var discountAmount = Math.Max(0m, baseCost - discountedCost);
 
-        return new ChargingSessionDetailsDto
-        {
-            Id = session.Id,
-            StationId = session.ChargingStationId,
-            StationName = session.ChargingStation?.Name.Translate() ?? session.ChargingStation?.Name.ToString() ?? string.Empty,
-            ReservationId = session.ReservationId,
-            StartTimeUtc = session.StartTime,
-            EndTimeUtc = session.EndTime,
-            DurationMinutes = durationMinutes,
-            EnergyConsumedKwh = energyConsumedKwh,
-            Cost = discountedCost,
-            BaseCostBeforeDiscount = baseCost,
-            DiscountPercent = discountPercent,
-            DiscountAmount = discountAmount,
-            PromotionCode = promotionCode,
-            IsActive = session.EndTime == null
-        };
+        return BllDtoFactory.CreateChargingSessionDetailsDto(
+            session,
+            durationMinutes,
+            energyConsumedKwh,
+            discountedCost,
+            baseCost,
+            discountPercent,
+            discountAmount,
+            promotionCode);
     }
 
     private static decimal CalculateEnergyEstimateKwh(int durationMinutes, decimal? stationMaxPower)

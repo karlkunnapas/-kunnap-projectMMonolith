@@ -26,7 +26,8 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         "swagger",
         "root",
         "Station",
-        "Reservation"
+        "Reservation",
+        "Users"
     };
 
     public async Task InvokeAsync(HttpContext context, AppDbContext db, ITenantContext tenantContext)

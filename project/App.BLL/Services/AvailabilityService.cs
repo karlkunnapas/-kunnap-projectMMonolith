@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 
@@ -31,12 +32,7 @@ public class AvailabilityService : IAvailabilityService
                 var start = dayStart.AddDays(dayOffset).AddHours(hour);
                 var end = start.AddMinutes(durationMinutes);
                 var overlap = await _unitOfWork.Reservations.GetOverlappingReservationsAsync(stationId, start, end);
-                slots.Add(new AvailabilitySlotDto
-                {
-                    StartTimeUtc = start,
-                    EndTimeUtc = end,
-                    IsAvailable = overlap.Count == 0
-                });
+                slots.Add(BllDtoFactory.CreateAvailabilitySlotDto(start, end, overlap.Count == 0));
             }
         }
 
@@ -61,5 +57,4 @@ public class AvailabilityService : IAvailabilityService
             : ServiceResult.Ok();
     }
 }
-
 

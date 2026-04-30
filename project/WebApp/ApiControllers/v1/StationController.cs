@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1;
 
@@ -53,18 +54,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        var response = result.Data.Stations.Select(s => new StationSummary
-        {
-            Id = s.Id,
-            Name = s.Name,
-            NameTranslations = s.NameTranslations,
-            Location = s.Location,
-            Status = s.Status.ToString(),
-            PricePerKwh = s.PricePerKwh,
-            MaxPower = s.MaxPower,
-            ConnectorNames = s.ConnectorNames,
-            IsCompatibleWithSelectedVehicle = s.IsCompatibleWithSelectedVehicle
-        }).ToList();
+        var response = result.Data.Stations.Select(ApiDtoFactory.CreateDto).ToList();
 
         return Ok(response);
     }
@@ -84,41 +74,7 @@ public class StationController : ControllerBase
             return NotFound(new Message("Station not found."));
         }
 
-        var dto = result.Data;
-        return Ok(new StationDetails
-        {
-            Id = dto.Id,
-            CompanyId = dto.CompanyId,
-            Name = dto.Name,
-            Location = dto.Location,
-            Status = dto.Status.ToString(),
-            PricePerKwh = dto.PricePerKwh,
-            MaxPower = dto.MaxPower,
-            Connectors = dto.Connectors.Select(c => new ConnectorDetail
-            {
-                ConnectorId = c.ConnectorId,
-                Name = c.Name,
-                Quantity = c.Quantity,
-                AvailableQuantity = c.AvailableQuantity,
-                Reservations = c.Reservations.Select(r => new TimeRange
-                {
-                    StartTimeUtc = r.StartTimeUtc,
-                    EndTimeUtc = r.EndTimeUtc
-                }).ToList()
-            }).ToList(),
-            ExistingReservations = dto.ExistingReservations.Select(r => new StationReservationSlot
-            {
-                StartTimeUtc = r.StartTimeUtc,
-                EndTimeUtc = r.EndTimeUtc,
-                Status = r.Status.ToString()
-            }).ToList(),
-            AvailableSlots = dto.AvailableSlots.Select(s => new AvailabilitySlot
-            {
-                StartTimeUtc = s.StartTimeUtc,
-                EndTimeUtc = s.EndTimeUtc,
-                IsAvailable = s.IsAvailable
-            }).ToList()
-        });
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -139,12 +95,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(result.Data.Select(s => new AvailabilitySlot
-        {
-            StartTimeUtc = s.StartTimeUtc,
-            EndTimeUtc = s.EndTimeUtc,
-            IsAvailable = s.IsAvailable
-        }).ToList());
+        return Ok(result.Data.Select(ApiDtoFactory.CreateDto).ToList());
     }
 
     /// <summary>
@@ -165,11 +116,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(new CostEstimate
-        {
-            EstimatedCost = result.Data.EstimatedCost,
-            DurationMinutes = result.Data.DurationMinutes
-        });
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -219,11 +166,7 @@ public class StationController : ControllerBase
             .ToListAsync();
 
         var response = connectors
-            .Select(c => new ConnectorOption
-            {
-                Id = c.Id,
-                Name = c.Name.Translate() ?? c.Name.ToString() ?? string.Empty
-            })
+            .Select(ApiDtoFactory.CreateDtoForStationOption)
             .OrderBy(c => c.Name)
             .ToList();
 

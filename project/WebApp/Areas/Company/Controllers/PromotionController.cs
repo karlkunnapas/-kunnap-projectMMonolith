@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
 using App.Domain;
@@ -81,14 +82,14 @@ public class PromotionController : Controller
             return View(model);
         }
 
-        var result = await _promotionService.CreateCompanyPromotionAsync(resolvedCompany.Value, new PromotionUpsertDto
-        {
-            Code = model.Code,
-            DiscountValue = model.DiscountValue,
-            ValidFromUtc = model.ValidFromUtc,
-            ValidToUtc = model.ValidToUtc,
-            IsActive = model.IsActive
-        });
+        var result = await _promotionService.CreateCompanyPromotionAsync(
+            resolvedCompany.Value,
+            BllDtoFactory.CreatePromotionUpsertDto(
+                model.Code,
+                model.DiscountValue,
+                model.ValidFromUtc,
+                model.ValidToUtc,
+                model.IsActive));
 
         if (!result.Success)
         {
@@ -148,14 +149,15 @@ public class PromotionController : Controller
             return View(model);
         }
 
-        var result = await _promotionService.UpdateCompanyPromotionAsync(resolvedCompany.Value, id, new PromotionUpsertDto
-        {
-            Code = model.Code,
-            DiscountValue = model.DiscountValue,
-            ValidFromUtc = model.ValidFromUtc,
-            ValidToUtc = model.ValidToUtc,
-            IsActive = model.IsActive
-        });
+        var result = await _promotionService.UpdateCompanyPromotionAsync(
+            resolvedCompany.Value,
+            id,
+            BllDtoFactory.CreatePromotionUpsertDto(
+                model.Code,
+                model.DiscountValue,
+                model.ValidFromUtc,
+                model.ValidToUtc,
+                model.IsActive));
 
         if (!result.Success)
         {

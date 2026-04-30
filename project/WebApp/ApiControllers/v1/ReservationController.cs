@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1;
 
@@ -36,7 +37,7 @@ public class ReservationController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _reservationService.GetUserReservationsAsync(userId);
-        var response = result.Data?.Select(MapReservation).ToList() ?? new List<ReservationResponse>();
+        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<ReservationResponse>();
         return Ok(response);
     }
 
@@ -62,7 +63,7 @@ public class ReservationController : ControllerBase
             return NotFound(new Message("Reservation not found."));
         }
 
-        return Ok(MapReservation(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -74,21 +75,14 @@ public class ReservationController : ControllerBase
     public async Task<ActionResult<ReservationResponse>> CreateReservation([FromBody] ReservationCreate request)
     {
         var userId = User.UserId();
-        var result = await _reservationService.ReserveAsync(userId, new ReservationCreateDto
-        {
-            StationId = request.StationId,
-            StartTimeUtc = request.StartTimeUtc,
-            EndTimeUtc = request.EndTimeUtc,
-            EstimatedEnergyKwh = request.EstimatedEnergyKwh,
-            PromotionCode = request.PromotionCode
-        });
+        var result = await _reservationService.ReserveAsync(userId, ApiDtoFactory.CreateDto(request));
 
         if (!result.Success || result.Data == null)
         {
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapReservation(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -148,17 +142,7 @@ public class ReservationController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _promotionService.GetUserPromotionsAsync(userId);
-        var response = result.Data?.Select(p => new UserPromotionResponse
-        {
-            Id = p.Id,
-            PromotionId = p.PromotionId,
-            Code = p.Code,
-            DiscountValue = p.DiscountValue,
-            ValidFromUtc = p.ValidFromUtc,
-            ValidToUtc = p.ValidToUtc,
-            IsActive = p.IsActive,
-            IsUsed = p.IsUsed
-        }).ToList() ?? new List<UserPromotionResponse>();
+        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<UserPromotionResponse>();
 
         return Ok(response);
     }
@@ -178,33 +162,7 @@ public class ReservationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(new UserPromotionResponse
-        {
-            Id = result.Data.Id,
-            PromotionId = result.Data.PromotionId,
-            Code = result.Data.Code,
-            DiscountValue = result.Data.DiscountValue,
-            ValidFromUtc = result.Data.ValidFromUtc,
-            ValidToUtc = result.Data.ValidToUtc,
-            IsActive = result.Data.IsActive,
-            IsUsed = result.Data.IsUsed
-        });
-    }
-
-    private static ReservationResponse MapReservation(ReservationDto dto)
-    {
-        return new ReservationResponse
-        {
-            Id = dto.Id,
-            StationId = dto.StationId,
-            StationName = dto.StationName,
-            StartTimeUtc = dto.StartTimeUtc,
-            EndTimeUtc = dto.EndTimeUtc,
-            ExpiresAtUtc = dto.ExpiresAtUtc,
-            CancelledAtUtc = dto.CancelledAtUtc,
-            Status = dto.Status.ToString(),
-            EstimatedCost = dto.EstimatedCost
-        };
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

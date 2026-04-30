@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 
@@ -37,11 +38,7 @@ public class PricingService : IPricingService
 
         var estimatedCost = Math.Round(station.PricePerKwh * effectiveEnergyKwh, 2, MidpointRounding.AwayFromZero);
 
-        return ServiceResult<CostEstimateDto>.Ok(new CostEstimateDto
-        {
-            DurationMinutes = durationMinutes,
-            EstimatedCost = estimatedCost
-        });
+        return ServiceResult<CostEstimateDto>.Ok(BllDtoFactory.CreateCostEstimateDto(durationMinutes, estimatedCost));
     }
 
     public async Task<ServiceResult<decimal>> CalculateSessionFinalCostAsync(Guid stationId, decimal energyKwhConsumed, int durationMinutes)
@@ -55,5 +52,4 @@ public class PricingService : IPricingService
         return ServiceResult<decimal>.Ok(estimateResult.Data.EstimatedCost);
     }
 }
-
 

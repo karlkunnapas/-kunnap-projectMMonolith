@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
 using App.Domain;
@@ -94,16 +95,14 @@ public class CompanyUsersController : Controller
             resolvedCompany.Value,
             ownerUserId.Value,
             User.Identity?.Name ?? ownerUserId.Value.ToString(),
-            new AddCompanyUserRequestDto
-            {
-                Email = model.Email,
-                Role = model.Role,
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                PhoneNumber = model.PhoneNumber,
-                Password = model.Password,
-                ConfirmPassword = model.ConfirmPassword
-            });
+            BllDtoFactory.CreateAddCompanyUserRequestDto(
+                model.Email,
+                model.Role,
+                model.FirstName,
+                model.LastName,
+                model.PhoneNumber,
+                model.Password,
+                model.ConfirmPassword));
 
         if (!result.Success || result.Data == null)
         {
@@ -214,7 +213,7 @@ public class CompanyUsersController : Controller
             ownerUserId.Value,
             User.Identity?.Name ?? ownerUserId.Value.ToString(),
             model.MembershipId,
-            new UpdateCompanyUserRoleRequestDto { Role = model.Role });
+            BllDtoFactory.CreateUpdateCompanyUserRoleRequestDto(model.Role));
 
         if (!result.Success)
         {

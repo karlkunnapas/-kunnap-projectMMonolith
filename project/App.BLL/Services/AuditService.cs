@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 
@@ -27,15 +28,10 @@ public class AuditService : IAuditService
 
         var entries = await _unitOfWork.AuditLogQueries.GetByEntityAsync(entityName, entityId, companyId);
 
-        var dto = new AuditTrailDto
-        {
-            EntityName = entityName,
-            EntityId = entityId,
-            Entries = entries
-                .OrderBy(e => e.AtUtc)
-                .Select(MapEntry)
-                .ToList()
-        };
+        var dto = BllDtoFactory.CreateAuditTrailDto(
+            entityName,
+            entityId,
+            entries.OrderBy(e => e.AtUtc).Select(MapEntry).ToList());
 
         return ServiceResult<AuditTrailDto>.Ok(dto);
     }
@@ -92,15 +88,6 @@ public class AuditService : IAuditService
 
     private static AuditEntryDto MapEntry(App.Domain.AuditLog entry)
     {
-        return new AuditEntryDto
-        {
-            Id = entry.Id,
-            Action = entry.Action,
-            UserName = entry.UserName,
-            EntityName = entry.EntityName,
-            EntityId = entry.EntityId,
-            AtUtc = entry.AtUtc,
-            ChangesJson = entry.ChangesJson
-        };
+        return BllDtoFactory.CreateAuditEntryDto(entry);
     }
 }

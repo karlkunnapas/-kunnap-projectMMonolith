@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.Domain;
 using App.Domain.Identity;
@@ -49,15 +50,13 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var dto = new RegisterCustomerDto
-        {
-            FirstName = model.FirstName,
-            LastName = model.LastName,
-            Email = model.Email,
-            PhoneNumber = model.PhoneNumber,
-            Password = model.Password,
-            ConfirmPassword = model.ConfirmPassword
-        };
+        var dto = BllDtoFactory.CreateRegisterCustomerDto(
+            model.FirstName,
+            model.LastName,
+            model.Email,
+            model.PhoneNumber,
+            model.Password,
+            model.ConfirmPassword);
 
         var result = await _identityService.RegisterCustomerAsync(dto);
 

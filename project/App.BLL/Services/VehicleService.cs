@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -108,11 +109,9 @@ public class VehicleService : IVehicleService
 
         var connectors = vehicle.VehicleConnectors?
             .Where(vc => vc.Connector != null && vc.Connector.IsActive)
-            .Select(vc => new VehicleConnectorDto
-            {
-                ConnectorId = vc.ConnectorId,
-                Name = vc.Connector!.Name.Translate() ?? vc.Connector.Name.ToString() ?? string.Empty
-            })
+            .Select(vc => BllDtoFactory.CreateVehicleConnectorDto(
+                vc.ConnectorId,
+                vc.Connector!.Name.Translate() ?? vc.Connector.Name.ToString() ?? string.Empty))
             .OrderBy(c => c.Name)
             .ToList() ?? new List<VehicleConnectorDto>();
 
@@ -138,19 +137,14 @@ public class VehicleService : IVehicleService
         var compatible = stations
             .Where(station => station.ChargingStationConnectors != null
                               && station.ChargingStationConnectors.Any(link => connectorIds.Contains(link.ConnectorId)))
-            .Select(station => new CompatibleStationDto
-            {
-                StationId = station.Id,
-                StationName = station.Name.Translate() ?? station.Name.ToString() ?? string.Empty,
-                Location = station.Location,
-                Status = station.Status,
-                CompatibleConnectorNames = station.ChargingStationConnectors!
+            .Select(station => BllDtoFactory.CreateCompatibleStationDto(
+                station,
+                station.ChargingStationConnectors!
                     .Where(link => link.Connector != null && connectorIds.Contains(link.ConnectorId))
                     .Select(link => link.Connector!.Name.Translate() ?? link.Connector.Name.ToString() ?? string.Empty)
                     .Distinct()
                     .OrderBy(name => name)
-                    .ToList()
-            })
+                    .ToList()))
             .ToList();
 
         return ServiceResult<List<CompatibleStationDto>>.Ok(compatible);
@@ -158,21 +152,14 @@ public class VehicleService : IVehicleService
 
     private static VehicleDto MapVehicle(Vehicle vehicle)
     {
-        return new VehicleDto
-        {
-            Id = vehicle.Id,
-            Make = vehicle.Make,
-            Model = vehicle.Model,
-            BatteryCapacity = vehicle.BatteryCapacity,
-            CompatibleConnectors = vehicle.VehicleConnectors?
-                .Where(vc => vc.Connector != null && vc.Connector.IsActive)
-                .Select(vc => new VehicleConnectorDto
-                {
-                    ConnectorId = vc.ConnectorId,
-                    Name = vc.Connector!.Name.Translate() ?? vc.Connector.Name.ToString() ?? string.Empty
-                })
-                .OrderBy(c => c.Name)
-                .ToList() ?? new List<VehicleConnectorDto>()
-        };
+        var connectors = vehicle.VehicleConnectors?
+            .Where(vc => vc.Connector != null && vc.Connector.IsActive)
+            .Select(vc => BllDtoFactory.CreateVehicleConnectorDto(
+                vc.ConnectorId,
+                vc.Connector!.Name.Translate() ?? vc.Connector.Name.ToString() ?? string.Empty))
+            .OrderBy(c => c.Name)
+            .ToList() ?? new List<VehicleConnectorDto>();
+
+        return BllDtoFactory.CreateVehicleDto(vehicle, connectors);
     }
 }

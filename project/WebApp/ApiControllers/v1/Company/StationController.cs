@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1.Company;
 
@@ -50,7 +51,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(result.Data.Select(MapStation).ToList());
+        return Ok(result.Data.Select(ApiDtoFactory.CreateDto).ToList());
     }
 
     /// <summary>
@@ -79,7 +80,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapStation(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -111,25 +112,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(new CompanyStationFormResponse
-        {
-            Id = result.Data.Id,
-            CompanyId = result.Data.CompanyId,
-            NameEn = result.Data.NameEn,
-            NameEt = result.Data.NameEt,
-            Location = result.Data.Location,
-            PricePerKwh = result.Data.PricePerKwh,
-            MaxPower = result.Data.MaxPower,
-            Status = result.Data.Status.ToString(),
-            IsActive = result.Data.IsActive,
-            SelectedConnectorIds = result.Data.SelectedConnectorIds,
-            AvailableConnectors = result.Data.AvailableConnectors.Select(c => new ConnectorAssignmentOption
-            {
-                ConnectorId = c.ConnectorId,
-                ConnectorName = c.ConnectorName,
-                IsAssigned = c.IsAssigned
-            }).ToList()
-        });
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -153,24 +136,14 @@ public class StationController : ControllerBase
         }
 
         var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _stationService.CreateStationAsync(companyId, userId, userName, new CompanyStationUpsertDto
-        {
-            NameEn = request.NameEn,
-            NameEt = request.NameEt,
-            Location = request.Location,
-            PricePerKwh = request.PricePerKwh,
-            MaxPower = request.MaxPower,
-            Status = (EStationStatus)request.Status,
-            IsActive = request.IsActive,
-            SelectedConnectorIds = request.SelectedConnectorIds
-        });
+        var result = await _stationService.CreateStationAsync(companyId, userId, userName, ApiDtoFactory.CreateDto(request));
 
         if (!result.Success || result.Data == null)
         {
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapStation(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -194,17 +167,7 @@ public class StationController : ControllerBase
         }
 
         var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _stationService.UpdateStationAsync(id, companyId, userId, userName, new CompanyStationUpsertDto
-        {
-            NameEn = request.NameEn,
-            NameEt = request.NameEt,
-            Location = request.Location,
-            PricePerKwh = request.PricePerKwh,
-            MaxPower = request.MaxPower,
-            Status = (EStationStatus)request.Status,
-            IsActive = request.IsActive,
-            SelectedConnectorIds = request.SelectedConnectorIds
-        });
+        var result = await _stationService.UpdateStationAsync(id, companyId, userId, userName, ApiDtoFactory.CreateDto(request));
 
         if (HasForbidden(result.Errors))
         {
@@ -216,7 +179,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapStation(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -281,7 +244,7 @@ public class StationController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapStation(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole = ECompanyRole.Manager)
@@ -289,22 +252,6 @@ public class StationController : ControllerBase
         return await _context.AppUserCompanies
             .AsNoTracking()
             .AnyAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive && uc.Role >= minRole);
-    }
-
-    private static CompanyStationResponse MapStation(CompanyStationDto dto)
-    {
-        return new CompanyStationResponse
-        {
-            Id = dto.Id,
-            Name = dto.Name,
-            Location = dto.Location,
-            Status = dto.Status.ToString(),
-            PricePerKwh = dto.PricePerKwh,
-            MaxPower = dto.MaxPower,
-            IsActive = dto.IsActive,
-            Connectors = dto.Connectors,
-            MaintenanceIssueCount = dto.MaintenanceIssueCount
-        };
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

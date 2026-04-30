@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1.Company;
 
@@ -51,7 +52,7 @@ public class PromotionController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(result.Data?.Select(MapPromotion).ToList() ?? new List<PromotionResponse>());
+        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<PromotionResponse>());
     }
 
     /// <summary>
@@ -80,7 +81,7 @@ public class PromotionController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapPromotion(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -98,21 +99,14 @@ public class PromotionController : ControllerBase
             return Forbid();
         }
 
-        var result = await _promotionService.CreateCompanyPromotionAsync(companyId, new PromotionUpsertDto
-        {
-            Code = request.Code,
-            DiscountValue = request.DiscountValue,
-            ValidFromUtc = request.ValidFromUtc,
-            ValidToUtc = request.ValidToUtc,
-            IsActive = request.IsActive
-        });
+        var result = await _promotionService.CreateCompanyPromotionAsync(companyId, ApiDtoFactory.CreateDto(request));
 
         if (!result.Success || result.Data == null)
         {
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapPromotion(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -130,14 +124,7 @@ public class PromotionController : ControllerBase
             return Forbid();
         }
 
-        var result = await _promotionService.UpdateCompanyPromotionAsync(companyId, id, new PromotionUpsertDto
-        {
-            Code = request.Code,
-            DiscountValue = request.DiscountValue,
-            ValidFromUtc = request.ValidFromUtc,
-            ValidToUtc = request.ValidToUtc,
-            IsActive = request.IsActive
-        });
+        var result = await _promotionService.UpdateCompanyPromotionAsync(companyId, id, ApiDtoFactory.CreateDto(request));
 
         if (HasForbidden(result.Errors))
         {
@@ -149,7 +136,7 @@ public class PromotionController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapPromotion(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -186,19 +173,6 @@ public class PromotionController : ControllerBase
         return await _context.AppUserCompanies
             .AsNoTracking()
             .AnyAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive && uc.Role >= minRole);
-    }
-
-    private static PromotionResponse MapPromotion(PromotionSummaryDto dto)
-    {
-        return new PromotionResponse
-        {
-            Id = dto.Id,
-            Code = dto.Code,
-            DiscountValue = dto.DiscountValue,
-            ValidFromUtc = dto.ValidFromUtc,
-            ValidToUtc = dto.ValidToUtc,
-            IsActive = dto.IsActive
-        };
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

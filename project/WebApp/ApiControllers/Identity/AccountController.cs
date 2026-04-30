@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.Identity;
 
@@ -131,11 +132,7 @@ public class AccountController : ControllerBase
             GetExpirationDateTime(jwtExpiresInSeconds, SettingsJWTExpiresInSeconds)
         );
 
-        var responseData = new JWTResponse()
-        {
-            JWT = jwt,
-            RefreshToken = refreshToken.RefreshToken
-        };
+        var responseData = ApiDtoFactory.CreateJwtResponse(jwt, refreshToken.RefreshToken);
 
         return Ok(responseData);
     }
@@ -199,11 +196,7 @@ public class AccountController : ControllerBase
                 GetExpirationDateTime(jwtExpiresInSeconds, SettingsJWTExpiresInSeconds)
             );
             _logger.LogInformation("WebApi login. User {User}", registerModel.Email);
-            return Ok(new JWTResponse()
-            {
-                JWT = jwt,
-                RefreshToken = refreshToken.RefreshToken,
-            });
+            return Ok(ApiDtoFactory.CreateJwtResponse(jwt, refreshToken.RefreshToken));
         }
 
         var errors = result.Errors.Select(error => error.Description).ToList();
@@ -323,11 +316,7 @@ public class AccountController : ControllerBase
             await _context.SaveChangesAsync();
         }
 
-        var res = new JWTResponse()
-        {
-            JWT = jwt,
-            RefreshToken = refreshToken.RefreshToken,
-        };
+        var res = ApiDtoFactory.CreateJwtResponse(jwt, refreshToken.RefreshToken);
 
         return Ok(res);
     }

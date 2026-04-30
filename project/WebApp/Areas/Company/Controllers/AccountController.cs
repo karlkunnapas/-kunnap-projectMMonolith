@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,17 +37,15 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var dto = new RegisterCompanyOwnerDto
-        {
-            FirstName = model.FirstName,
-            LastName = model.LastName,
-            Email = model.Email,
-            PhoneNumber = model.PhoneNumber,
-            Password = model.Password,
-            ConfirmPassword = model.ConfirmPassword,
-            CompanyName = model.CompanyName,
-            CompanySlug = model.CompanySlug
-        };
+        var dto = BllDtoFactory.CreateRegisterCompanyOwnerDto(
+            model.FirstName,
+            model.LastName,
+            model.Email,
+            model.PhoneNumber,
+            model.Password,
+            model.ConfirmPassword,
+            model.CompanyName,
+            model.CompanySlug);
 
         var result = await _identityService.RegisterCompanyOwnerAsync(dto);
 
@@ -70,4 +69,3 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Dashboard", new { area = "Company" });
     }
 }
-

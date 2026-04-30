@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1.Company;
 
@@ -51,7 +52,7 @@ public class MaintenanceController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(result.Data?.Select(MapIssue).ToList() ?? new List<MaintenanceIssueResponse>());
+        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<MaintenanceIssueResponse>());
     }
 
     /// <summary>
@@ -80,7 +81,7 @@ public class MaintenanceController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapIssue(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -109,13 +110,7 @@ public class MaintenanceController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        var response = result.Data?.Select(h => new MaintenanceStatusHistoryResponse
-        {
-            AtUtc = h.AtUtc,
-            Action = h.Action,
-            Actor = h.Actor,
-            Changes = h.Changes
-        }).ToList() ?? new List<MaintenanceStatusHistoryResponse>();
+        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<MaintenanceStatusHistoryResponse>();
 
         return Ok(response);
     }
@@ -151,7 +146,7 @@ public class MaintenanceController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapIssue(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -180,7 +175,7 @@ public class MaintenanceController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapIssue(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole)
@@ -188,24 +183,6 @@ public class MaintenanceController : ControllerBase
         return await _context.AppUserCompanies
             .AsNoTracking()
             .AnyAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive && uc.Role >= minRole);
-    }
-
-    private static MaintenanceIssueResponse MapIssue(MaintenanceIssueDto dto)
-    {
-        return new MaintenanceIssueResponse
-        {
-            Id = dto.Id,
-            StationId = dto.StationId,
-            StationName = dto.StationName,
-            IssueDescription = dto.IssueDescription,
-            Status = dto.Status.ToString(),
-            ReportedAtUtc = dto.ReportedAtUtc,
-            ResolvedAtUtc = dto.ResolvedAtUtc,
-            AssignedToUserId = dto.AssignedToUserId,
-            AssignedToUserName = dto.AssignedToUserName,
-            ReporterUserName = dto.ReporterUserName,
-            Notes = dto.Notes
-        };
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

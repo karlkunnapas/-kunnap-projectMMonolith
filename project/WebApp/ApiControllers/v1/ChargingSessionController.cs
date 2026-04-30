@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1;
 
@@ -34,7 +35,7 @@ public class ChargingSessionController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _sessionService.GetUserSessionsAsync(userId);
-        var response = result.Data?.Select(MapSession).ToList() ?? new List<SessionResponse>();
+        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<SessionResponse>();
         return Ok(response);
     }
 
@@ -59,23 +60,7 @@ public class ChargingSessionController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(new SessionDetailResponse
-        {
-            Id = result.Data.Id,
-            StationId = result.Data.StationId,
-            StationName = result.Data.StationName,
-            ReservationId = result.Data.ReservationId,
-            StartTimeUtc = result.Data.StartTimeUtc,
-            EndTimeUtc = result.Data.EndTimeUtc,
-            DurationMinutes = result.Data.DurationMinutes,
-            EnergyConsumedKwh = result.Data.EnergyConsumedKwh,
-            Cost = result.Data.Cost,
-            BaseCostBeforeDiscount = result.Data.BaseCostBeforeDiscount,
-            DiscountPercent = result.Data.DiscountPercent,
-            DiscountAmount = result.Data.DiscountAmount,
-            PromotionCode = result.Data.PromotionCode,
-            IsActive = result.Data.IsActive
-        });
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -88,11 +73,7 @@ public class ChargingSessionController : ControllerBase
     public async Task<ActionResult<SessionResponse>> StartSession([FromBody] SessionStartRequest request)
     {
         var userId = User.UserId();
-        var result = await _sessionService.StartSessionAsync(userId, new ChargingSessionStartRequestDto
-        {
-            StationId = request.StationId,
-            ReservationId = request.ReservationId
-        });
+        var result = await _sessionService.StartSessionAsync(userId, ApiDtoFactory.CreateDto(request));
 
         if (HasForbidden(result.Errors))
         {
@@ -104,7 +85,7 @@ public class ChargingSessionController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapSession(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -117,12 +98,7 @@ public class ChargingSessionController : ControllerBase
     public async Task<ActionResult<SessionResponse>> StopSession(Guid id, [FromBody] SessionStopRequest request)
     {
         var userId = User.UserId();
-        var result = await _sessionService.StopSessionAsync(userId, id, new ChargingSessionStopRequestDto
-        {
-            EnergyConsumedKwh = 0,
-            DurationMinutes = null,
-            PromotionCode = request.PromotionCode
-        });
+        var result = await _sessionService.StopSessionAsync(userId, id, ApiDtoFactory.CreateDto(request));
 
         if (HasForbidden(result.Errors))
         {
@@ -134,27 +110,7 @@ public class ChargingSessionController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapSession(result.Data));
-    }
-
-    private static SessionResponse MapSession(ChargingSessionDto dto)
-    {
-        return new SessionResponse
-        {
-            Id = dto.Id,
-            StationId = dto.StationId,
-            StationName = dto.StationName,
-            ReservationId = dto.ReservationId,
-            StartTimeUtc = dto.StartTimeUtc,
-            EndTimeUtc = dto.EndTimeUtc,
-            EnergyConsumedKwh = dto.EnergyConsumedKwh,
-            Cost = dto.Cost,
-            BaseCostBeforeDiscount = dto.BaseCostBeforeDiscount,
-            DiscountPercent = dto.DiscountPercent,
-            DiscountAmount = dto.DiscountAmount,
-            PromotionCode = dto.PromotionCode,
-            IsActive = dto.IsActive
-        };
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

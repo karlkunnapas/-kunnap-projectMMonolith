@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -171,13 +172,7 @@ public class MaintenanceService : IMaintenanceService
 
         var history = entries
             .OrderBy(entry => entry.AtUtc)
-            .Select(entry => new MaintenanceStatusHistoryDto
-            {
-                AtUtc = entry.AtUtc,
-                Action = entry.Action,
-                Actor = entry.UserName,
-                Changes = entry.ChangesJson ?? string.Empty
-            })
+            .Select(BllDtoFactory.CreateMaintenanceStatusHistoryDto)
             .ToList();
 
         return ServiceResult<List<MaintenanceStatusHistoryDto>>.Ok(history);
@@ -201,20 +196,7 @@ public class MaintenanceService : IMaintenanceService
 
     private static MaintenanceIssueDto MapIssue(Maintenance issue)
     {
-        return new MaintenanceIssueDto
-        {
-            Id = issue.Id,
-            StationId = issue.ChargingStationId,
-            StationName = issue.ChargingStation?.Name.Translate() ?? issue.ChargingStation?.Name.ToString() ?? string.Empty,
-            IssueDescription = issue.IssueDescription,
-            Status = issue.Status,
-            ReportedAtUtc = issue.ReportedAt,
-            ResolvedAtUtc = issue.ResolvedAt,
-            AssignedToUserId = issue.AssignedToUserId,
-            AssignedToUserName = issue.AssignedToUser?.UserName ?? string.Empty,
-            ReporterUserName = issue.ReportedByUser?.UserName ?? string.Empty,
-            Notes = issue.Notes
-        };
+        return BllDtoFactory.CreateMaintenanceIssueDto(issue);
     }
 
     private static ChargingStation BuildStationStatusUpdate(ChargingStation source, EStationStatus status)

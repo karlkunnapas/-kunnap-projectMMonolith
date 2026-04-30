@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -34,33 +35,19 @@ public class HomePageService : IHomePageService
             .ToList();
 
         var stationDtos = stations
-            .Select(station => new HomeStationDto
-            {
-                Id = station.Id,
-                Name = station.Name?.Translate() ?? station.Name?.ToString() ?? string.Empty,
-                NameTranslations = new Dictionary<string, string>
-                {
-                    ["en"] = station.Name?.Translate("en") ?? string.Empty,
-                    ["et"] = station.Name?.Translate("et") ?? string.Empty
-                },
-                Location = station.Location,
-                Status = station.Status,
-                PricePerKwh = station.PricePerKwh,
-                MaxPower = station.MaxPower,
-                ConnectorNames = station.ChargingStationConnectors
+            .Select(station => BllDtoFactory.CreateHomeStationDto(
+                station,
+                station.ChargingStationConnectors
                     ?.Where(link => link.Connector != null && link.Connector.IsActive)
                     .Select(link => link.Connector?.Name?.Translate() ?? link.Connector?.Name?.ToString() ?? string.Empty)
                     .Where(name => !string.IsNullOrWhiteSpace(name))
                     .Distinct()
-                    .ToList() ?? new List<string>()
-            })
+                    .ToList() ?? new List<string>(),
+                isCompatibleWithSelectedVehicle: null,
+                includeNameTranslations: true))
             .ToList();
 
-        var dto = new HomePageDto
-        {
-            Stations = stationDtos,
-            ConnectorFilters = connectorFilters
-        };
+        var dto = BllDtoFactory.CreateHomePageDto(stationDtos, connectorFilters);
 
         return ServiceResult<HomePageDto>.Ok(dto);
     }

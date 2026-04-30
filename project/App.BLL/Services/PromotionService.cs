@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -247,12 +248,11 @@ public class PromotionService : IPromotionService
                 "This promotion cannot be used at this charging station because it belongs to another company.");
         }
 
-        return ServiceResult<AppliedPromotionDto>.Ok(new AppliedPromotionDto
-        {
-            PromotionId = userPromotion.PromotionId,
-            Code = userPromotion.Promotion.Code,
-            DiscountValue = userPromotion.Promotion.DiscountValue
-        });
+        return ServiceResult<AppliedPromotionDto>.Ok(
+            BllDtoFactory.CreateAppliedPromotionDto(
+                userPromotion.PromotionId,
+                userPromotion.Promotion.Code,
+                userPromotion.Promotion.DiscountValue));
     }
 
     private static List<ServiceError> ValidateUpsertDto(PromotionUpsertDto dto)
@@ -280,31 +280,12 @@ public class PromotionService : IPromotionService
 
     private static PromotionSummaryDto MapPromotion(Promotion promotion)
     {
-        return new PromotionSummaryDto
-        {
-            Id = promotion.Id,
-            Code = promotion.Code,
-            DiscountValue = promotion.DiscountValue,
-            ValidFromUtc = promotion.ValidFrom,
-            ValidToUtc = promotion.ValidTo,
-            IsActive = promotion.IsActive
-        };
+        return BllDtoFactory.CreatePromotionSummaryDto(promotion);
     }
 
     private static UserPromotionDto MapUserPromotion(UserPromotion userPromotion)
     {
-        return new UserPromotionDto
-        {
-            Id = userPromotion.Id,
-            PromotionId = userPromotion.PromotionId,
-            Code = userPromotion.Promotion?.Code ?? string.Empty,
-            DiscountValue = userPromotion.Promotion?.DiscountValue ?? 0m,
-            ValidFromUtc = userPromotion.Promotion?.ValidFrom ?? DateTime.UtcNow,
-            ValidToUtc = userPromotion.Promotion?.ValidTo ?? DateTime.UtcNow,
-            AddedAtUtc = userPromotion.AddedAt,
-            IsActive = userPromotion.Promotion?.IsActive ?? false,
-            IsUsed = userPromotion.IsUsed
-        };
+        return BllDtoFactory.CreateUserPromotionDto(userPromotion, DateTime.UtcNow);
     }
 
     private static string NormalizeCode(string code)

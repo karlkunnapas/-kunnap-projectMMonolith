@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
@@ -51,13 +52,7 @@ public class HomeController : Controller
             }
         }
 
-        var filters = new HomePageFilterDto
-        {
-            Status = status,
-            Connector = connector,
-            Location = location,
-            VehicleId = vehicleId
-        };
+        var filters = BllDtoFactory.CreateHomePageFilterDto(status, connector, location, vehicleId);
 
         var result = await _chargingStationService.GetHomePageAsync(filters);
         if (!result.Success || result.Data == null)

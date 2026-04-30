@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1.Company;
 
@@ -53,7 +54,7 @@ public class DashboardController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(MapDashboard(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     /// <summary>
@@ -79,7 +80,7 @@ public class DashboardController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        var response = result.Data?.Select(MapStationCard).ToList() ?? new List<StationStatusCard>();
+        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<StationStatusCard>();
         return Ok(response);
     }
 
@@ -104,7 +105,7 @@ public class DashboardController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        var response = result.Data?.Select(MapMaintenance).ToList() ?? new List<MaintenanceIssueResponse>();
+        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<MaintenanceIssueResponse>();
         return Ok(response);
     }
 
@@ -131,7 +132,7 @@ public class DashboardController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(result.Data?.Select(p => new ChartPoint { Label = p.Label, Value = p.Value }).ToList() ?? new List<ChartPoint>());
+        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<ChartPoint>());
     }
 
     /// <summary>
@@ -157,7 +158,7 @@ public class DashboardController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(result.Data?.Select(p => new ChartPoint { Label = p.Label, Value = p.Value }).ToList() ?? new List<ChartPoint>());
+        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<ChartPoint>());
     }
 
     private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole = ECompanyRole.Manager)
@@ -181,60 +182,4 @@ public class DashboardController : ControllerBase
         };
     }
 
-    private static DashboardResponse MapDashboard(OperatorDashboardDto dto)
-    {
-        return new DashboardResponse
-        {
-            FromUtc = dto.FromUtc,
-            ToUtc = dto.ToUtc,
-            Kpis = new DashboardKpis
-            {
-                TotalStations = dto.Kpis.TotalStations,
-                TotalReservations = dto.Kpis.TotalReservations,
-                TotalSessions = dto.Kpis.TotalSessions,
-                TotalRevenue = dto.Kpis.TotalRevenue,
-                AvgUtilizationPercent = dto.Kpis.AvgUtilizationPercent,
-                AvgSessionDurationMinutes = dto.Kpis.AvgSessionDurationMinutes,
-                PeakHours = dto.Kpis.PeakHours
-            },
-            StationStatus = dto.StationStatus.Select(MapStationCard).ToList(),
-            MaintenanceQueue = dto.MaintenanceQueue.Select(MapMaintenance).ToList(),
-            UtilizationTrend = dto.UtilizationTrend.Select(p => new ChartPoint { Label = p.Label, Value = p.Value }).ToList(),
-            RevenueTrend = dto.RevenueTrend.Select(p => new ChartPoint { Label = p.Label, Value = p.Value }).ToList()
-        };
-    }
-
-    private static StationStatusCard MapStationCard(CompanyStationStatusDto dto)
-    {
-        return new StationStatusCard
-        {
-            Id = dto.Id,
-            Name = dto.Name,
-            Status = dto.Status.ToString(),
-            HealthStatus = dto.HealthStatus,
-            UtilizationPercent = dto.UtilizationPercent,
-            ActiveSessionsCount = dto.ActiveSessionsCount,
-            ReservationsToday = dto.ReservationsToday,
-            PendingMaintenanceCount = dto.PendingMaintenanceCount,
-            RevenueToday = dto.RevenueToday
-        };
-    }
-
-    private static MaintenanceIssueResponse MapMaintenance(MaintenanceIssueDto dto)
-    {
-        return new MaintenanceIssueResponse
-        {
-            Id = dto.Id,
-            StationId = dto.StationId,
-            StationName = dto.StationName,
-            IssueDescription = dto.IssueDescription,
-            Status = dto.Status.ToString(),
-            ReportedAtUtc = dto.ReportedAtUtc,
-            ResolvedAtUtc = dto.ResolvedAtUtc,
-            AssignedToUserId = dto.AssignedToUserId,
-            AssignedToUserName = dto.AssignedToUserName,
-            ReporterUserName = dto.ReporterUserName,
-            Notes = dto.Notes
-        };
-    }
 }

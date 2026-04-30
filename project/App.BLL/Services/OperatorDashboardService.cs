@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -41,29 +42,26 @@ public class OperatorDashboardService : IOperatorDashboardService
             return ServiceResult<OperatorDashboardDto>.Fail("FAILED", "Failed to build dashboard data.");
         }
 
-        var kpi = new OperatorKpiDto
-        {
-            TotalStations = stations.Count,
-            TotalReservations = reservationsCount,
-            TotalSessions = sessionsCount,
-            TotalRevenue = revenue,
-            AvgUtilizationPercent = stationStatusResult.Data?.Any() == true
+        var kpi = BllDtoFactory.CreateOperatorKpiDto(
+            stations.Count,
+            reservationsCount,
+            sessionsCount,
+            revenue,
+            stationStatusResult.Data?.Any() == true
                 ? Math.Round(stationStatusResult.Data.Average(s => s.UtilizationPercent), 2, MidpointRounding.AwayFromZero)
                 : 0m,
-            AvgSessionDurationMinutes = Math.Round(avgDuration, 2, MidpointRounding.AwayFromZero),
-            PeakHours = await GetPeakHoursAsync(companyId, fromUtc, toUtc)
-        };
+            Math.Round(avgDuration, 2, MidpointRounding.AwayFromZero),
+            await GetPeakHoursAsync(companyId, fromUtc, toUtc));
 
-        return ServiceResult<OperatorDashboardDto>.Ok(new OperatorDashboardDto
-        {
-            Kpis = kpi,
-            StationStatus = stationStatusResult.Data ?? new List<CompanyStationStatusDto>(),
-            MaintenanceQueue = maintenanceResult.Data ?? new List<MaintenanceIssueDto>(),
-            UtilizationTrend = utilizationTrendResult.Data ?? new List<ChartPointDto>(),
-            RevenueTrend = revenueTrendResult.Data ?? new List<ChartPointDto>(),
-            FromUtc = fromUtc,
-            ToUtc = toUtc
-        });
+        return ServiceResult<OperatorDashboardDto>.Ok(
+            BllDtoFactory.CreateOperatorDashboardDto(
+                kpi,
+                stationStatusResult.Data ?? new List<CompanyStationStatusDto>(),
+                maintenanceResult.Data ?? new List<MaintenanceIssueDto>(),
+                utilizationTrendResult.Data ?? new List<ChartPointDto>(),
+                revenueTrendResult.Data ?? new List<ChartPointDto>(),
+                fromUtc,
+                toUtc));
     }
 
     public async Task<ServiceResult<List<CompanyStationStatusDto>>> GetStationStatusAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
@@ -96,18 +94,14 @@ public class OperatorDashboardService : IOperatorDashboardService
                     ? "Warning"
                     : "Good";
 
-            return new CompanyStationStatusDto
-            {
-                Id = station.Id,
-                Name = station.Name.Translate() ?? station.Name.ToString() ?? string.Empty,
-                Status = station.Status,
-                HealthStatus = health,
-                UtilizationPercent = utilization,
-                ActiveSessionsCount = activeSessions,
-                ReservationsToday = reservationsToday,
-                PendingMaintenanceCount = unresolvedMaintenance,
-                RevenueToday = revenueToday
-            };
+            return BllDtoFactory.CreateCompanyStationStatusDto(
+                station,
+                health,
+                utilization,
+                activeSessions,
+                reservationsToday,
+                unresolvedMaintenance,
+                revenueToday);
         }).OrderBy(card => card.Name).ToList();
 
         return ServiceResult<List<CompanyStationStatusDto>>.Ok(stationCards);
@@ -121,20 +115,7 @@ public class OperatorDashboardService : IOperatorDashboardService
         }
 
         var issues = await _unitOfWork.Maintenances.GetOpenIssuesByCompanyAsync(companyId);
-        var mapped = issues.Select(issue => new MaintenanceIssueDto
-        {
-            Id = issue.Id,
-            StationId = issue.ChargingStationId,
-            StationName = issue.ChargingStation?.Name.Translate() ?? issue.ChargingStation?.Name.ToString() ?? string.Empty,
-            IssueDescription = issue.IssueDescription,
-            Status = issue.Status,
-            ReportedAtUtc = issue.ReportedAt,
-            ResolvedAtUtc = issue.ResolvedAt,
-            AssignedToUserId = issue.AssignedToUserId,
-            AssignedToUserName = issue.AssignedToUser?.UserName ?? string.Empty,
-            ReporterUserName = issue.ReportedByUser?.UserName ?? string.Empty,
-            Notes = issue.Notes
-        }).ToList();
+        var mapped = issues.Select(BllDtoFactory.CreateMaintenanceIssueDto).ToList();
 
         return ServiceResult<List<MaintenanceIssueDto>>.Ok(mapped);
     }
@@ -155,11 +136,7 @@ public class OperatorDashboardService : IOperatorDashboardService
             {
                 var countForDay = sessions.Count(session => session.StartTime.Date == day.Date);
                 var utilization = Math.Round(Math.Min(100m, (decimal)countForDay / totalStations * 100m), 2, MidpointRounding.AwayFromZero);
-                return new ChartPointDto
-                {
-                    Label = day.ToString("yyyy-MM-dd"),
-                    Value = utilization
-                };
+                return BllDtoFactory.CreateChartPointDto(day.ToString("yyyy-MM-dd"), utilization);
             })
             .ToList();
 
@@ -182,11 +159,7 @@ public class OperatorDashboardService : IOperatorDashboardService
                     .Where(session => session.EndTime != null && session.StartTime.Date == day.Date)
                     .Sum(session => session.Cost);
 
-                return new ChartPointDto
-                {
-                    Label = day.ToString("yyyy-MM-dd"),
-                    Value = Math.Round(sum, 2, MidpointRounding.AwayFromZero)
-                };
+                return BllDtoFactory.CreateChartPointDto(day.ToString("yyyy-MM-dd"), Math.Round(sum, 2, MidpointRounding.AwayFromZero));
             })
             .ToList();
 

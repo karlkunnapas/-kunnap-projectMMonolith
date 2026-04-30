@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -69,13 +70,9 @@ public class VehicleController : Controller
             return View(vm);
         }
 
-        var result = await _vehicleService.CreateVehicleAsync(userId.Value, new VehicleCreateDto
-        {
-            Make = vm.Make,
-            Model = vm.Model,
-            BatteryCapacity = vm.BatteryCapacity,
-            ConnectorIds = vm.SelectedConnectorIds
-        });
+        var result = await _vehicleService.CreateVehicleAsync(
+            userId.Value,
+            BllDtoFactory.CreateVehicleCreateDto(vm.Make, vm.Model, vm.BatteryCapacity, vm.SelectedConnectorIds));
 
         if (!result.Success)
         {
@@ -130,13 +127,10 @@ public class VehicleController : Controller
             return View(vm);
         }
 
-        var result = await _vehicleService.UpdateVehicleAsync(id, userId.Value, new VehicleUpdateDto
-        {
-            Make = vm.Make,
-            Model = vm.Model,
-            BatteryCapacity = vm.BatteryCapacity,
-            ConnectorIds = vm.SelectedConnectorIds
-        });
+        var result = await _vehicleService.UpdateVehicleAsync(
+            id,
+            userId.Value,
+            BllDtoFactory.CreateVehicleUpdateDto(vm.Make, vm.Model, vm.BatteryCapacity, vm.SelectedConnectorIds));
 
         if (!result.Success)
         {
@@ -225,4 +219,3 @@ public class VehicleController : Controller
         return Guid.TryParse(value, out var userId) ? userId : null;
     }
 }
-

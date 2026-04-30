@@ -1,4 +1,5 @@
 using App.BLL.DTOs;
+using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
@@ -45,46 +46,27 @@ public class ReservationService : IReservationService
         var connectorDetails = connectorNames
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .GroupBy(name => name)
-            .Select(group => new ConnectorDetailDto
-            {
-                Name = group.Key,
-                Quantity = group.Count(),
-                AvailableQuantity = Math.Max(0, group.Count() - activeReservations.Count),
-                Reservations = activeReservations
-                    .Select(r => new ReservedTimeRangeDto
-                    {
-                        StartTimeUtc = r.StartTime,
-                        EndTimeUtc = r.EndTime
-                    })
+            .Select(group => BllDtoFactory.CreateConnectorDetailDto(
+                name: group.Key,
+                quantity: group.Count(),
+                availableQuantity: Math.Max(0, group.Count() - activeReservations.Count),
+                reservations: activeReservations
+                    .Select(r => BllDtoFactory.CreateReservedTimeRangeDto(r.StartTime, r.EndTime))
                     .OrderBy(r => r.StartTimeUtc)
-                    .ToList()
-            })
+                    .ToList()))
             .ToList();
 
         var stationReservations = station.Reservations?
             .Where(IsUpcomingCustomerReservation)
             .OrderBy(r => r.StartTime)
-            .Select(r => new StationReservationDto
-            {
-                StartTimeUtc = r.StartTime,
-                EndTimeUtc = r.EndTime,
-                Status = GetEffectiveStatus(r)
-            })
+            .Select(r => BllDtoFactory.CreateStationReservationDto(r.StartTime, r.EndTime, GetEffectiveStatus(r)))
             .ToList() ?? new List<StationReservationDto>();
 
-        var dto = new StationDetailsDto
-        {
-            Id = station.Id,
-            CompanyId = station.CompanyId,
-            Name = station.Name.Translate() ?? station.Name.ToString() ?? string.Empty,
-            Location = station.Location,
-            Status = station.Status,
-            PricePerKwh = station.PricePerKwh,
-            MaxPower = station.MaxPower,
-            Connectors = connectorDetails,
-            ExistingReservations = stationReservations,
-            AvailableSlots = new List<AvailabilitySlotDto>()
-        };
+        var dto = BllDtoFactory.CreateStationDetailsDto(
+            station,
+            connectorDetails,
+            stationReservations,
+            new List<AvailabilitySlotDto>());
 
         return ServiceResult<StationDetailsDto>.Ok(dto);
     }
@@ -257,18 +239,7 @@ public class ReservationService : IReservationService
 
     private static ReservationDto MapReservation(Reservation reservation)
     {
-        return new ReservationDto
-        {
-            Id = reservation.Id,
-            StationId = reservation.ChargingStationId,
-            StationName = reservation.ChargingStation?.Name.Translate() ?? reservation.ChargingStation?.Name.ToString() ?? string.Empty,
-            StartTimeUtc = reservation.StartTime,
-            EndTimeUtc = reservation.EndTime,
-            ExpiresAtUtc = reservation.ExpiresAtUtc,
-            CancelledAtUtc = reservation.CancelledAtUtc,
-            EstimatedCost = reservation.EstimatedCost,
-            Status = GetEffectiveStatus(reservation)
-        };
+        return BllDtoFactory.CreateReservationDto(reservation, GetEffectiveStatus(reservation));
     }
 
     private static EReservationStatus GetEffectiveStatus(Reservation reservation)

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Helpers;
+using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1;
 
@@ -60,15 +61,7 @@ public class CustomerAccountController : ControllerBase
         [FromQuery] int? jwtExpiresInSeconds,
         [FromQuery] int? refreshTokenExpiresInSeconds)
     {
-        var result = await _identityService.RegisterCustomerAsync(new RegisterCustomerDto
-        {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
-            Password = request.Password,
-            ConfirmPassword = request.ConfirmPassword
-        });
+        var result = await _identityService.RegisterCustomerAsync(ApiDtoFactory.CreateDto(request));
 
         if (!result.Success)
         {
@@ -97,17 +90,7 @@ public class CustomerAccountController : ControllerBase
         [FromQuery] int? jwtExpiresInSeconds,
         [FromQuery] int? refreshTokenExpiresInSeconds)
     {
-        var result = await _identityService.RegisterCompanyOwnerAsync(new RegisterCompanyOwnerDto
-        {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
-            Password = request.Password,
-            ConfirmPassword = request.ConfirmPassword,
-            CompanyName = request.CompanyName,
-            CompanySlug = request.CompanySlug
-        });
+        var result = await _identityService.RegisterCompanyOwnerAsync(ApiDtoFactory.CreateDto(request));
 
         if (!result.Success)
         {
@@ -140,19 +123,7 @@ public class CustomerAccountController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        return Ok(new UserCompaniesResponse
-        {
-            UserId = result.Data.UserId,
-            Email = result.Data.Email,
-            Companies = result.Data.Companies.Select(c => new UserCompanyItem
-            {
-                MembershipId = c.MembershipId,
-                CompanyId = c.CompanyId,
-                CompanyName = c.CompanyName,
-                CompanySlug = c.CompanySlug,
-                Role = c.Role
-            }).ToList()
-        });
+        return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
     private async Task<JWTResponse> GenerateJwtResponseAsync(AppUser appUser, int? jwtExpiresInSeconds, int? refreshTokenExpiresInSeconds)
@@ -183,11 +154,7 @@ public class CustomerAccountController : ControllerBase
             _configuration.GetValue<string>(SettingsJWTAudience)!,
             GetExpirationDateTime(jwtExpiresInSeconds, SettingsJWTExpiresInSeconds));
 
-        return new JWTResponse
-        {
-            JWT = jwt,
-            RefreshToken = refreshToken.RefreshToken
-        };
+        return ApiDtoFactory.CreateJwtResponse(jwt, refreshToken.RefreshToken);
     }
 
     private DateTime GetExpirationDateTime(int? expiresInSeconds, string settingsKey)
