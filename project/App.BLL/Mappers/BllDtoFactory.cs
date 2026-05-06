@@ -701,4 +701,125 @@ public static class BllDtoFactory
             MembershipAlreadyActive = membershipAlreadyActive
         };
     }
+
+    public static AdminDashboardDto CreateAdminDashboardDto(
+        int reservationsInPeriod,
+        int totalCompanies,
+        int totalCompanyUsers,
+        int totalClientUsers,
+        DateTime fromUtc,
+        DateTime toUtc)
+    {
+        return new AdminDashboardDto
+        {
+            ReservationsInPeriod = reservationsInPeriod,
+            TotalCompanies = totalCompanies,
+            TotalCompanyUsers = totalCompanyUsers,
+            TotalClientUsers = totalClientUsers,
+            FromUtc = fromUtc,
+            ToUtc = toUtc
+        };
+    }
+
+    public static AdminCompanyListItemDto CreateAdminCompanyListItemDto(Company company, int activeMemberCount)
+    {
+        return new AdminCompanyListItemDto
+        {
+            CompanyId = company.Id,
+            Name = company.Name?.Translate() ?? company.Name?.ToString() ?? string.Empty,
+            ContactEmail = company.ContactEmail,
+            ContactPhone = company.ContactPhone,
+            Slug = company.Slug,
+            IsActive = company.IsActive,
+            ActiveMemberCount = activeMemberCount
+        };
+    }
+
+    public static AdminCompanyListDto CreateAdminCompanyListDto(string? search, List<AdminCompanyListItemDto> items)
+    {
+        return new AdminCompanyListDto
+        {
+            Search = search,
+            Items = items
+        };
+    }
+
+    public static AdminStationListItemDto CreateAdminStationListItemDto(ChargingStation station)
+    {
+        return new AdminStationListItemDto
+        {
+            StationId = station.Id,
+            Name = station.Name?.Translate() ?? station.Name?.ToString() ?? string.Empty,
+            Location = station.Location,
+            CompanyName = station.Company?.Name?.Translate() ?? station.Company?.Name?.ToString() ?? "-",
+            Status = station.Status.ToString(),
+            IsActive = station.IsActive,
+            PricePerKwh = station.PricePerKwh,
+            MaxPower = station.MaxPower
+        };
+    }
+
+    public static AdminStationListDto CreateAdminStationListDto(string? search, List<AdminStationListItemDto> items)
+    {
+        return new AdminStationListDto
+        {
+            Search = search,
+            Items = items
+        };
+    }
+
+    public static AdminAuditLogFilterDto CreateAdminAuditLogFilterDto(
+        DateTime? fromUtc,
+        DateTime? toUtc,
+        string? entityName,
+        string? action,
+        string? actor,
+        Guid? entityId,
+        int page,
+        int pageSize)
+    {
+        return new AdminAuditLogFilterDto
+        {
+            FromUtc = fromUtc,
+            ToUtc = toUtc,
+            EntityName = string.IsNullOrWhiteSpace(entityName) ? null : entityName.Trim(),
+            Action = string.IsNullOrWhiteSpace(action) ? null : action.Trim(),
+            Actor = string.IsNullOrWhiteSpace(actor) ? null : actor.Trim(),
+            EntityId = entityId,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public static AdminAuditLogListItemDto CreateAdminAuditLogListItemDto(AuditLog entry)
+    {
+        return new AdminAuditLogListItemDto
+        {
+            Id = entry.Id,
+            CompanyId = entry.CompanyId,
+            UserName = entry.UserName,
+            EntityName = entry.EntityName,
+            EntityId = entry.EntityId,
+            Action = entry.Action,
+            AtUtc = entry.AtUtc,
+            ChangesJson = entry.ChangesJson
+        };
+    }
+
+    public static AdminAuditLogListDto CreateAdminAuditLogListDto(
+        AdminAuditLogFilterDto filter,
+        List<AdminAuditLogListItemDto> items,
+        int totalCount,
+        int page,
+        int pageSize)
+    {
+        return new AdminAuditLogListDto
+        {
+            Filter = filter,
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
 }

@@ -92,6 +92,12 @@ namespace App.Resources.Views.Shared {
                 return ResourceManager.GetString("Admin", resourceCulture);
             }
         }
+
+        public static string AdminDashboard {
+            get {
+                return ResourceManager.GetString("AdminDashboard", resourceCulture);
+            }
+        }
         
         public static string AdminCompanies {
             get {

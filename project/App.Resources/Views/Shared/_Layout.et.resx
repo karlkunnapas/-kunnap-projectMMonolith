@@ -36,6 +36,9 @@
   <data name="Admin" xml:space="preserve">
     <value>Haldus</value>
   </data>
+  <data name="AdminDashboard" xml:space="preserve">
+    <value>Halduri töölaud</value>
+  </data>
   <data name="AdminCompanies" xml:space="preserve">
     <value>Ettevõtted</value>
   </data>
@@ -46,7 +49,7 @@
     <value>Rakenduse kasutaja ettevõtted</value>
   </data>
   <data name="AdminChargingStations" xml:space="preserve">
-    <value>Laadimisjaamad</value>
+    <value>Jaamad</value>
   </data>
   <data name="AdminStationConnectors" xml:space="preserve">
     <value>Jaama pistikud</value>
@@ -79,7 +82,7 @@
     <value>Auditilogid</value>
   </data>
   <data name="FindStations" xml:space="preserve">
-    <value>Leia jaamad</value>
+    <value>Jaamad</value>
   </data>
   <data name="MyReservations" xml:space="preserve">
     <value>Minu broneeringud</value>
@@ -100,7 +103,7 @@
     <value>Ettevõtte juhtpaneel</value>
   </data>
   <data name="CompanyStations" xml:space="preserve">
-    <value>Ettevõtte jaamad</value>
+    <value>Jaamad</value>
   </data>
   <data name="CompanyMaintenance" xml:space="preserve">
     <value>Ettevõtte hooldus</value>

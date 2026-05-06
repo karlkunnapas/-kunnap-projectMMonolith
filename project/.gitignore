@@ -87,3 +87,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# coverage reports
+WebApp.Tests/TestResults

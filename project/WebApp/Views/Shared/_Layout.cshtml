@@ -77,7 +77,14 @@
             }
             else
             {
-                <a asp-area="" asp-controller="Home" asp-action="Index">@AppNameService.AppName</a>
+                @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Admin") || User.IsInRole("root")))
+                {
+                    <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">@AppNameService.AppName</a>
+                }
+                else
+                {
+                    <a asp-area="" asp-controller="Home" asp-action="Index">@AppNameService.AppName</a>
+                }
             }
         </div>
         <nav class="app-nav">
@@ -96,37 +103,32 @@
                     }
                     else
                     {
-                        <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                        @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Admin") || User.IsInRole("root")))
+                        {
+                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminDashboard</a>
+                        }
+                        else
+                        {
+                            <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                        }
                     }
                 </li>
                 @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Admin") || User.IsInRole("root")))
                 {
-                    <li class="app-nav-item app-admin-group">
-                        <details>
-                            <summary>@App.Resources.Views.Shared._Layout.Admin</summary>
-                            <ul class="app-admin-list">
-                                 <li><a asp-area="Admin" asp-controller="Companies" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminCompanies</a></li>
-                                <li><a asp-area="Admin" asp-controller="AppUsers" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminAppUsers</a></li>
-                                 <li><a asp-area="Admin" asp-controller="AppUserCompanies" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminAppUserCompanies</a></li>
-                                <li><a asp-area="Admin" asp-controller="ChargingStations" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminChargingStations</a></li>
-                                <li><a asp-area="Admin" asp-controller="ChargingStationConnectors" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminStationConnectors</a></li>
-                                <li><a asp-area="Admin" asp-controller="ChargingSessions" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminChargingSessions</a></li>
-                                <li><a asp-area="Admin" asp-controller="Connectors" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminConnectors</a></li>
-                                <li><a asp-area="Admin" asp-controller="Vehicles" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminVehicles</a></li>
-                                <li><a asp-area="Admin" asp-controller="VehicleConnectors" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminVehicleConnectors</a></li>
-                                <li><a asp-area="Admin" asp-controller="Reservations" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminReservations</a></li>
-                                <li><a asp-area="Admin" asp-controller="Promotions" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminPromotions</a></li>
-                                <li><a asp-area="Admin" asp-controller="UserPromotions" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminUserPromotions</a></li>
-                                <li><a asp-area="Admin" asp-controller="Maintenances" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminMaintenances</a></li>
-                                <li><a asp-area="Admin" asp-controller="AuditLogs" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminAuditLogs</a></li>
-                            </ul>
-                        </details>
+                    <li class="app-nav-item">
+                        <a asp-area="Admin" asp-controller="Stations" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminChargingStations</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Admin" asp-controller="Companies" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminCompanies</a>
+                    </li>
+                    <li class="app-nav-item">
+                        <a asp-area="Admin" asp-controller="AuditLogs" asp-action="Index">@App.Resources.Views.Shared._Layout.AdminAuditLogs</a>
                     </li>
                 }
                 @if (isCompanyUser)
                 {
                     <li class="app-nav-item">
-                        <a asp-area="" asp-controller="Home" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.FindStations</a>
+                        <a asp-area="" asp-controller="Home" asp-action="Index" asp-route-companySlug="@currentCompanySlug">@App.Resources.Views.Shared._Layout.CompanyStations</a>
                     </li>
                 }
                 @if (User.IsInRole("Customer") && !isCompanyUser)

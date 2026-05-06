@@ -1,59 +1,94 @@
-@model IEnumerable<WebApp.Areas.Admin.ViewModels.CompanyAdminViewModel>
-
+@model WebApp.Areas.Admin.ViewModels.AdminCompanyListViewModel
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = App.Resources.Views.Admin.Companies.Index.Title;
 }
 
-<h1>Index</h1>
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Admin.Companies.Index.Heading</h2>
+        </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ContactEmail)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ContactPhone)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Slug)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsActive)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @(item?.Name ?? string.Empty)
-            </td>
-            <td>
-                @(item?.ContactEmail ?? string.Empty)
-            </td>
-            <td>
-                @(item?.ContactPhone ?? string.Empty)
-            </td>
-            <td>
-                @(item?.Slug ?? string.Empty)
-            </td>
-            <td>
-                @(item?.IsActive.ToString() ?? string.Empty)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item?.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item?.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item?.Id">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+        @if (TempData["AdminCompaniesError"] is string error && !string.IsNullOrWhiteSpace(error))
+        {
+            <div class="admin-feedback admin-feedback-error">@error</div>
+        }
+        @if (TempData["AdminCompaniesSuccess"] is string success && !string.IsNullOrWhiteSpace(success))
+        {
+            <div class="admin-feedback admin-feedback-success">@success</div>
+        }
+
+        <form method="get" class="station-card dashboard-filter-card">
+            <div class="station-details reservation-form-grid vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label class="home-filters-title">@App.Resources.Views.Admin.Companies.Index.Search</label>
+                    <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="@App.Resources.Views.Admin.Companies.Index.SearchPlaceholder" />
+                </div>
+                <div class="station-actions vehicle-actions">
+                    <button type="submit" class="station-button">@App.Resources.Views.Admin.Companies.Index.ApplySearch</button>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Admin.Companies.Index.DashboardAction</a>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="AuditLogs" asp-action="Index">@App.Resources.Views.Admin.Companies.Index.AuditAction</a>
+                </div>
+            </div>
+        </form>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Admin.Companies.Index.NoCompanies</div>
+        }
+        else
+        {
+            <div class="station-card">
+                <div class="station-details">
+                    <div class="station-name">@App.Resources.Views.Admin.Companies.Index.TableHeading</div>
+                    <div class="operator-table">
+                        <div class="operator-table-row operator-table-head">
+                            <div>@App.Resources.Views.Admin.Companies.Index.Company</div>
+                            <div>@App.Resources.Views.Admin.Companies.Index.Slug</div>
+                            <div>@App.Resources.Views.Admin.Companies.Index.Members</div>
+                            <div>@App.Resources.Views.Admin.Companies.Index.Status</div>
+                            <div>@App.Resources.Views.Admin.Companies.Index.Actions</div>
+                        </div>
+                        @foreach (var item in Model.Items)
+                        {
+                            <div class="operator-table-row">
+                                <div>
+                                    <div class="station-name">@item.Name</div>
+                                    <div class="station-meta">@item.ContactEmail</div>
+                                </div>
+                                <div>@item.Slug</div>
+                                <div>@item.ActiveMemberCount</div>
+                                <div>
+                                    <span class="filter-chip">@(
+                                        item.IsActive
+                                            ? App.Resources.Views.Admin.Companies.Index.Active
+                                            : App.Resources.Views.Admin.Companies.Index.Inactive)</span>
+                                </div>
+                                <div>
+                                    @if (item.IsActive)
+                                    {
+                                        <form asp-area="Admin" asp-controller="Companies" asp-action="Deactivate" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="companyId" value="@item.CompanyId" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <button type="submit" class="station-button station-button-danger">@App.Resources.Views.Admin.Companies.Index.Inactivate</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-area="Admin" asp-controller="Companies" asp-action="Activate" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="companyId" value="@item.CompanyId" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <button type="submit" class="station-button station-button-success">@App.Resources.Views.Admin.Companies.Index.Activate</button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+</div>

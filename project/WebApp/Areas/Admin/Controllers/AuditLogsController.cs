@@ -1,49 +1,107 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using App.BLL.Mappers;
+using App.BLL.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using App.DAL.EF;
-using App.Domain;
+using WebApp.Areas.Admin.ViewModels;
 
-namespace WebApp.Areas.Admin.Controllers
+namespace WebApp.Areas.Admin.Controllers;
+
+[Area("Admin")]
+[Authorize(Roles = "Admin,root")]
+public class AuditLogsController : Controller
 {
-    [Area("Admin")]
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,root")]
-    public class AuditLogsController : Controller
+    private readonly IAdminPanelService _adminPanelService;
+
+    public AuditLogsController(IAdminPanelService adminPanelService)
     {
-        private readonly AppDbContext _context;
+        _adminPanelService = adminPanelService;
+    }
 
-        public AuditLogsController(AppDbContext context)
+    [HttpGet]
+    public async Task<IActionResult> Index(
+        DateTime? fromUtc = null,
+        DateTime? toUtc = null,
+        string? entityName = null,
+        string? actionFilter = null,
+        string? actor = null,
+        string? entityId = null,
+        int page = 1)
+    {
+        Guid? entityGuid = null;
+        if (!string.IsNullOrWhiteSpace(entityId))
         {
-            _context = context;
-        }
-
-        // GET: Admin/AuditLogs
-        public async Task<IActionResult> Index()
-        {
-            var appDbContext = _context.AuditLogs.Include(a => a.Company);
-            return View(await appDbContext.ToListAsync());
-        }
-
-        // GET: Admin/AuditLogs/Details/5
-        public async Task<IActionResult> Details(Guid? id)
-        {
-            if (id == null)
+            if (!Guid.TryParse(entityId, out var parsed))
             {
-                return NotFound();
+                ModelState.AddModelError(nameof(entityId), App.Resources.Views.Admin.AuditLogs.Index.InvalidEntityId);
             }
-
-            var auditLog = await _context.AuditLogs
-                .Include(a => a.Company)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (auditLog == null)
+            else
             {
-                return NotFound();
+                entityGuid = parsed;
             }
-
-            return View(auditLog);
         }
+
+        var filterDto = BllDtoFactory.CreateAdminAuditLogFilterDto(
+            NormalizeToUtc(fromUtc),
+            NormalizeToUtc(toUtc),
+            entityName,
+            actionFilter,
+            actor,
+            entityGuid,
+            page,
+            50);
+
+        var result = await _adminPanelService.GetAuditLogsAsync(filterDto);
+        if (!result.Success || result.Data == null)
+        {
+            return BadRequest();
+        }
+
+        var filterModel = new AdminAuditLogFilterViewModel
+        {
+            FromUtc = result.Data.Filter.FromUtc,
+            ToUtc = result.Data.Filter.ToUtc,
+            EntityName = result.Data.Filter.EntityName,
+            Action = result.Data.Filter.Action,
+            Actor = result.Data.Filter.Actor,
+            EntityId = result.Data.Filter.EntityId?.ToString(),
+            Page = result.Data.Page,
+            PageSize = result.Data.PageSize
+        };
+
+        var model = new AdminAuditLogListViewModel
+        {
+            Filter = filterModel,
+            Items = result.Data.Items.Select(item => new AdminAuditLogListItemViewModel
+            {
+                Id = item.Id,
+                CompanyId = item.CompanyId,
+                UserName = item.UserName,
+                EntityName = item.EntityName,
+                EntityId = item.EntityId,
+                Action = item.Action,
+                AtUtc = item.AtUtc,
+                ChangesJson = item.ChangesJson
+            }).ToList(),
+            TotalCount = result.Data.TotalCount,
+            Page = result.Data.Page,
+            PageSize = result.Data.PageSize
+        };
+
+        return View(model);
+    }
+
+    private static DateTime? NormalizeToUtc(DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return null;
+        }
+
+        return value.Value.Kind switch
+        {
+            DateTimeKind.Utc => value.Value,
+            DateTimeKind.Local => value.Value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value.Value, DateTimeKind.Local).ToUniversalTime()
+        };
     }
 }

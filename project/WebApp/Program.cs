@@ -30,6 +30,7 @@ builder.Services.AddScoped<IChargingSessionService, ChargingSessionService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IOperatorDashboardService, OperatorDashboardService>();
+builder.Services.AddScoped<IAdminPanelService, AdminPanelService>();
 builder.Services.AddScoped<IChargingStationCompanyService, ChargingStationCompanyService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 

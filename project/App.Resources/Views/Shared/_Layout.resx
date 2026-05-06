@@ -36,6 +36,9 @@
   <data name="Admin" xml:space="preserve">
     <value>Admin</value>
   </data>
+  <data name="AdminDashboard" xml:space="preserve">
+    <value>Admin Dashboard</value>
+  </data>
   <data name="AdminCompanies" xml:space="preserve">
     <value>Companies</value>
   </data>
@@ -46,7 +49,7 @@
     <value>App User Companies</value>
   </data>
   <data name="AdminChargingStations" xml:space="preserve">
-    <value>Charging Stations</value>
+    <value>Stations</value>
   </data>
   <data name="AdminStationConnectors" xml:space="preserve">
     <value>Station Connectors</value>
@@ -79,7 +82,7 @@
     <value>Audit Logs</value>
   </data>
   <data name="FindStations" xml:space="preserve">
-    <value>Find Stations</value>
+    <value>Stations</value>
   </data>
   <data name="MyReservations" xml:space="preserve">
     <value>My Reservations</value>
@@ -100,7 +103,7 @@
     <value>Company Dashboard</value>
   </data>
   <data name="CompanyStations" xml:space="preserve">
-    <value>Company Stations</value>
+    <value>Stations</value>
   </data>
   <data name="CompanyMaintenance" xml:space="preserve">
     <value>Company Maintenance</value>

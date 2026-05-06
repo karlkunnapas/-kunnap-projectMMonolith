@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Title" xml:space="preserve">
+    <value>Halduri töölaud</value>
+  </data>
+  <data name="Heading" xml:space="preserve">
+    <value>Süsteemihalduri töölaud</value>
+  </data>
+  <data name="ReservationsInPeriod" xml:space="preserve">
+    <value>Broneeringud perioodis</value>
+  </data>
+  <data name="PeriodHint" xml:space="preserve">
+    <value>Kõigi ettevõtete lõikes</value>
+  </data>
+  <data name="TotalCompanies" xml:space="preserve">
+    <value>Ettevõtteid kokku</value>
+  </data>
+  <data name="CompaniesHint" xml:space="preserve">
+    <value>Aktiivsed ja mitteaktiivsed kokku</value>
+  </data>
+  <data name="TotalCompanyUsers" xml:space="preserve">
+    <value>Ettevõtte kasutajaid kokku</value>
+  </data>
+  <data name="CompanyUsersHint" xml:space="preserve">
+    <value>Aktiivse ettevõtte liikmesusega kasutajad</value>
+  </data>
+  <data name="TotalClientUsers" xml:space="preserve">
+    <value>Kliendikasutajaid kokku</value>
+  </data>
+  <data name="ClientUsersHint" xml:space="preserve">
+    <value>Ilma aktiivse ettevõtte liikmesuseta kasutajad</value>
+  </data>
+  <data name="FromUtc" xml:space="preserve">
+    <value>Alates (UTC)</value>
+  </data>
+  <data name="ToUtc" xml:space="preserve">
+    <value>Kuni (UTC)</value>
+  </data>
+  <data name="ApplyFilters" xml:space="preserve">
+    <value>Rakenda filtrid</value>
+  </data>
+  <data name="ManageCompaniesAction" xml:space="preserve">
+    <value>Halda ettevõtteid</value>
+  </data>
+  <data name="ViewAuditAction" xml:space="preserve">
+    <value>Vaata auditilogisid</value>
+  </data>
+</root>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Title" xml:space="preserve">
+    <value>Haldus: auditilogid</value>
+  </data>
+  <data name="Heading" xml:space="preserve">
+    <value>Süsteemi auditilogid</value>
+  </data>
+  <data name="FromUtc" xml:space="preserve">
+    <value>Alates (UTC)</value>
+  </data>
+  <data name="ToUtc" xml:space="preserve">
+    <value>Kuni (UTC)</value>
+  </data>
+  <data name="EntityName" xml:space="preserve">
+    <value>Entiteet</value>
+  </data>
+  <data name="Action" xml:space="preserve">
+    <value>Tegevus</value>
+  </data>
+  <data name="Actor" xml:space="preserve">
+    <value>Tegija</value>
+  </data>
+  <data name="EntityId" xml:space="preserve">
+    <value>Entiteedi ID</value>
+  </data>
+  <data name="ApplyFilters" xml:space="preserve">
+    <value>Rakenda filtrid</value>
+  </data>
+  <data name="DashboardAction" xml:space="preserve">
+    <value>Töölaud</value>
+  </data>
+  <data name="CompaniesAction" xml:space="preserve">
+    <value>Ettevõtted</value>
+  </data>
+  <data name="NoEntries" xml:space="preserve">
+    <value>Auditikirjeid ei leitud.</value>
+  </data>
+  <data name="TableHeading" xml:space="preserve">
+    <value>Auditikirjed</value>
+  </data>
+  <data name="AtUtc" xml:space="preserve">
+    <value>Aeg (UTC)</value>
+  </data>
+  <data name="Company" xml:space="preserve">
+    <value>Ettevõte</value>
+  </data>
+  <data name="Changes" xml:space="preserve">
+    <value>Muudatused</value>
+  </data>
+  <data name="PreviousPage" xml:space="preserve">
+    <value>Eelmine</value>
+  </data>
+  <data name="NextPage" xml:space="preserve">
+    <value>Järgmine</value>
+  </data>
+  <data name="PageSummary" xml:space="preserve">
+    <value>Leht {0} / {1} ({2} kokku)</value>
+  </data>
+  <data name="InvalidEntityId" xml:space="preserve">
+    <value>Entiteedi ID peab olema korrektne GUID.</value>
+  </data>
+</root>

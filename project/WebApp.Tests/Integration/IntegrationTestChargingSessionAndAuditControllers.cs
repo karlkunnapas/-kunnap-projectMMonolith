@@ -35,9 +35,9 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
     }
 
     [Fact]
-    public async Task Get_AdminAuditTrail_AnonymousUser_IsRedirectedToLogin()
+    public async Task Get_AdminAuditLogs_AnonymousUser_IsRedirectedToLogin()
     {
-        var response = await _anonymousClient.GetAsync($"/Admin/Audit/Trail?entityName=Company&entityId={Guid.NewGuid()}");
+        var response = await _anonymousClient.GetAsync("/Admin/AuditLogs/Index");
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.Contains("/Account/Login", response.Headers.Location?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);

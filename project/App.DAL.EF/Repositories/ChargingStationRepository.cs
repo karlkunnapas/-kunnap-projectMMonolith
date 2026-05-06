@@ -24,7 +24,8 @@ public class ChargingStationRepository : IChargingStationRepository
     public IQueryable<ChargingStation> GetStationsForHome(string? status = null, string? location = null)
     {
         var query = GetStationsWithConnectors()
-            .Where(station => station.IsActive);
+            .Where(station => station.IsActive
+                              && _context.Companies.Any(company => company.Id == station.CompanyId && company.IsActive));
 
         if (Enum.TryParse<EStationStatus>(status, ignoreCase: true, out var parsedStatus))
         {
@@ -46,7 +47,9 @@ public class ChargingStationRepository : IChargingStationRepository
             .Include(station => station.ChargingStationConnectors!)
             .ThenInclude(link => link.Connector!)
             .Include(station => station.Reservations!)
-            .FirstOrDefaultAsync(station => station.Id == id && station.IsActive);
+            .FirstOrDefaultAsync(station => station.Id == id
+                                             && station.IsActive
+                                             && _context.Companies.Any(company => company.Id == station.CompanyId && company.IsActive));
     }
 
     public Task<List<ChargingStation>> GetByCompanyAsync(Guid companyId)

@@ -67,6 +67,15 @@ public class UnitTestVehicleService
 
         var ccs = new Connector { Id = Guid.NewGuid(), Name = new LangStr { ["en"] = "CCS" }, IsActive = true };
         var type2 = new Connector { Id = Guid.NewGuid(), Name = new LangStr { ["en"] = "Type 2" }, IsActive = true };
+        var activeCompany = new Company
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr("Vehicle Test Company"),
+            ContactEmail = "vehicle-company@test.local",
+            ContactPhone = "+3725999999",
+            Slug = "vehicle-test-company",
+            IsActive = true
+        };
 
         var stationCompatible = new ChargingStation
         {
@@ -74,7 +83,8 @@ public class UnitTestVehicleService
             Name = new LangStr { ["en"] = "Compatible station" },
             Location = "1km",
             Status = EStationStatus.Available,
-            IsActive = true
+            IsActive = true,
+            CompanyId = activeCompany.Id
         };
 
         var stationIncompatible = new ChargingStation
@@ -83,12 +93,14 @@ public class UnitTestVehicleService
             Name = new LangStr { ["en"] = "Incompatible station" },
             Location = "2km",
             Status = EStationStatus.Available,
-            IsActive = true
+            IsActive = true,
+            CompanyId = activeCompany.Id
         };
 
         var userId = Guid.NewGuid();
         var vehicle = new Vehicle { Id = Guid.NewGuid(), UserId = userId, Make = "Kia", Model = "EV6" };
 
+        context.Companies.Add(activeCompany);
         context.Connectors.AddRange(ccs, type2);
         context.ChargingStations.AddRange(stationCompatible, stationIncompatible);
         context.Vehicles.Add(vehicle);

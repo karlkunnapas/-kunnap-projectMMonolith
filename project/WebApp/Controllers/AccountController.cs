@@ -133,6 +133,17 @@ public class AccountController : Controller
             return RedirectToAction(nameof(CompanySelection), new { returnUrl = model.ReturnUrl });
         }
 
+        var loggedInUser = await _userManager.FindByEmailAsync(model.Email);
+        if (loggedInUser != null)
+        {
+            var roles = await _userManager.GetRolesAsync(loggedInUser);
+            if (roles.Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase)
+                               || string.Equals(r, "root", StringComparison.OrdinalIgnoreCase)))
+            {
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
             return Redirect(model.ReturnUrl);

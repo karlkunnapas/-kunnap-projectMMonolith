@@ -132,7 +132,10 @@ public class VehicleService : IVehicleService
             return ServiceResult<List<CompatibleStationDto>>.Ok(new List<CompatibleStationDto>());
         }
 
-        var stations = await _unitOfWork.ChargingStations.GetStationsWithConnectors().Where(s => s.IsActive).ToListAsync();
+        var stations = await _unitOfWork.ChargingStations
+            .GetStationsWithConnectors()
+            .Where(s => s.IsActive && s.Company != null && s.Company.IsActive)
+            .ToListAsync();
 
         var compatible = stations
             .Where(station => station.ChargingStationConnectors != null

@@ -11,6 +11,7 @@ public interface IReservationRepository
     Task<List<Reservation>> GetActiveReservationsByStationAsync(Guid stationId);
     Task<List<Reservation>> GetOverlappingReservationsAsync(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, Guid? excludeReservationId = null);
     Task<int> GetCountByCompanyAsync(Guid companyId, DateTime fromUtc, DateTime toUtc);
+    Task<int> GetCountByRangeAsync(DateTime fromUtc, DateTime toUtc);
     Task<List<Reservation>> GetByCompanyAndRangeAsync(Guid companyId, DateTime fromUtc, DateTime toUtc);
     Task AddAsync(Reservation reservation);
     void Update(Reservation reservation);

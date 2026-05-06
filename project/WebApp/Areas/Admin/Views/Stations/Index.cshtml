@@ -1,0 +1,62 @@
+@model WebApp.Areas.Admin.ViewModels.AdminStationListViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Admin.Stations.Index.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Admin.Stations.Index.Heading</h2>
+        </div>
+
+        <form method="get" class="station-card dashboard-filter-card">
+            <div class="station-details reservation-form-grid vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label class="home-filters-title">@App.Resources.Views.Admin.Stations.Index.Search</label>
+                    <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="@App.Resources.Views.Admin.Stations.Index.SearchPlaceholder" />
+                </div>
+                <div class="station-actions vehicle-actions">
+                    <button type="submit" class="station-button">@App.Resources.Views.Admin.Stations.Index.ApplySearch</button>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Admin.Stations.Index.DashboardAction</a>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="Companies" asp-action="Index">@App.Resources.Views.Admin.Stations.Index.CompaniesAction</a>
+                </div>
+            </div>
+        </form>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Admin.Stations.Index.NoStations</div>
+        }
+        else
+        {
+            <div class="station-card">
+                <div class="station-details">
+                    <div class="station-name">@App.Resources.Views.Admin.Stations.Index.TableHeading</div>
+                    <div class="operator-table">
+                        <div class="operator-table-row operator-table-head">
+                            <div>@App.Resources.Views.Admin.Stations.Index.Station</div>
+                            <div>@App.Resources.Views.Admin.Stations.Index.Company</div>
+                            <div>@App.Resources.Views.Admin.Stations.Index.Location</div>
+                            <div>@App.Resources.Views.Admin.Stations.Index.Status</div>
+                            <div>@App.Resources.Views.Admin.Stations.Index.Pricing</div>
+                        </div>
+                        @foreach (var item in Model.Items)
+                        {
+                            <div class="operator-table-row">
+                                <div>
+                                    <div class="station-name">@item.Name</div>
+                                </div>
+                                <div>@item.CompanyName</div>
+                                <div>@item.Location</div>
+                                <div>
+                                    <span class="filter-chip @(item.IsActive ? string.Empty : "filter-chip-danger")">@item.Status</span>
+                                </div>
+                                <div>@string.Format(App.Resources.Views.Admin.Stations.Index.PricingValue, item.PricePerKwh, item.MaxPower)</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+</div>

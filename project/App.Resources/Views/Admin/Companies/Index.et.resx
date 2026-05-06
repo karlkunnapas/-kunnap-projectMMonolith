@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Title" xml:space="preserve">
+    <value>Haldus: ettevõtted</value>
+  </data>
+  <data name="Heading" xml:space="preserve">
+    <value>Ettevõtete haldus</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Otsi ettevõtet</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Nimi, slug või e-post</value>
+  </data>
+  <data name="ApplySearch" xml:space="preserve">
+    <value>Otsi</value>
+  </data>
+  <data name="DashboardAction" xml:space="preserve">
+    <value>Töölaud</value>
+  </data>
+  <data name="AuditAction" xml:space="preserve">
+    <value>Auditilogid</value>
+  </data>
+  <data name="NoCompanies" xml:space="preserve">
+    <value>Ettevõtteid ei leitud.</value>
+  </data>
+  <data name="TableHeading" xml:space="preserve">
+    <value>Kõik ettevõtted</value>
+  </data>
+  <data name="Company" xml:space="preserve">
+    <value>Ettevõte</value>
+  </data>
+  <data name="Slug" xml:space="preserve">
+    <value>Slug</value>
+  </data>
+  <data name="Members" xml:space="preserve">
+    <value>Aktiivsed liikmed</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Staatus</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Toimingud</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Aktiivne</value>
+  </data>
+  <data name="Inactive" xml:space="preserve">
+    <value>Mitteaktiivne</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>Aktiveeri</value>
+  </data>
+  <data name="Inactivate" xml:space="preserve">
+    <value>Deaktiveeri</value>
+  </data>
+  <data name="CompanyActivated" xml:space="preserve">
+    <value>Ettevõte aktiveeritud.</value>
+  </data>
+  <data name="CompanyInactivated" xml:space="preserve">
+    <value>Ettevõte deaktiveeritud.</value>
+  </data>
+</root>

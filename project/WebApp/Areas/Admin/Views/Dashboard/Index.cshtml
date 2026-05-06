@@ -1,0 +1,65 @@
+@model WebApp.Areas.Admin.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Admin.Dashboard.Index.Title;
+    var reservationsKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Admin.Dashboard.Index.ReservationsInPeriod,
+        Value = Model.ReservationsInPeriod.ToString(),
+        Hint = App.Resources.Views.Admin.Dashboard.Index.PeriodHint,
+        AccentClass = "kpi-accent-primary"
+    };
+    var companiesKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Admin.Dashboard.Index.TotalCompanies,
+        Value = Model.TotalCompanies.ToString(),
+        Hint = App.Resources.Views.Admin.Dashboard.Index.CompaniesHint,
+        AccentClass = "kpi-accent-secondary"
+    };
+    var companyUsersKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Admin.Dashboard.Index.TotalCompanyUsers,
+        Value = Model.TotalCompanyUsers.ToString(),
+        Hint = App.Resources.Views.Admin.Dashboard.Index.CompanyUsersHint,
+        AccentClass = "kpi-accent-tertiary"
+    };
+    var clientUsersKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
+    {
+        Title = App.Resources.Views.Admin.Dashboard.Index.TotalClientUsers,
+        Value = Model.TotalClientUsers.ToString(),
+        Hint = App.Resources.Views.Admin.Dashboard.Index.ClientUsersHint,
+        AccentClass = "kpi-accent-warning"
+    };
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Admin.Dashboard.Index.Heading</h2>
+        </div>
+
+        <form method="get" class="station-card dashboard-filter-card">
+            <div class="station-details reservation-form-grid vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label class="home-filters-title">@App.Resources.Views.Admin.Dashboard.Index.FromUtc</label>
+                    <input type="datetime-local" name="fromUtc" value="@Model.FromUtc.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                </div>
+                <div class="vehicle-form-field">
+                    <label class="home-filters-title">@App.Resources.Views.Admin.Dashboard.Index.ToUtc</label>
+                    <input type="datetime-local" name="toUtc" value="@Model.ToUtc.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                </div>
+                <div class="station-actions vehicle-actions">
+                    <button type="submit" class="station-button">@App.Resources.Views.Admin.Dashboard.Index.ApplyFilters</button>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="Companies" asp-action="Index">@App.Resources.Views.Admin.Dashboard.Index.ManageCompaniesAction</a>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="AuditLogs" asp-action="Index">@App.Resources.Views.Admin.Dashboard.Index.ViewAuditAction</a>
+                </div>
+            </div>
+        </form>
+
+        <div class="operator-kpi-grid">
+            <partial name="_KpiCard" model="@reservationsKpi" />
+            <partial name="_KpiCard" model="@companiesKpi" />
+            <partial name="_KpiCard" model="@companyUsersKpi" />
+            <partial name="_KpiCard" model="@clientUsersKpi" />
+        </div>
+    </section>
+</div>

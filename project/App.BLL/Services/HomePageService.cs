@@ -22,7 +22,7 @@ public class HomePageService : IHomePageService
     {
         var stations = await _unitOfWork.ChargingStations
             .GetStationsWithConnectors()
-            .Where(station => station.IsActive)
+            .Where(station => station.IsActive && station.Company != null && station.Company.IsActive)
             .ToListAsync();
 
         var connectorFilters = stations

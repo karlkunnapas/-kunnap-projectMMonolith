@@ -88,6 +88,13 @@ public class ReservationRepository : IReservationRepository
             .CountAsync();
     }
 
+    public Task<int> GetCountByRangeAsync(DateTime fromUtc, DateTime toUtc)
+    {
+        return _context.Reservations
+            .Where(r => r.StartTime >= fromUtc && r.StartTime <= toUtc)
+            .CountAsync();
+    }
+
     public Task<List<Reservation>> GetByCompanyAndRangeAsync(Guid companyId, DateTime fromUtc, DateTime toUtc)
     {
         return _context.Reservations

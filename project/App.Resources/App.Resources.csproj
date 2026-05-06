@@ -75,9 +75,21 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>History.Designer.cs</LastGenOutput>
       </EmbeddedResource>
-      <EmbeddedResource Update="Views\Admin\Audit\Trail.resx">
+      <EmbeddedResource Update="Views\Admin\Dashboard\Index.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
-        <LastGenOutput>Trail.Designer.cs</LastGenOutput>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Admin\Companies\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Admin\AuditLogs\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Views\Admin\Stations\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
       </EmbeddedResource>
       <EmbeddedResource Update="Views\Company\Audit\CompanyLog.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
@@ -243,10 +255,25 @@
         <AutoGen>True</AutoGen>
         <DependentUpon>History.resx</DependentUpon>
       </Compile>
-      <Compile Update="Views\Admin\Audit\Trail.Designer.cs">
+      <Compile Update="Views\Admin\Dashboard\Index.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
-        <DependentUpon>Trail.resx</DependentUpon>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Admin\Companies\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Admin\AuditLogs\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Admin\Stations\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
       </Compile>
       <Compile Update="Views\Company\Audit\CompanyLog.Designer.cs">
         <DesignTime>True</DesignTime>
