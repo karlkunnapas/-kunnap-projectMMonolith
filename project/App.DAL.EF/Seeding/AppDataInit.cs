@@ -10,6 +10,12 @@ public static class AppDataInit
 {
     private const string SeedCompanySlug = "seed-company";
     private const string SeedCompanyOwnerEmail = "owner@seed.com";
+    private static readonly HashSet<string> SeedStationLocations = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Kesklinna tn 2",
+        "Põhja tn 13",
+        "Lennujaama 42"
+    };
 
     public static void SeedAppData(AppDbContext context)
     {
@@ -93,7 +99,10 @@ public static class AppDataInit
         if (!context.Connectors.Any(c => c.Id == tesla.Id)) context.Connectors.Add(tesla);
         if (!context.Connectors.Any(c => c.Id == chademo.Id)) context.Connectors.Add(chademo);
 
-        var downtownStation = context.ChargingStations.SingleOrDefault(s => s.Location == "Kesklinna tn 2");
+        var downtownStation = context.ChargingStations
+            .AsEnumerable()
+            .SingleOrDefault(s => string.Equals(
+                s.Location?.Trim(), "Kesklinna tn 2", StringComparison.OrdinalIgnoreCase));
         if (downtownStation == null)
         {
             downtownStation = new ChargingStation
@@ -114,7 +123,10 @@ public static class AppDataInit
             downtownStation.CompanyId = company.Id;
         }
 
-        var northStation = context.ChargingStations.SingleOrDefault(s => s.Location == "Põhja tn 13");
+        var northStation = context.ChargingStations
+            .AsEnumerable()
+            .SingleOrDefault(s => string.Equals(
+                s.Location?.Trim(), "Põhja tn 13", StringComparison.OrdinalIgnoreCase));
         if (northStation == null)
         {
             northStation = new ChargingStation
@@ -135,7 +147,10 @@ public static class AppDataInit
             northStation.CompanyId = company.Id;
         }
 
-        var airportStation = context.ChargingStations.SingleOrDefault(s => s.Location == "Lennujaama 42");
+        var airportStation = context.ChargingStations
+            .AsEnumerable()
+            .SingleOrDefault(s => string.Equals(
+                s.Location?.Trim(), "Lennujaama 42", StringComparison.OrdinalIgnoreCase));
         if (airportStation == null)
         {
             airportStation = new ChargingStation
@@ -164,6 +179,18 @@ public static class AppDataInit
         AddStationConnectorIfMissing(context, airportStation.Id, ccs.Id);
         AddStationConnectorIfMissing(context, airportStation.Id, tesla.Id);
         AddStationConnectorIfMissing(context, airportStation.Id, chademo.Id);
+
+        // Backfill ownership for known seeded stations that may already exist with NULL CompanyId.
+        var unownedSeedStations = context.ChargingStations
+            .Where(s => s.CompanyId == null)
+            .AsEnumerable()
+            .Where(s => SeedStationLocations.Contains((s.Location ?? string.Empty).Trim()))
+            .ToList();
+
+        foreach (var station in unownedSeedStations)
+        {
+            station.CompanyId = company.Id;
+        }
 
         context.SaveChanges();
     }
