@@ -4,7 +4,9 @@ namespace App.DAL.EF.Repositories.Interfaces;
 
 public interface IPromotionRepository
 {
+    Task<Promotion?> GetByIdAsync(Guid id);
     Task<List<Promotion>> GetByCompanyAsync(Guid companyId);
+    Task<List<Promotion>> GetAllWithCompanyAsync();
     Task<Promotion?> GetByIdForCompanyAsync(Guid id, Guid companyId);
     Task<List<Promotion>> GetActiveByCodeAsync(string code, DateTime atUtc);
     Task AddAsync(Promotion promotion);

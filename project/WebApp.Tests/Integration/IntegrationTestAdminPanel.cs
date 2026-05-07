@@ -94,6 +94,163 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
         Assert.Contains("Admin Station", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task AdminPromotions_Index_ReturnsSystemPromotions()
+    {
+        await using var authFactory = CreateAuthenticatedFactory();
+        var adminUserId = Guid.NewGuid();
+        await SeedUser(authFactory, adminUserId, "admin@test.local");
+        await SeedSystemPromotion(authFactory, "SYSADMIN", 15m);
+
+        var client = CreateAuthenticatedClient(authFactory, adminUserId, "SystemAdmin");
+        var response = await client.GetAsync("/Admin/Promotions/Index");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("SYSADMIN", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminPromotions_Index_AdminRole_ReturnsSystemPromotions()
+    {
+        await using var authFactory = CreateAuthenticatedFactory();
+        var adminUserId = Guid.NewGuid();
+        await SeedUser(authFactory, adminUserId, "admin@test.local");
+        await SeedSystemPromotion(authFactory, "SYSADMIN2", 10m);
+
+        var client = CreateAuthenticatedClient(authFactory, adminUserId, "Admin");
+        var response = await client.GetAsync("/Admin/Promotions/Index");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("SYSADMIN2", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminPromotions_Index_ShowsCompanyPromotionsInSeparateSection()
+    {
+        await using var authFactory = CreateAuthenticatedFactory();
+        var adminUserId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        await SeedUser(authFactory, adminUserId, "admin@test.local");
+        await SeedCompany(authFactory, companyId, "promo-company");
+        await SeedCompanyPromotion(authFactory, companyId, "COMPANYPROMO", 12m);
+
+        var client = CreateAuthenticatedClient(authFactory, adminUserId, "Admin");
+        var response = await client.GetAsync("/Admin/Promotions/Index");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Company Promotions", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("COMPANYPROMO", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Integration Company", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminPromotions_Index_DefaultsToNonExpired_AndCanShowExpired()
+    {
+        await using var authFactory = CreateAuthenticatedFactory();
+        var adminUserId = Guid.NewGuid();
+        await SeedUser(authFactory, adminUserId, "admin@test.local");
+        await SeedSystemPromotion(authFactory, "CURRENTPROMO", 15m, true, DateTime.UtcNow.AddDays(7));
+        await SeedSystemPromotion(authFactory, "EXPIREDPROMO", 5m, true, DateTime.UtcNow.AddDays(-1));
+
+        var client = CreateAuthenticatedClient(authFactory, adminUserId, "Admin");
+
+        var defaultResponse = await client.GetAsync("/Admin/Promotions/Index");
+        var defaultHtml = await defaultResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, defaultResponse.StatusCode);
+        Assert.Contains("CURRENTPROMO", defaultHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("EXPIREDPROMO", defaultHtml, StringComparison.OrdinalIgnoreCase);
+
+        var showExpiredResponse = await client.GetAsync("/Admin/Promotions/Index?showExpired=true");
+        var showExpiredHtml = await showExpiredResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, showExpiredResponse.StatusCode);
+        Assert.Contains("CURRENTPROMO", showExpiredHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("EXPIREDPROMO", showExpiredHtml, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminPromotions_Create_Post_CreatesNewPromotion()
+    {
+        await using var authFactory = CreateAuthenticatedFactory();
+        var adminUserId = Guid.NewGuid();
+        await SeedUser(authFactory, adminUserId, "admin@test.local");
+
+        var client = CreateAuthenticatedClient(authFactory, adminUserId, "SystemAdmin");
+        
+        // Get the form to extract the anti-forgery token
+        var getResponse = await client.GetAsync("/Admin/Promotions/Create");
+        var document = await HtmlHelpers.GetDocumentAsync(getResponse);
+        var form = Assert.IsAssignableFrom<IHtmlFormElement>(document.QuerySelector("form"));
+        
+        // Extract anti-forgery token
+        var antiForgeryInput = form.QuerySelector("input[name='__RequestVerificationToken']") as IHtmlInputElement;
+        var token = antiForgeryInput?.Value ?? "";
+        
+        var from = DateTime.UtcNow;
+        var to = DateTime.UtcNow.AddDays(30);
+        
+        var content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("__RequestVerificationToken", token),
+            new KeyValuePair<string, string>("Code", "NEWPROMO"),
+            new KeyValuePair<string, string>("DiscountValue", "20"),
+            new KeyValuePair<string, string>("ValidFromUtc", from.ToString("yyyy-MM-ddTHH:mm")),
+            new KeyValuePair<string, string>("ValidToUtc", to.ToString("yyyy-MM-ddTHH:mm")),
+            new KeyValuePair<string, string>("IsActive", "true")
+        });
+
+        var post = await client.PostAsync("/Admin/Promotions/Create", content);
+
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+        Assert.Contains("/Admin/Promotions/Index", post.Headers.Location?.ToString() ?? "");
+    }
+
+    [Fact]
+    public async Task AdminConnectorTypes_Index_ReturnsConnectorTypeRows()
+    {
+        await using var authFactory = CreateAuthenticatedFactory();
+        var adminUserId = Guid.NewGuid();
+        await SeedUser(authFactory, adminUserId, "admin@test.local");
+        await SeedConnectorType(authFactory, "CCS", true);
+
+        var client = CreateAuthenticatedClient(authFactory, adminUserId, "Admin");
+        var response = await client.GetAsync("/Admin/ConnectorTypes/Index");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("CCS", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminConnectorTypes_Create_Post_CreatesConnectorType()
+    {
+        await using var authFactory = CreateAuthenticatedFactory();
+        var adminUserId = Guid.NewGuid();
+        await SeedUser(authFactory, adminUserId, "admin@test.local");
+
+        var client = CreateAuthenticatedClient(authFactory, adminUserId, "Admin");
+        var getResponse = await client.GetAsync("/Admin/ConnectorTypes/Create");
+        var document = await HtmlHelpers.GetDocumentAsync(getResponse);
+        var form = Assert.IsAssignableFrom<IHtmlFormElement>(document.QuerySelector("form"));
+        var antiForgeryInput = form.QuerySelector("input[name='__RequestVerificationToken']") as IHtmlInputElement;
+        var token = antiForgeryInput?.Value ?? "";
+
+        var content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("__RequestVerificationToken", token),
+            new KeyValuePair<string, string>("NameEn", "NACS"),
+            new KeyValuePair<string, string>("NameEt", "NACS ET"),
+            new KeyValuePair<string, string>("IsActive", "true")
+        });
+
+        var post = await client.PostAsync("/Admin/ConnectorTypes/Create", content);
+
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+        Assert.Contains("/Admin/ConnectorTypes/Index", post.Headers.Location?.ToString() ?? "");
+    }
+
     private static WebApplicationFactory<Program> CreateAuthenticatedFactory()
     {
         return new CustomWebApplicationFactory<Program>()
@@ -193,6 +350,53 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
             MaxPower = 90m,
             IsActive = true,
             CompanyId = companyId
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedSystemPromotion(WebApplicationFactory<Program> factory, string code, decimal discount, bool isActive = true, DateTime? validTo = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Promotions.Add(new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = code,
+            DiscountValue = discount,
+            ValidFrom = DateTime.UtcNow,
+            ValidTo = validTo ?? DateTime.UtcNow.AddDays(30),
+            IsActive = isActive,
+            CompanyId = null
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedCompanyPromotion(WebApplicationFactory<Program> factory, Guid companyId, string code, decimal discount)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Promotions.Add(new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = code,
+            DiscountValue = discount,
+            ValidFrom = DateTime.UtcNow,
+            ValidTo = DateTime.UtcNow.AddDays(30),
+            IsActive = true,
+            CompanyId = companyId
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedConnectorType(WebApplicationFactory<Program> factory, string nameEn, bool isActive)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Connectors.Add(new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr(nameEn),
+            IsActive = isActive
         });
         await db.SaveChangesAsync();
     }

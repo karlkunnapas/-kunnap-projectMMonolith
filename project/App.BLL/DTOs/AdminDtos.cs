@@ -77,3 +77,51 @@ public class AdminStationListDto
     public string? Search { get; set; }
     public List<AdminStationListItemDto> Items { get; set; } = new();
 }
+
+public class AdminPromotionListItemDto
+{
+    public Guid PromotionId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public decimal DiscountValue { get; set; }
+    public DateTime ValidFromUtc { get; set; }
+    public DateTime ValidToUtc { get; set; }
+    public bool IsActive { get; set; }
+    public string CompanyName { get; set; } = "System Level";
+    public bool IsSystemLevel { get; set; }
+}
+
+public class AdminPromotionListDto
+{
+    public List<AdminPromotionListItemDto> Items { get; set; } = new();
+}
+
+public class AdminPromotionFormDto
+{
+    public Guid? PromotionId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public decimal DiscountValue { get; set; }
+    public DateTime ValidFromUtc { get; set; }
+    public DateTime ValidToUtc { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class AdminConnectorTypeListItemDto
+{
+    public Guid ConnectorTypeId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+}
+
+public class AdminConnectorTypeListDto
+{
+    public string? Search { get; set; }
+    public List<AdminConnectorTypeListItemDto> Items { get; set; } = new();
+}
+
+public class AdminConnectorTypeFormDto
+{
+    public Guid? ConnectorTypeId { get; set; }
+    public string NameEn { get; set; } = string.Empty;
+    public string NameEt { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}

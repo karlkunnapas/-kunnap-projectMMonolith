@@ -1,0 +1,159 @@
+@model WebApp.Areas.Admin.Controllers.AdminPromotionIndexViewModel
+
+@{
+    ViewData["Title"] = "System Promotions";
+}
+
+<div class="admin-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1>@App.Resources.Views.Admin.Promotions.Index.Title</h1>
+        <div class="d-flex gap-2">
+            @if (Model.ShowExpired)
+            {
+                <a asp-action="Index" asp-route-showExpired="false" class="btn btn-outline-secondary">
+                    Show Currently Valid Only
+                </a>
+            }
+            else
+            {
+                <a asp-action="Index" asp-route-showExpired="true" class="btn btn-outline-secondary">
+                    Show Expired Too
+                </a>
+            }
+
+            <a asp-action="Create" class="btn btn-success btn-lg">
+                <span class="bi bi-plus"></span> @App.Resources.Views.Admin.Promotions.Index.CreateButtonLabel
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is not null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<section class="mb-4">
+    <h2 class="h4 mb-3">System Promotions</h2>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.CodeHeader</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.DiscountHeader (%)</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.ValidFromHeader</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.ValidToHeader</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.StatusHeader</th>
+                        <th style="width: 220px;">@App.Resources.Views.Admin.Promotions.Index.ActionsHeader</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.SystemPromotions.Any())
+                    {
+                        @foreach (var promo in Model.SystemPromotions)
+                        {
+                            <tr>
+                                <td><span class="badge bg-info">@promo.Code</span></td>
+                                <td><strong>@promo.DiscountValue.ToString("F2")%</strong></td>
+                                <td>@promo.ValidFromUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@promo.ValidToUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @if (promo.IsActive)
+                                    {
+                                        <span class="badge bg-success">@App.Resources.Views.Admin.Promotions.Index.ActiveStatus</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@App.Resources.Views.Admin.Promotions.Index.InactiveStatus</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a asp-action="Edit" asp-route-id="@promo.PromotionId" class="btn btn-outline-primary">
+                                            <span class="bi bi-pencil"></span> Edit
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@promo.PromotionId" method="post" style="display:inline;" onsubmit="return confirm('@App.Resources.Views.Admin.Promotions.Index.DeleteConfirm');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                <span class="bi bi-trash"></span> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">@App.Resources.Views.Admin.Promotions.Index.NoPromos</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2 class="h4 mb-3">Company Promotions</h2>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Company</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.CodeHeader</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.DiscountHeader (%)</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.ValidFromHeader</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.ValidToHeader</th>
+                        <th>@App.Resources.Views.Admin.Promotions.Index.StatusHeader</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.CompanyPromotions.Any())
+                    {
+                        @foreach (var promo in Model.CompanyPromotions)
+                        {
+                            <tr>
+                                <td>@promo.CompanyName</td>
+                                <td><span class="badge bg-info">@promo.Code</span></td>
+                                <td><strong>@promo.DiscountValue.ToString("F2")%</strong></td>
+                                <td>@promo.ValidFromUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@promo.ValidToUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    @if (promo.IsActive)
+                                    {
+                                        <span class="badge bg-success">@App.Resources.Views.Admin.Promotions.Index.ActiveStatus</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@App.Resources.Views.Admin.Promotions.Index.InactiveStatus</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No company promotions found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

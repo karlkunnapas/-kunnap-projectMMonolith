@@ -177,6 +177,12 @@ namespace App.Resources.Views.Shared {
             }
         }
         
+        public static string AdminSystemPromotions {
+            get {
+                return ResourceManager.GetString("AdminSystemPromotions", resourceCulture);
+            }
+        }
+        
         public static string AdminAuditLogs {
             get {
                 return ResourceManager.GetString("AdminAuditLogs", resourceCulture);

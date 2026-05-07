@@ -15,6 +15,33 @@ namespace WebApp.Tests.Unit;
 public class UnitTestIdentityServicePhase8
 {
     [Fact]
+    public async Task GetUserCompaniesAsync_ExcludesDeactivatedCompanies()
+    {
+        await using var context = BuildContext();
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new IdentityService(null!, userManager, unitOfWork, context, auditService);
+
+        var userId = Guid.NewGuid();
+        var activeCompanyId = Guid.NewGuid();
+        var inactiveCompanyId = Guid.NewGuid();
+        await SeedUserAndCompanyAsync(context, userId, "owner@test.local", activeCompanyId, ECompanyRole.Owner);
+        await SeedUserAndCompanyAsync(context, userId, "owner@test.local", inactiveCompanyId, ECompanyRole.Owner);
+
+        var inactiveCompany = await context.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == inactiveCompanyId);
+        inactiveCompany.IsActive = false;
+        await context.SaveChangesAsync();
+
+        var result = await sut.GetUserCompaniesAsync(userId);
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Single(result.Data!.Companies);
+        Assert.Equal(activeCompanyId, result.Data.Companies[0].CompanyId);
+    }
+
+    [Fact]
     public async Task AddUserToCompanyAsync_NotOwner_ReturnsNotOwner_AndLogsUnauthorizedAttempt()
     {
         await using var context = BuildContext();

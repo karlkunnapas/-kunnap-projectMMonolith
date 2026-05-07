@@ -1,0 +1,59 @@
+@model WebApp.Areas.Admin.ViewModels.AdminConnectorTypeFormViewModel
+@{
+    var isEdit = Model.ConnectorTypeId.HasValue && Model.ConnectorTypeId.Value != Guid.Empty;
+    ViewData["Title"] = isEdit
+        ? App.Resources.Views.Admin.ConnectorTypes.Index.EditTitle
+        : App.Resources.Views.Admin.ConnectorTypes.Index.CreateTitle;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@ViewData["Title"]</h2>
+        </div>
+
+        <div class="station-card">
+            <div class="station-details">
+                <form method="post"
+                      asp-area="Admin"
+                      asp-controller="ConnectorTypes"
+                      asp-action="@(isEdit ? "Edit" : "Create")"
+                      asp-route-id="@(isEdit ? Model.ConnectorTypeId : null)">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="reservation-form-grid vehicle-form-grid">
+                        <div class="vehicle-form-field">
+                            <label asp-for="NameEn" class="home-filters-title">@App.Resources.Views.Admin.ConnectorTypes.Index.NameEn</label>
+                            <input asp-for="NameEn" class="form-control" />
+                            <span asp-validation-for="NameEn" class="text-danger"></span>
+                        </div>
+                        <div class="vehicle-form-field">
+                            <label asp-for="NameEt" class="home-filters-title">@App.Resources.Views.Admin.ConnectorTypes.Index.NameEt</label>
+                            <input asp-for="NameEt" class="form-control" />
+                            <span asp-validation-for="NameEt" class="text-danger"></span>
+                        </div>
+                        <div class="vehicle-form-field">
+                            <label class="home-filters-title">@App.Resources.Views.Admin.ConnectorTypes.Index.Status</label>
+                            <div>
+                                <input asp-for="IsActive" />
+                                <label asp-for="IsActive">@App.Resources.Views.Admin.ConnectorTypes.Index.IsActiveLabel</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="station-actions vehicle-actions">
+                        <button type="submit" class="station-button">@(isEdit
+                                ? App.Resources.Views.Admin.ConnectorTypes.Index.SaveChanges
+                                : App.Resources.Views.Admin.ConnectorTypes.Index.CreateAction)</button>
+                        <a class="filter-chip" asp-area="Admin" asp-controller="ConnectorTypes" asp-action="Index">@App.Resources.Views.Admin.ConnectorTypes.Index.BackToList</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

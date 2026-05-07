@@ -113,6 +113,17 @@ public class UnitTestChargingSessionService
         await using var context = BuildContext();
         var userId = Guid.NewGuid();
         var station = CreateStation();
+        var companyId = Guid.NewGuid();
+        station.CompanyId = companyId;
+        var company = new Company
+        {
+            Id = companyId,
+            Name = new LangStr("Session Promotion Company"),
+            ContactEmail = "session-promo@test.local",
+            ContactPhone = "+3726111111",
+            Slug = "session-promo-company",
+            IsActive = true
+        };
         var promotion = new Promotion
         {
             Id = Guid.NewGuid(),
@@ -121,7 +132,7 @@ public class UnitTestChargingSessionService
             ValidFrom = DateTime.UtcNow.AddDays(-1),
             ValidTo = DateTime.UtcNow.AddDays(1),
             IsActive = true,
-            CompanyId = station.CompanyId
+            CompanyId = companyId
         };
         var session = new ChargingSession
         {
@@ -134,6 +145,7 @@ public class UnitTestChargingSessionService
             Cost = 0
         };
 
+        context.Companies.Add(company);
         context.Promotions.Add(promotion);
         context.UserPromotions.Add(new UserPromotion
         {
@@ -150,7 +162,7 @@ public class UnitTestChargingSessionService
         var reservationService = new Mock<IReservationService>();
         var promotionService = new Mock<IPromotionService>();
         promotionService
-            .Setup(s => s.ValidateUserPromotionForCompanyAsync(userId, station.CompanyId!.Value, "SAVE25"))
+            .Setup(s => s.ValidateUserPromotionForCompanyAsync(userId, companyId, "SAVE25"))
             .ReturnsAsync(ServiceResult<AppliedPromotionDto>.Ok(new AppliedPromotionDto
             {
                 PromotionId = promotion.Id,
@@ -182,6 +194,17 @@ public class UnitTestChargingSessionService
         await using var context = BuildContext();
         var userId = Guid.NewGuid();
         var station = CreateStation();
+        var companyId = Guid.NewGuid();
+        station.CompanyId = companyId;
+        var company = new Company
+        {
+            Id = companyId,
+            Name = new LangStr("Locked Promotion Company"),
+            ContactEmail = "locked-promo@test.local",
+            ContactPhone = "+3726222222",
+            Slug = "locked-promo-company",
+            IsActive = true
+        };
         var lockedPromotion = new Promotion
         {
             Id = Guid.NewGuid(),
@@ -190,7 +213,7 @@ public class UnitTestChargingSessionService
             ValidFrom = DateTime.UtcNow.AddDays(-1),
             ValidTo = DateTime.UtcNow.AddDays(2),
             IsActive = true,
-            CompanyId = station.CompanyId
+            CompanyId = companyId
         };
         var reservation = new Reservation
         {
@@ -215,6 +238,7 @@ public class UnitTestChargingSessionService
             EndTime = null
         };
 
+        context.Companies.Add(company);
         context.Promotions.Add(lockedPromotion);
         context.UserPromotions.Add(new UserPromotion
         {
@@ -295,7 +319,7 @@ public class UnitTestChargingSessionService
             PricePerKwh = 0.40m,
             MaxPower = 150,
             IsActive = true,
-            CompanyId = Guid.NewGuid()
+            CompanyId = null
         };
     }
 

@@ -91,6 +91,10 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>Index.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Views\Admin\Promotions\Index.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>Index.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
       <EmbeddedResource Update="Views\Company\Audit\CompanyLog.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>CompanyLog.Designer.cs</LastGenOutput>
@@ -271,6 +275,11 @@
         <DependentUpon>Index.resx</DependentUpon>
       </Compile>
       <Compile Update="Views\Admin\Stations\Index.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>Index.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Admin\Promotions\Index.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>Index.resx</DependentUpon>

@@ -89,4 +89,4 @@ TestResult.xml
 nunit-*.xml
 
 # coverage reports
-WebApp.Tests/TestResults
+WebApp.Tests/TestResults/*

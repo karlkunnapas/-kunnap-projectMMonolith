@@ -5,6 +5,7 @@ using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using WebApp.Tests.Helpers;
 
@@ -32,6 +33,22 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
         var response = await client.GetAsync($"/Company/Dashboard/Index?companyId={companyId}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Dashboard_Index_DeactivatedCompanyMembership_RedirectsToDeactivatedPage()
+    {
+        var userId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        await using var authFactory = CreateAuthenticatedFactory();
+        await SeedCompanyOwnerData(authFactory, userId, companyId);
+        await DeactivateCompany(authFactory, companyId);
+
+        var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
+        var response = await client.GetAsync($"/Company/Dashboard/Index?companyId={companyId}");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/Account/CompanyDeactivated", response.Headers.Location?.ToString());
     }
 
     [Fact]
@@ -239,6 +256,16 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
             IsActive = true
         });
 
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task DeactivateCompany(WebApplicationFactory<Program> factory, Guid companyId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var company = await db.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == companyId);
+        company.IsActive = false;
         await db.SaveChangesAsync();
     }
 }

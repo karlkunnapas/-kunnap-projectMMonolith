@@ -13,10 +13,26 @@ public class PromotionRepository : IPromotionRepository
         _context = context;
     }
 
+    public Task<Promotion?> GetByIdAsync(Guid id)
+    {
+        return _context.Promotions
+            .Include(p => p.Company)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
     public Task<List<Promotion>> GetByCompanyAsync(Guid companyId)
     {
         return _context.Promotions
             .Where(p => p.CompanyId == companyId)
+            .OrderByDescending(p => p.ValidTo)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public Task<List<Promotion>> GetAllWithCompanyAsync()
+    {
+        return _context.Promotions
+            .Include(p => p.Company)
             .OrderByDescending(p => p.ValidTo)
             .AsNoTracking()
             .ToListAsync();

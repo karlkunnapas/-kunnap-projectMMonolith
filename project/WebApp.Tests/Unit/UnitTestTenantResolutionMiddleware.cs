@@ -89,6 +89,7 @@ public class UnitTestTenantResolutionMiddleware
     {
         await using var db = CreateDbContext();
         var tenantContext = new TenantContext();
+        var nextCalled = false;
 
         db.Companies.Add(new Company
         {
@@ -100,7 +101,12 @@ public class UnitTestTenantResolutionMiddleware
         });
         await db.SaveChangesAsync();
 
-        var middleware = new TenantResolutionMiddleware(_ => Task.CompletedTask);
+        RequestDelegate next = _ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        };
+        var middleware = new TenantResolutionMiddleware(next);
         var context = new DefaultHttpContext();
         context.Request.Path = "/inactive-tenant/festivaleditions";
         context.Response.Body = new MemoryStream();
@@ -108,6 +114,9 @@ public class UnitTestTenantResolutionMiddleware
         await middleware.InvokeAsync(context, db, tenantContext);
 
         Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+        Assert.True(nextCalled);
+        Assert.Equal("/Account/CompanyDeactivated", context.Request.Path);
+        Assert.Equal("inactive-tenant", context.Items["DeactivatedCompanySlug"]?.ToString());
         Assert.False(tenantContext.IsResolved);
     }
 
@@ -147,6 +156,5 @@ public class UnitTestTenantResolutionMiddleware
         Assert.Equal(company.Slug, tenantContext.CompanySlug);
     }
 }
-
 
 

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NuGet.Packaging;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using WebApp.Filters;
 
 namespace WebApp.Setup;
 
@@ -18,6 +19,7 @@ public static class WebApiExtensions
         services.AddControllersWithViews(options =>
             {
                 options.ModelBinderProviders.Insert(0, new WebApp.Helpers.FlexibleDecimalModelBinderProvider());
+                options.Filters.AddService<EnsureActiveCompanyAccessFilter>();
             })
             .AddJsonOptions(options =>
             {

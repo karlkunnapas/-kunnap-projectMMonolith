@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Title" xml:space="preserve"><value>Admin connector types</value></data>
+  <data name="Heading" xml:space="preserve"><value>Connector type management</value></data>
+  <data name="Search" xml:space="preserve"><value>Search connector type</value></data>
+  <data name="SearchPlaceholder" xml:space="preserve"><value>Name</value></data>
+  <data name="ApplySearch" xml:space="preserve"><value>Search</value></data>
+  <data name="AddConnectorType" xml:space="preserve"><value>Add connector type</value></data>
+  <data name="DashboardAction" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="NoConnectorTypes" xml:space="preserve"><value>No connector types found.</value></data>
+  <data name="TableHeading" xml:space="preserve"><value>All connector types</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Create connector type</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Edit connector type</value></data>
+  <data name="NameEn" xml:space="preserve"><value>Name (EN)</value></data>
+  <data name="NameEt" xml:space="preserve"><value>Name (ET)</value></data>
+  <data name="IsActiveLabel" xml:space="preserve"><value>Active</value></data>
+  <data name="CreateAction" xml:space="preserve"><value>Create</value></data>
+  <data name="SaveChanges" xml:space="preserve"><value>Save changes</value></data>
+  <data name="BackToList" xml:space="preserve"><value>Back to list</value></data>
+  <data name="ConnectorTypeCreated" xml:space="preserve"><value>Connector type created successfully.</value></data>
+  <data name="ConnectorTypeUpdated" xml:space="preserve"><value>Connector type updated successfully.</value></data>
+  <data name="ConnectorTypeDeleted" xml:space="preserve"><value>Connector type deleted successfully.</value></data>
+</root>

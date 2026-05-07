@@ -25,7 +25,8 @@ public class ChargingStationRepository : IChargingStationRepository
     {
         var query = GetStationsWithConnectors()
             .Where(station => station.IsActive
-                              && _context.Companies.Any(company => company.Id == station.CompanyId && company.IsActive));
+                              && (!station.CompanyId.HasValue
+                                  || _context.Companies.Any(company => company.Id == station.CompanyId && company.IsActive)));
 
         if (Enum.TryParse<EStationStatus>(status, ignoreCase: true, out var parsedStatus))
         {
@@ -49,7 +50,8 @@ public class ChargingStationRepository : IChargingStationRepository
             .Include(station => station.Reservations!)
             .FirstOrDefaultAsync(station => station.Id == id
                                              && station.IsActive
-                                             && _context.Companies.Any(company => company.Id == station.CompanyId && company.IsActive));
+                                             && (!station.CompanyId.HasValue
+                                                 || _context.Companies.Any(company => company.Id == station.CompanyId && company.IsActive)));
     }
 
     public Task<List<ChargingStation>> GetByCompanyAsync(Guid companyId)

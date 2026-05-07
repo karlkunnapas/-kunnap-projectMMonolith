@@ -198,7 +198,7 @@ public class MaintenanceController : Controller
 
         return await _context.AppUserCompanies
             .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive)
+            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive)
             .OrderByDescending(uc => uc.JoinedAtUtc)
             .Select(uc => uc.CompanyId)
             .ToListAsync();
@@ -224,6 +224,8 @@ public class MaintenanceController : Controller
                 uc.CompanyId == companyId
                 && uc.AppUserId == userId.Value
                 && uc.IsActive
+                && uc.Company != null
+                && uc.Company.IsActive
                 && uc.Role >= ECompanyRole.Manager);
     }
 

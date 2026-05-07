@@ -199,4 +199,278 @@ public class AdminPanelService : IAdminPanelService
         return ServiceResult<AdminAuditLogListDto>.Ok(
             BllDtoFactory.CreateAdminAuditLogListDto(normalizedFilter, items, totalCount, page, pageSize));
     }
+
+    public async Task<ServiceResult<AdminPromotionListDto>> GetSystemPromotionsAsync()
+    {
+        var allPromotions = await _unitOfWork.Promotions.GetAllWithCompanyAsync();
+        var mapped = allPromotions
+            .Select(BllDtoFactory.CreateAdminPromotionListItemDto)
+            .OrderByDescending(p => p.IsSystemLevel)
+            .ThenByDescending(p => p.ValidToUtc)
+            .ToList();
+        
+        return ServiceResult<AdminPromotionListDto>.Ok(BllDtoFactory.CreateAdminPromotionListDto(mapped));
+    }
+
+    public async Task<ServiceResult<AdminPromotionFormDto>> GetSystemPromotionAsync(Guid promotionId)
+    {
+        if (promotionId == Guid.Empty)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Promotion id is required.");
+        }
+
+        var promotion = await _unitOfWork.Promotions.GetByIdAsync(promotionId);
+        if (promotion == null || promotion.CompanyId.HasValue)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("NOT_FOUND", "System promotion not found.");
+        }
+
+        return ServiceResult<AdminPromotionFormDto>.Ok(BllDtoFactory.CreateAdminPromotionFormDto(promotion));
+    }
+
+    public async Task<ServiceResult<AdminPromotionFormDto>> CreateSystemPromotionAsync(AdminPromotionFormDto dto, string actorUserName)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Code))
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Promotion code is required.");
+        }
+
+        if (dto.DiscountValue <= 0)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Discount value must be positive.");
+        }
+
+        if (dto.ValidFromUtc >= dto.ValidToUtc)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Valid from date must be before valid to date.");
+        }
+
+        var promotion = new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = dto.Code.Trim().ToUpper(),
+            DiscountValue = dto.DiscountValue,
+            ValidFrom = dto.ValidFromUtc,
+            ValidTo = dto.ValidToUtc,
+            IsActive = dto.IsActive,
+            CompanyId = null
+        };
+
+        await _unitOfWork.Promotions.AddAsync(promotion);
+        await _unitOfWork.SaveAsync();
+
+        await _auditService.LogMutationAsync(
+            Guid.Empty,
+            actorUserName,
+            nameof(Promotion),
+            promotion.Id,
+            "Create",
+            $"{{\"code\":\"{promotion.Code}\",\"discountValue\":{promotion.DiscountValue}}}");
+
+        return ServiceResult<AdminPromotionFormDto>.Ok(BllDtoFactory.CreateAdminPromotionFormDto(promotion));
+    }
+
+    public async Task<ServiceResult<AdminPromotionFormDto>> UpdateSystemPromotionAsync(Guid promotionId, AdminPromotionFormDto dto, string actorUserName)
+    {
+        if (promotionId == Guid.Empty)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Promotion id is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.Code))
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Promotion code is required.");
+        }
+
+        if (dto.DiscountValue <= 0)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Discount value must be positive.");
+        }
+
+        if (dto.ValidFromUtc >= dto.ValidToUtc)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("VALIDATION", "Valid from date must be before valid to date.");
+        }
+
+        var promotion = await _unitOfWork.Promotions.GetByIdAsync(promotionId);
+        if (promotion == null || promotion.CompanyId.HasValue)
+        {
+            return ServiceResult<AdminPromotionFormDto>.Fail("NOT_FOUND", "System promotion not found.");
+        }
+
+        promotion.Code = dto.Code.Trim().ToUpper();
+        promotion.DiscountValue = dto.DiscountValue;
+        promotion.ValidFrom = dto.ValidFromUtc;
+        promotion.ValidTo = dto.ValidToUtc;
+        promotion.IsActive = dto.IsActive;
+
+        _unitOfWork.Promotions.Update(promotion);
+        await _unitOfWork.SaveAsync();
+
+        await _auditService.LogMutationAsync(
+            Guid.Empty,
+            actorUserName,
+            nameof(Promotion),
+            promotion.Id,
+            "Update",
+            $"{{\"code\":\"{promotion.Code}\",\"discountValue\":{promotion.DiscountValue}}}");
+
+        return ServiceResult<AdminPromotionFormDto>.Ok(BllDtoFactory.CreateAdminPromotionFormDto(promotion));
+    }
+
+    public async Task<ServiceResult> DeleteSystemPromotionAsync(Guid promotionId, string actorUserName)
+    {
+        if (promotionId == Guid.Empty)
+        {
+            return ServiceResult.Fail("VALIDATION", "Promotion id is required.");
+        }
+
+        var promotion = await _unitOfWork.Promotions.GetByIdAsync(promotionId);
+        if (promotion == null || promotion.CompanyId.HasValue)
+        {
+            return ServiceResult.Fail("NOT_FOUND", "System promotion not found.");
+        }
+
+        _unitOfWork.Promotions.Remove(promotion);
+        await _unitOfWork.SaveAsync();
+
+        await _auditService.LogMutationAsync(
+            Guid.Empty,
+            actorUserName,
+            nameof(Promotion),
+            promotion.Id,
+            "Delete",
+            null);
+
+        return ServiceResult.Ok();
+    }
+
+    public async Task<ServiceResult<AdminConnectorTypeListDto>> GetConnectorTypesAsync(string? search = null)
+    {
+        var connectors = (await _unitOfWork.Connectors.GetAllAsync()).ToList();
+        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            connectors = connectors
+                .Where(connector =>
+                    (connector.Name?.Translate() ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                    (connector.Name?.Translate("et") ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        var mapped = connectors
+            .OrderBy(connector => connector.Name?.Translate() ?? string.Empty)
+            .Select(BllDtoFactory.CreateAdminConnectorTypeListItemDto)
+            .ToList();
+
+        return ServiceResult<AdminConnectorTypeListDto>.Ok(
+            BllDtoFactory.CreateAdminConnectorTypeListDto(normalizedSearch, mapped));
+    }
+
+    public async Task<ServiceResult<AdminConnectorTypeFormDto>> GetConnectorTypeAsync(Guid connectorTypeId)
+    {
+        if (connectorTypeId == Guid.Empty)
+        {
+            return ServiceResult<AdminConnectorTypeFormDto>.Fail("VALIDATION", "Connector type id is required.");
+        }
+
+        var connector = await _unitOfWork.Connectors.GetByIdAsync(connectorTypeId);
+        if (connector == null)
+        {
+            return ServiceResult<AdminConnectorTypeFormDto>.Fail("NOT_FOUND", "Connector type not found.");
+        }
+
+        return ServiceResult<AdminConnectorTypeFormDto>.Ok(BllDtoFactory.CreateAdminConnectorTypeFormDto(connector));
+    }
+
+    public async Task<ServiceResult<AdminConnectorTypeFormDto>> CreateConnectorTypeAsync(AdminConnectorTypeFormDto dto, string actorUserName)
+    {
+        if (string.IsNullOrWhiteSpace(dto.NameEn))
+        {
+            return ServiceResult<AdminConnectorTypeFormDto>.Fail("VALIDATION", "English name is required.");
+        }
+
+        var connector = new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr(dto.NameEn.Trim()) { ["et"] = dto.NameEt.Trim() },
+            IsActive = dto.IsActive
+        };
+
+        await _unitOfWork.Connectors.AddAsync(connector);
+        await _unitOfWork.SaveAsync();
+
+        await _auditService.LogMutationAsync(
+            Guid.Empty,
+            actorUserName,
+            nameof(Connector),
+            connector.Id,
+            "Create",
+            $"{{\"nameEn\":\"{connector.Name.Translate("en")}\",\"nameEt\":\"{connector.Name.Translate("et")}\",\"isActive\":{connector.IsActive.ToString().ToLowerInvariant()}}}");
+
+        return ServiceResult<AdminConnectorTypeFormDto>.Ok(BllDtoFactory.CreateAdminConnectorTypeFormDto(connector));
+    }
+
+    public async Task<ServiceResult<AdminConnectorTypeFormDto>> UpdateConnectorTypeAsync(Guid connectorTypeId, AdminConnectorTypeFormDto dto, string actorUserName)
+    {
+        if (connectorTypeId == Guid.Empty)
+        {
+            return ServiceResult<AdminConnectorTypeFormDto>.Fail("VALIDATION", "Connector type id is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.NameEn))
+        {
+            return ServiceResult<AdminConnectorTypeFormDto>.Fail("VALIDATION", "English name is required.");
+        }
+
+        var connector = await _unitOfWork.Connectors.GetByIdAsync(connectorTypeId);
+        if (connector == null)
+        {
+            return ServiceResult<AdminConnectorTypeFormDto>.Fail("NOT_FOUND", "Connector type not found.");
+        }
+
+        connector.Name = new LangStr(dto.NameEn.Trim()) { ["et"] = dto.NameEt.Trim() };
+        connector.IsActive = dto.IsActive;
+
+        _unitOfWork.Connectors.Update(connector);
+        await _unitOfWork.SaveAsync();
+
+        await _auditService.LogMutationAsync(
+            Guid.Empty,
+            actorUserName,
+            nameof(Connector),
+            connector.Id,
+            "Update",
+            $"{{\"nameEn\":\"{connector.Name.Translate("en")}\",\"nameEt\":\"{connector.Name.Translate("et")}\",\"isActive\":{connector.IsActive.ToString().ToLowerInvariant()}}}");
+
+        return ServiceResult<AdminConnectorTypeFormDto>.Ok(BllDtoFactory.CreateAdminConnectorTypeFormDto(connector));
+    }
+
+    public async Task<ServiceResult> DeleteConnectorTypeAsync(Guid connectorTypeId, string actorUserName)
+    {
+        if (connectorTypeId == Guid.Empty)
+        {
+            return ServiceResult.Fail("VALIDATION", "Connector type id is required.");
+        }
+
+        var connector = await _unitOfWork.Connectors.GetByIdAsync(connectorTypeId);
+        if (connector == null)
+        {
+            return ServiceResult.Fail("NOT_FOUND", "Connector type not found.");
+        }
+
+        _unitOfWork.Connectors.Remove(connector);
+        await _unitOfWork.SaveAsync();
+
+        await _auditService.LogMutationAsync(
+            Guid.Empty,
+            actorUserName,
+            nameof(Connector),
+            connector.Id,
+            "Delete",
+            null);
+
+        return ServiceResult.Ok();
+    }
 }

@@ -2,11 +2,13 @@ using System.Security.Claims;
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
+using App.DAL.EF;
 using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WebApp.ViewModels.Account;
 
 namespace WebApp.Controllers;
@@ -16,15 +18,18 @@ public class AccountController : Controller
     private readonly IIdentityService _identityService;
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
+    private readonly AppDbContext _context;
 
     public AccountController(
         IIdentityService identityService,
         SignInManager<AppUser> signInManager,
-        UserManager<AppUser> userManager)
+        UserManager<AppUser> userManager,
+        AppDbContext context)
     {
         _identityService = identityService;
         _signInManager = signInManager;
         _userManager = userManager;
+        _context = context;
     }
 
     // GET: /Account/Register (customer)
@@ -133,6 +138,11 @@ public class AccountController : Controller
             return RedirectToAction(nameof(CompanySelection), new { returnUrl = model.ReturnUrl });
         }
 
+        if (await HasDeactivatedCompanyMembershipAsync(userId.Value))
+        {
+            return RedirectToAction(nameof(CompanyDeactivated));
+        }
+
         var loggedInUser = await _userManager.FindByEmailAsync(model.Email);
         if (loggedInUser != null)
         {
@@ -171,6 +181,11 @@ public class AccountController : Controller
         var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
         if (!companiesResult.Success || companiesResult.Data == null || companiesResult.Data.Companies.Count == 0)
         {
+            if (await HasDeactivatedCompanyMembershipAsync(userId.Value))
+            {
+                return RedirectToAction(nameof(CompanyDeactivated));
+            }
+
             await _identityService.LogoutAsync();
             return RedirectToAction(nameof(Login));
         }
@@ -214,6 +229,17 @@ public class AccountController : Controller
         var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
         if (!companiesResult.Success || companiesResult.Data == null)
         {
+            await _identityService.LogoutAsync();
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (companiesResult.Data.Companies.Count == 0)
+        {
+            if (await HasDeactivatedCompanyMembershipAsync(userId.Value))
+            {
+                return RedirectToAction(nameof(CompanyDeactivated));
+            }
+
             await _identityService.LogoutAsync();
             return RedirectToAction(nameof(Login));
         }
@@ -330,6 +356,14 @@ public class AccountController : Controller
         return View();
     }
 
+    // GET: /Account/CompanyDeactivated
+    [Authorize]
+    public IActionResult CompanyDeactivated()
+    {
+        ViewData["MinimalNavigationMode"] = true;
+        return View();
+    }
+
     private Guid? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -376,5 +410,23 @@ public class AccountController : Controller
 
         segments[0] = targetCompanySlug;
         return "/" + string.Join('/', segments) + queryPart + hashPart;
+    }
+
+    private async Task<bool> HasDeactivatedCompanyMembershipAsync(Guid userId)
+    {
+        if (userId == Guid.Empty)
+        {
+            return false;
+        }
+
+        return await _context.AppUserCompanies
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Include(uc => uc.Company)
+            .AnyAsync(uc =>
+                uc.AppUserId == userId
+                && uc.IsActive
+                && uc.Company != null
+                && !uc.Company.IsActive);
     }
 }

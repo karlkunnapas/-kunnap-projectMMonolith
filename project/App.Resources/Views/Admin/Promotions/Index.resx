@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" use="required" type="xsd:string" />
+              <xsd:attribute name="mimetype" use="required" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="type" use="required" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" use="required" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="reSamplesDir">
+    <value>../../../samples</value>
+  </resheader>
+  <resheader name="reSamplesUrl">
+    <value>http://go.microsoft.com/fwlink/?LinkID=131897</value>
+  </resheader>
+  <resheader name="reTodoComment">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="reSamplesString">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ActiveStatus" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="ActionsHeader" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="CodeHeader" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="CreateButtonLabel" xml:space="preserve">
+    <value>New Promotion</value>
+  </data>
+  <data name="DeleteConfirm" xml:space="preserve">
+    <value>Are you sure you want to delete this promotion?</value>
+  </data>
+  <data name="DiscountHeader" xml:space="preserve">
+    <value>Discount</value>
+  </data>
+  <data name="InactiveStatus" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="NoPromos" xml:space="preserve">
+    <value>No system promotions found.</value>
+  </data>
+  <data name="StatusHeader" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>System Promotions</value>
+  </data>
+  <data name="ValidFromHeader" xml:space="preserve">
+    <value>Valid From</value>
+  </data>
+  <data name="ValidToHeader" xml:space="preserve">
+    <value>Valid To</value>
+  </data>
+</root>

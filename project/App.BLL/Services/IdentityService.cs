@@ -57,7 +57,7 @@ public class IdentityService : IIdentityService
         // Get all AppUserCompany records for this user across all tenants
         // Need to ignore query filters to see all companies
         var userCompanies = await _context.AppUserCompanies
-            .Where(uc => uc.AppUserId == userId && uc.IsActive)
+            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive)
             .Include(uc => uc.Company)
             .ToListAsync();
 

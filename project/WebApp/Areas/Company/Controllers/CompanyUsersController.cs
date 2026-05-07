@@ -289,7 +289,7 @@ public class CompanyUsersController : Controller
 
         return await _context.AppUserCompanies
             .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId.Value && uc.IsActive && uc.Role == ECompanyRole.Owner)
+            .Where(uc => uc.AppUserId == userId.Value && uc.IsActive && uc.Company != null && uc.Company.IsActive && uc.Role == ECompanyRole.Owner)
             .OrderByDescending(uc => uc.JoinedAtUtc)
             .Select(uc => uc.CompanyId)
             .ToListAsync();

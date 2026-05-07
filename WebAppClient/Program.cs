@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using System.Globalization;
+using WebAppClient.Filters;
 using WebAppClient.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +27,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "App.Resources");
 builder.Services.AddControllersWithViews()
+    .AddMvcOptions(options => options.Filters.AddService<EnsureActiveCompanyAccessFilter>())
     .AddViewLocalization()
     .AddDataAnnotationsLocalization();
 
@@ -50,6 +52,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 });
 builder.Services.AddScoped<IApiClient, ApiClient>();
+builder.Services.AddScoped<EnsureActiveCompanyAccessFilter>();
 
 var app = builder.Build();
 

@@ -78,6 +78,9 @@
   <data name="AdminMaintenances" xml:space="preserve">
     <value>Maintenances</value>
   </data>
+  <data name="AdminSystemPromotions" xml:space="preserve">
+    <value>System Promotions</value>
+  </data>
   <data name="AdminAuditLogs" xml:space="preserve">
     <value>Audit Logs</value>
   </data>

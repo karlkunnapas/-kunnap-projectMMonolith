@@ -185,7 +185,7 @@ public class DashboardController : Controller
 
         return await _context.AppUserCompanies
             .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Role >= ECompanyRole.Manager)
+            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive && uc.Role >= ECompanyRole.Manager)
             .OrderByDescending(uc => uc.JoinedAtUtc)
             .Select(uc => uc.CompanyId)
             .ToListAsync();

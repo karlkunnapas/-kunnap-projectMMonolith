@@ -35,6 +35,10 @@
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>CompanySelection.Designer.cs</LastGenOutput>
       </EmbeddedResource>
+      <EmbeddedResource Update="Views\Account\CompanyDeactivated.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>CompanyDeactivated.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
       <EmbeddedResource Update="Views\Root\Vehicle\Index.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>Index.Designer.cs</LastGenOutput>
@@ -192,6 +196,11 @@
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>CompanySelection.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Views\Account\CompanyDeactivated.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>CompanyDeactivated.resx</DependentUpon>
       </Compile>
       <Compile Update="Views\Root\Vehicle\Index.Designer.cs">
         <DesignTime>True</DesignTime>

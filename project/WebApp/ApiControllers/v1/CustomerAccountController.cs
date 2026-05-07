@@ -126,6 +126,29 @@ public class CustomerAccountController : ControllerBase
         return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
+    /// <summary>
+    /// Returns true when user has active memberships but all linked companies are deactivated.
+    /// </summary>
+    [HttpGet("has-deactivated-company-membership")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<ActionResult<bool>> HasDeactivatedCompanyMembership()
+    {
+        var userId = User.UserId();
+
+        var hasDeactivatedMembership = await _context.AppUserCompanies
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Include(uc => uc.Company)
+            .AnyAsync(uc =>
+                uc.AppUserId == userId
+                && uc.IsActive
+                && uc.Company != null
+                && !uc.Company.IsActive);
+
+        return Ok(hasDeactivatedMembership);
+    }
+
     private async Task<JWTResponse> GenerateJwtResponseAsync(AppUser appUser, int? jwtExpiresInSeconds, int? refreshTokenExpiresInSeconds)
     {
         var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);

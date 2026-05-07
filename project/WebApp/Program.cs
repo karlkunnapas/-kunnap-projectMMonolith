@@ -1,6 +1,7 @@
 using App.BLL.Services;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
+using WebApp.Filters;
 using WebApp.Helpers;
 using WebApp.Setup;
 
@@ -33,6 +34,7 @@ builder.Services.AddScoped<IOperatorDashboardService, OperatorDashboardService>(
 builder.Services.AddScoped<IAdminPanelService, AdminPanelService>();
 builder.Services.AddScoped<IChargingStationCompanyService, ChargingStationCompanyService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<EnsureActiveCompanyAccessFilter>();
 
 // Build and configure pipeline
 var app = builder.Build();

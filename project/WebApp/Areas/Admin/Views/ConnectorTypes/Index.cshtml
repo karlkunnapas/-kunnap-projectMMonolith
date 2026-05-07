@@ -1,0 +1,80 @@
+@model WebApp.Areas.Admin.ViewModels.AdminConnectorTypeListViewModel
+@{
+    ViewData["Title"] = App.Resources.Views.Admin.ConnectorTypes.Index.Title;
+}
+
+<div class="home-page reservation-page">
+    <section class="home-content">
+        <div class="vehicle-header-row">
+            <h2>@App.Resources.Views.Admin.ConnectorTypes.Index.Heading</h2>
+        </div>
+
+        @if (TempData["ErrorMessage"] is string error && !string.IsNullOrWhiteSpace(error))
+        {
+            <div class="admin-feedback admin-feedback-error">@error</div>
+        }
+        @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
+        {
+            <div class="admin-feedback admin-feedback-success">@success</div>
+        }
+
+        <form method="get" class="station-card dashboard-filter-card">
+            <div class="station-details reservation-form-grid vehicle-form-grid">
+                <div class="vehicle-form-field">
+                    <label class="home-filters-title">@App.Resources.Views.Admin.ConnectorTypes.Index.Search</label>
+                    <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="@App.Resources.Views.Admin.ConnectorTypes.Index.SearchPlaceholder" />
+                </div>
+                <div class="station-actions vehicle-actions">
+                    <button type="submit" class="station-button">@App.Resources.Views.Admin.ConnectorTypes.Index.ApplySearch</button>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="ConnectorTypes" asp-action="Create">@App.Resources.Views.Admin.ConnectorTypes.Index.AddConnectorType</a>
+                    <a class="filter-chip" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">@App.Resources.Views.Admin.ConnectorTypes.Index.DashboardAction</a>
+                </div>
+            </div>
+        </form>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="station-empty">@App.Resources.Views.Admin.ConnectorTypes.Index.NoConnectorTypes</div>
+        }
+        else
+        {
+            <div class="station-card">
+                <div class="station-details">
+                    <div class="station-name">@App.Resources.Views.Admin.ConnectorTypes.Index.TableHeading</div>
+                    <div class="operator-table">
+                        <div class="operator-table-row operator-table-head">
+                            <div>@App.Resources.Views.Admin.ConnectorTypes.Index.Name</div>
+                            <div>@App.Resources.Views.Admin.ConnectorTypes.Index.Status</div>
+                            <div>@App.Resources.Views.Admin.ConnectorTypes.Index.Actions</div>
+                        </div>
+                        @foreach (var item in Model.Items)
+                        {
+                            <div class="operator-table-row">
+                                <div class="station-name">@item.Name</div>
+                                <div>
+                                    <span class="filter-chip">@(
+                                        item.IsActive
+                                            ? App.Resources.Views.Admin.ConnectorTypes.Index.Active
+                                            : App.Resources.Views.Admin.ConnectorTypes.Index.Inactive)</span>
+                                </div>
+                                <div>
+                                    <a class="station-button station-button-success"
+                                       asp-area="Admin"
+                                       asp-controller="ConnectorTypes"
+                                       asp-action="Edit"
+                                       asp-route-id="@item.ConnectorTypeId">
+                                        @App.Resources.Views.Admin.ConnectorTypes.Index.Edit
+                                    </a>
+                                    <form asp-area="Admin" asp-controller="ConnectorTypes" asp-action="Delete" asp-route-id="@item.ConnectorTypeId" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="station-button station-button-danger">@App.Resources.Views.Admin.ConnectorTypes.Index.Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+</div>

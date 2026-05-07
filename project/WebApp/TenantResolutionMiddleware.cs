@@ -98,12 +98,9 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         if (!company.IsActive)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            var inactive = new LangStr
-            {
-                ["en"] = "Company is deactivated.",
-                ["et"] = "Ettevote on deaktiveeritud."
-            };
-            await context.Response.WriteAsync(inactive.Translate() ?? "Company is deactivated.");
+            context.Request.Path = "/Account/CompanyDeactivated";
+            context.Items["DeactivatedCompanySlug"] = first;
+            await next(context);
             return;
         }
 
@@ -122,7 +119,7 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
                 return;
             }
 
-            var isSystemUser = context.User.IsInRole("root") || context.User.IsInRole("Admin");
+            var isSystemUser = context.User.IsInRole("root") || context.User.IsInRole("Admin") || context.User.IsInRole("SystemAdmin");
             if (!isSystemUser)
             {
                 var hasMembership = await db.AppUserCompanies

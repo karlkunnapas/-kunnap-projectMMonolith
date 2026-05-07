@@ -9,6 +9,7 @@
     var companyRole = EnumParser.ParseCompanyRole(selectedCompanyRole ?? "Employee");
     var canAccessManagerFeatures = companyRole >= ECompanyRole.Manager;
     var canManageUsers = companyRole == ECompanyRole.Owner;
+    var minimalNavigationMode = (ViewData["MinimalNavigationMode"] as bool?) == true;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +27,11 @@
 <div class="app-shell">
     <aside class="app-sidebar">
         <div class="app-brand">
-            @if (isCompanyUser && !string.IsNullOrWhiteSpace(selectedCompanySlug))
+            @if (minimalNavigationMode)
+            {
+                <span>@appName</span>
+            }
+            else if (isCompanyUser && !string.IsNullOrWhiteSpace(selectedCompanySlug))
             {
                 @if (canAccessManagerFeatures)
                 {
@@ -58,7 +63,10 @@
                     }
                     else
                     {
-                        <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                        @if (!minimalNavigationMode)
+                        {
+                            <a asp-area="" asp-controller="Home" asp-action="Index">@App.Resources.Views.Shared._Layout.Home</a>
+                        }
                     }
                 </li>
                 @if (isCompanyUser)

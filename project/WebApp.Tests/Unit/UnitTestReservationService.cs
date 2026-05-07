@@ -65,7 +65,17 @@ public class UnitTestReservationService
             MaxPower = 150,
             IsActive = true
         };
+        var company = new Company
+        {
+            Id = station.CompanyId!.Value,
+            Name = new LangStr("Discount Company"),
+            ContactEmail = "discount-company@test.local",
+            ContactPhone = "+3725000000",
+            Slug = "discount-company",
+            IsActive = true
+        };
 
+        context.Companies.Add(company);
         context.ChargingStations.Add(station);
         await context.SaveChangesAsync();
 

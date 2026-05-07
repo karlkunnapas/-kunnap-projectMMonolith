@@ -250,6 +250,277 @@ public class UnitTestAdminPanelService
         Assert.Equal("North Hub", result.Data.Items[0].Name);
     }
 
+    [Fact]
+    public async Task GetSystemPromotionsAsync_ReturnsAllSystemLevelPromotions()
+    {
+        await using var context = BuildContext();
+
+        var systemPromotion1 = new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = "SYSTEM10",
+            DiscountValue = 10m,
+            ValidFrom = DateTime.UtcNow.AddDays(-1),
+            ValidTo = DateTime.UtcNow.AddDays(30),
+            IsActive = true,
+            CompanyId = null
+        };
+        var systemPromotion2 = new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = "SYSTEM20",
+            DiscountValue = 20m,
+            ValidFrom = DateTime.UtcNow.AddDays(-1),
+            ValidTo = DateTime.UtcNow.AddDays(60),
+            IsActive = false,
+            CompanyId = null
+        };
+        var companyPromotion = new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = "COMPANY5",
+            DiscountValue = 5m,
+            ValidFrom = DateTime.UtcNow,
+            ValidTo = DateTime.UtcNow.AddDays(30),
+            IsActive = true,
+            CompanyId = Guid.NewGuid()
+        };
+
+        context.Promotions.AddRange(systemPromotion1, systemPromotion2, companyPromotion);
+        await context.SaveChangesAsync();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var result = await sut.GetSystemPromotionsAsync();
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Equal(2, result.Data!.Items.Count);
+        Assert.All(result.Data.Items, p => Assert.True(p.IsSystemLevel));
+    }
+
+    [Fact]
+    public async Task CreateSystemPromotionAsync_CreatesNewPromotion()
+    {
+        await using var context = BuildContext();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var dto = new AdminPromotionFormDto
+        {
+            Code = "NEWSYSTEM",
+            DiscountValue = 15m,
+            ValidFromUtc = DateTime.UtcNow,
+            ValidToUtc = DateTime.UtcNow.AddDays(7),
+            IsActive = true
+        };
+
+        var result = await sut.CreateSystemPromotionAsync(dto, "admin@test.local");
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Equal("NEWSYSTEM", result.Data!.Code);
+        Assert.Equal(15m, result.Data.DiscountValue);
+
+        var savedPromotion = await context.Promotions.FirstOrDefaultAsync(p => p.Code == "NEWSYSTEM");
+        Assert.NotNull(savedPromotion);
+        Assert.Null(savedPromotion.CompanyId);
+    }
+
+    [Fact]
+    public async Task UpdateSystemPromotionAsync_UpdatesExistingPromotion()
+    {
+        await using var context = BuildContext();
+
+        var existingPromo = new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = "OLDCODE",
+            DiscountValue = 10m,
+            ValidFrom = DateTime.UtcNow,
+            ValidTo = DateTime.UtcNow.AddDays(30),
+            IsActive = true,
+            CompanyId = null
+        };
+
+        context.Promotions.Add(existingPromo);
+        await context.SaveChangesAsync();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var dto = new AdminPromotionFormDto
+        {
+            Code = "NEWCODE",
+            DiscountValue = 25m,
+            ValidFromUtc = DateTime.UtcNow,
+            ValidToUtc = DateTime.UtcNow.AddDays(60),
+            IsActive = false
+        };
+
+        var result = await sut.UpdateSystemPromotionAsync(existingPromo.Id, dto, "admin@test.local");
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Equal("NEWCODE", result.Data!.Code);
+        Assert.Equal(25m, result.Data.DiscountValue);
+        Assert.False(result.Data.IsActive);
+    }
+
+    [Fact]
+    public async Task DeleteSystemPromotionAsync_DeletesPromotion()
+    {
+        await using var context = BuildContext();
+
+        var promoToDelete = new Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = "TODELET",
+            DiscountValue = 5m,
+            ValidFrom = DateTime.UtcNow,
+            ValidTo = DateTime.UtcNow.AddDays(30),
+            IsActive = true,
+            CompanyId = null
+        };
+
+        context.Promotions.Add(promoToDelete);
+        await context.SaveChangesAsync();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var result = await sut.DeleteSystemPromotionAsync(promoToDelete.Id, "admin@test.local");
+
+        Assert.True(result.Success);
+
+        var deletedPromo = await context.Promotions.FirstOrDefaultAsync(p => p.Id == promoToDelete.Id);
+        Assert.Null(deletedPromo);
+    }
+
+    [Fact]
+    public async Task GetConnectorTypesAsync_Search_ReturnsMatchingConnectorType()
+    {
+        await using var context = BuildContext();
+        context.Connectors.AddRange(
+            new Connector
+            {
+                Id = Guid.NewGuid(),
+                Name = new LangStr("CCS"),
+                IsActive = true
+            },
+            new Connector
+            {
+                Id = Guid.NewGuid(),
+                Name = new LangStr("CHAdeMO"),
+                IsActive = false
+            });
+        await context.SaveChangesAsync();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var result = await sut.GetConnectorTypesAsync("CCS");
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Single(result.Data!.Items);
+        Assert.Equal("CCS", result.Data.Items[0].Name);
+    }
+
+    [Fact]
+    public async Task CreateConnectorTypeAsync_CreatesConnectorType()
+    {
+        await using var context = BuildContext();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var dto = new AdminConnectorTypeFormDto
+        {
+            NameEn = "Type2",
+            NameEt = "Tüüp2",
+            IsActive = true
+        };
+
+        var result = await sut.CreateConnectorTypeAsync(dto, "admin@test.local");
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Equal("Type2", result.Data!.NameEn);
+        Assert.True(context.Connectors.Any(c => c.Name.Translate("en") == "Type2"));
+    }
+
+    [Fact]
+    public async Task UpdateConnectorTypeAsync_UpdatesConnectorType()
+    {
+        await using var context = BuildContext();
+        var connector = new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr("Type2"),
+            IsActive = true
+        };
+        context.Connectors.Add(connector);
+        await context.SaveChangesAsync();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var dto = new AdminConnectorTypeFormDto
+        {
+            NameEn = "NACS",
+            NameEt = "NACS ET",
+            IsActive = false
+        };
+
+        var result = await sut.UpdateConnectorTypeAsync(connector.Id, dto, "admin@test.local");
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Equal("NACS", result.Data!.NameEn);
+        Assert.False(result.Data.IsActive);
+    }
+
+    [Fact]
+    public async Task DeleteConnectorTypeAsync_DeletesConnectorType()
+    {
+        await using var context = BuildContext();
+        var connector = new Connector
+        {
+            Id = Guid.NewGuid(),
+            Name = new LangStr("Delete me"),
+            IsActive = true
+        };
+        context.Connectors.Add(connector);
+        await context.SaveChangesAsync();
+
+        var userManager = BuildUserManager(context);
+        await using var unitOfWork = new UnitOfWork(context);
+        var auditService = new AuditService(unitOfWork);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+
+        var result = await sut.DeleteConnectorTypeAsync(connector.Id, "admin@test.local");
+
+        Assert.True(result.Success);
+        Assert.Null(await context.Connectors.FirstOrDefaultAsync(c => c.Id == connector.Id));
+    }
+
     private static AppDbContext BuildContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

@@ -113,6 +113,11 @@ public class AccountController : Controller
             var companies = await _apiClient.GetAsync<UserCompaniesResponseDto>("api/v1/customeraccount/companies");
             if (companies.Companies.Count == 0)
             {
+                if (await HasDeactivatedCompanyMembershipAsync())
+                {
+                    return RedirectToAction(nameof(CompanyDeactivated));
+                }
+
                 return RedirectToAction(nameof(LoggedOut));
             }
 
@@ -152,6 +157,17 @@ public class AccountController : Controller
         try
         {
             var companies = await _apiClient.GetAsync<UserCompaniesResponseDto>("api/v1/customeraccount/companies");
+            if (companies.Companies.Count == 0)
+            {
+                if (await HasDeactivatedCompanyMembershipAsync())
+                {
+                    return RedirectToAction(nameof(CompanyDeactivated));
+                }
+
+                await LogoutInternalAsync();
+                return RedirectToAction(nameof(Login));
+            }
+
             var selected = companies.Companies.FirstOrDefault(c => c.CompanyId == model.SelectedCompanyId);
             if (!ModelState.IsValid || selected == null)
             {
@@ -236,6 +252,14 @@ public class AccountController : Controller
         return View();
     }
 
+    [Authorize]
+    [HttpGet]
+    public IActionResult CompanyDeactivated()
+    {
+        ViewData["MinimalNavigationMode"] = true;
+        return View();
+    }
+
     private async Task SignInFromJwtAsync(string jwt, string refreshToken, bool isPersistent)
     {
         _apiClient.SaveTokens(jwt, refreshToken);
@@ -284,6 +308,11 @@ public class AccountController : Controller
             if (companies.Companies.Count > 1)
             {
                 return RedirectToAction(nameof(CompanySelection), new { returnUrl });
+            }
+
+            if (await HasDeactivatedCompanyMembershipAsync())
+            {
+                return RedirectToAction(nameof(CompanyDeactivated));
             }
         }
         catch (ApiException ex)
@@ -361,5 +390,17 @@ public class AccountController : Controller
 
         segments[0] = targetCompanySlug;
         return "/" + string.Join('/', segments) + queryPart + hashPart;
+    }
+
+    private async Task<bool> HasDeactivatedCompanyMembershipAsync()
+    {
+        try
+        {
+            return await _apiClient.GetAsync<bool>("api/v1/customeraccount/has-deactivated-company-membership");
+        }
+        catch (ApiException)
+        {
+            return false;
+        }
     }
 }

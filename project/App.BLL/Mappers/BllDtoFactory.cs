@@ -822,4 +822,72 @@ public static class BllDtoFactory
             PageSize = pageSize
         };
     }
+
+    public static AdminPromotionListItemDto CreateAdminPromotionListItemDto(Promotion promotion)
+    {
+        return new AdminPromotionListItemDto
+        {
+            PromotionId = promotion.Id,
+            Code = promotion.Code,
+            DiscountValue = promotion.DiscountValue,
+            ValidFromUtc = promotion.ValidFrom,
+            ValidToUtc = promotion.ValidTo,
+            IsActive = promotion.IsActive,
+            CompanyName = promotion.Company?.Name?.Translate() ?? promotion.Company?.Name?.ToString() ?? "System Level",
+            IsSystemLevel = !promotion.CompanyId.HasValue
+        };
+    }
+
+    public static AdminPromotionListDto CreateAdminPromotionListDto(List<AdminPromotionListItemDto> items)
+    {
+        return new AdminPromotionListDto
+        {
+            Items = items
+        };
+    }
+
+    public static AdminPromotionFormDto CreateAdminPromotionFormDto(Promotion promotion)
+    {
+        return new AdminPromotionFormDto
+        {
+            PromotionId = promotion.Id,
+            Code = promotion.Code,
+            DiscountValue = promotion.DiscountValue,
+            ValidFromUtc = promotion.ValidFrom,
+            ValidToUtc = promotion.ValidTo,
+            IsActive = promotion.IsActive
+        };
+    }
+
+    public static AdminConnectorTypeListItemDto CreateAdminConnectorTypeListItemDto(Connector connector)
+    {
+        return new AdminConnectorTypeListItemDto
+        {
+            ConnectorTypeId = connector.Id,
+            Name = connector.Name?.Translate() ?? connector.Name?.ToString() ?? string.Empty,
+            IsActive = connector.IsActive
+        };
+    }
+
+    public static AdminConnectorTypeListDto CreateAdminConnectorTypeListDto(
+        string? search,
+        List<AdminConnectorTypeListItemDto> items)
+    {
+        return new AdminConnectorTypeListDto
+        {
+            Search = search,
+            Items = items
+        };
+    }
+
+    public static AdminConnectorTypeFormDto CreateAdminConnectorTypeFormDto(Connector connector)
+    {
+        return new AdminConnectorTypeFormDto
+        {
+            ConnectorTypeId = connector.Id,
+            NameEn = connector.Name?.Translate("en") ?? connector.Name?.Translate() ?? string.Empty,
+            NameEt = connector.Name?.Translate("et") ?? string.Empty,
+            IsActive = connector.IsActive
+        };
+    }
 }
