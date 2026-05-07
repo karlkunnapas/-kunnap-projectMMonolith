@@ -55,6 +55,57 @@ public class UserCompanyItemDto
     public string Role { get; set; } = string.Empty;
 }
 
+public class UserProfileResponseDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+}
+
+public class UpdateUserProfileRequestDto
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+}
+
+public class ChangePasswordRequestDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class TwoFactorStatusResponseDto
+{
+    public bool IsTwoFactorEnabled { get; set; }
+    public int RecoveryCodesLeft { get; set; }
+    public bool HasAuthenticator { get; set; }
+}
+
+public class TwoFactorSetupResponseDto
+{
+    public string SharedKey { get; set; } = string.Empty;
+    public string AuthenticatorUri { get; set; } = string.Empty;
+    public bool IsTwoFactorEnabled { get; set; }
+    public int RecoveryCodesLeft { get; set; }
+}
+
+public class EnableTwoFactorRequestDto
+{
+    public string VerificationCode { get; set; } = string.Empty;
+}
+
+public class TwoFactorRecoveryCodesResponseDto
+{
+    public List<string> RecoveryCodes { get; set; } = new();
+}
+
+public class DeleteAccountRequestDto
+{
+    public string? Password { get; set; }
+}
+
 public class StationSummaryDto
 {
     public Guid Id { get; set; }

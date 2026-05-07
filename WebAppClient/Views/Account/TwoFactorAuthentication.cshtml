@@ -1,0 +1,67 @@
+@model WebApp.ViewModels.Account.TwoFactorViewModel
+@{
+    ViewData["Title"] = "Two-Factor Authentication";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (TempData["StatusMessage"] is string statusMessage && !string.IsNullOrWhiteSpace(statusMessage))
+{
+    <div class="alert alert-info" role="alert">@statusMessage</div>
+}
+
+@if (TempData["RecoveryCodes"] is string recoveryCodes && !string.IsNullOrWhiteSpace(recoveryCodes))
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Save these recovery codes:</strong>
+        <pre class="mt-2 mb-0">@recoveryCodes</pre>
+    </div>
+}
+
+<div class="mb-3">
+    <strong>2FA Enabled:</strong> @(Model.IsTwoFactorEnabled ? "Yes" : "No")<br />
+    <strong>Recovery Codes Left:</strong> @Model.RecoveryCodesLeft
+</div>
+
+@if (!Model.IsTwoFactorEnabled)
+{
+    @if (string.IsNullOrWhiteSpace(Model.SharedKey))
+    {
+        <form asp-action="BeginTwoFactorSetup" method="post">
+            <button type="submit" class="btn btn-primary">Set Up Authenticator App</button>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-secondary" role="alert">
+            <div><strong>Shared Key:</strong> @Model.SharedKey</div>
+            <div class="mt-2"><strong>Authenticator URI:</strong> <code>@Model.AuthenticatorUri</code></div>
+        </div>
+
+        <form asp-action="EnableTwoFactor" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="SharedKey" />
+            <input type="hidden" asp-for="AuthenticatorUri" />
+            <div class="mb-3">
+                <label asp-for="VerificationCode" class="form-label"></label>
+                <input asp-for="VerificationCode" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-success">Enable 2FA</button>
+        </form>
+    }
+}
+else
+{
+    <div class="d-flex gap-2 flex-wrap">
+        <form asp-action="RegenerateRecoveryCodes" method="post">
+            <button type="submit" class="btn btn-outline-primary">Regenerate Recovery Codes</button>
+        </form>
+        <form asp-action="DisableTwoFactor" method="post">
+            <button type="submit" class="btn btn-outline-danger">Disable 2FA</button>
+        </form>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

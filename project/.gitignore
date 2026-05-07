@@ -90,3 +90,16 @@ nunit-*.xml
 
 # coverage reports
 WebApp.Tests/TestResults/*
+WebApp.Tests/coveragereport/
+coverage/
+*.coverage
+*.coveragexml
+
+# local planning/notes artifacts
+IMPLEMENTATION_PLAN*.txt
+STEP*_PLAN*.txt
+openspec/
+Materials/
+.github/prompts/
+.github/skills/
+.github/copilot-instructions.md

@@ -230,6 +230,226 @@ public class AccountController : Controller
     }
 
     [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Manage()
+    {
+        try
+        {
+            var profile = await _apiClient.GetAsync<UserProfileResponseDto>("api/v1/customeraccount/profile");
+            return View(new ManageViewModel
+            {
+                Email = profile.Email,
+                FirstName = profile.FirstName,
+                LastName = profile.LastName,
+                PhoneNumber = profile.PhoneNumber
+            });
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(new ManageViewModel
+            {
+                Email = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name ?? string.Empty
+            });
+        }
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Manage(ManageViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            await _apiClient.PutAsync("api/v1/customeraccount/profile", new UpdateUserProfileRequestDto
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                PhoneNumber = model.PhoneNumber
+            });
+
+            TempData["StatusMessage"] = "Profile updated.";
+            return RedirectToAction(nameof(Manage));
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(model);
+        }
+    }
+
+    [Authorize]
+    [HttpGet]
+    public IActionResult ChangePassword()
+    {
+        return View(new ChangePasswordViewModel());
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            await _apiClient.PostAsync("api/v1/customeraccount/change-password", new ChangePasswordRequestDto
+            {
+                CurrentPassword = model.CurrentPassword,
+                NewPassword = model.NewPassword
+            });
+            TempData["StatusMessage"] = "Password updated.";
+            return RedirectToAction(nameof(ChangePassword));
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(model);
+        }
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> TwoFactorAuthentication()
+    {
+        var model = new TwoFactorViewModel();
+        try
+        {
+            var status = await _apiClient.GetAsync<TwoFactorStatusResponseDto>("api/v1/customeraccount/2fa/status");
+            model.IsTwoFactorEnabled = status.IsTwoFactorEnabled;
+            model.RecoveryCodesLeft = status.RecoveryCodesLeft;
+            model.HasAuthenticator = status.HasAuthenticator;
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+        }
+
+        return View(model);
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BeginTwoFactorSetup()
+    {
+        try
+        {
+            var setup = await _apiClient.PostAsync<TwoFactorSetupResponseDto>("api/v1/customeraccount/2fa/setup", new { });
+            var model = new TwoFactorViewModel
+            {
+                IsTwoFactorEnabled = setup.IsTwoFactorEnabled,
+                RecoveryCodesLeft = setup.RecoveryCodesLeft,
+                SharedKey = setup.SharedKey,
+                AuthenticatorUri = setup.AuthenticatorUri
+            };
+            return View("TwoFactorAuthentication", model);
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View("TwoFactorAuthentication", new TwoFactorViewModel());
+        }
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EnableTwoFactor(TwoFactorViewModel model)
+    {
+        try
+        {
+            var codes = await _apiClient.PostAsync<TwoFactorRecoveryCodesResponseDto>(
+                "api/v1/customeraccount/2fa/enable",
+                new EnableTwoFactorRequestDto { VerificationCode = model.VerificationCode });
+
+            TempData["StatusMessage"] = "Two-factor authentication enabled.";
+            TempData["RecoveryCodes"] = string.Join('\n', codes.RecoveryCodes);
+            return RedirectToAction(nameof(TwoFactorAuthentication));
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return await TwoFactorAuthentication();
+        }
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DisableTwoFactor()
+    {
+        try
+        {
+            await _apiClient.PostAsync("api/v1/customeraccount/2fa/disable");
+            TempData["StatusMessage"] = "Two-factor authentication disabled.";
+        }
+        catch (ApiException ex)
+        {
+            TempData["StatusMessage"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(TwoFactorAuthentication));
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegenerateRecoveryCodes()
+    {
+        try
+        {
+            var codes = await _apiClient.PostAsync<TwoFactorRecoveryCodesResponseDto>("api/v1/customeraccount/2fa/recovery-codes");
+            TempData["StatusMessage"] = "Recovery codes regenerated.";
+            TempData["RecoveryCodes"] = string.Join('\n', codes.RecoveryCodes);
+        }
+        catch (ApiException ex)
+        {
+            TempData["StatusMessage"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(TwoFactorAuthentication));
+    }
+
+    [Authorize]
+    [HttpGet]
+    public IActionResult DeleteAccount()
+    {
+        return View(new DeleteAccountViewModel());
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteAccount(DeleteAccountViewModel model)
+    {
+        try
+        {
+            await _apiClient.PostAsync("api/v1/customeraccount/delete-account", new DeleteAccountRequestDto
+            {
+                Password = model.Password
+            });
+
+            await LogoutInternalAsync();
+            return RedirectToAction(nameof(LoggedOut));
+        }
+        catch (ApiException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(model);
+        }
+    }
+
+    [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
