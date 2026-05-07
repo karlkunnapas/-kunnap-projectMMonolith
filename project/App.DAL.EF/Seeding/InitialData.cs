@@ -16,6 +16,7 @@ public static class InitialData
         Users =
         [
             ("karl@karl.com", "Karl.123", null, ["Customer"]),
+            ("owner@seed.com", "Owner.123", null, ["CompanyOwner"]),
             ("admin@admin.com", "Admin.123", null, ["Admin"]),
         ];
 }
