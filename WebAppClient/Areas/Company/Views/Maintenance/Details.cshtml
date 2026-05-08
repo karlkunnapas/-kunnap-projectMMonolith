@@ -1,10 +1,226 @@
+@using System.Security.Claims
+@using System.Text.Json
 @model WebApp.Areas.Company.ViewModels.MaintenanceDetailsViewModel
 @{
     ViewData["Title"] = App.Resources.Views.Company.Maintenance.Details.Title;
 }
 
+@functions {
+    private sealed class ChangeLine
+    {
+        public string Field { get; init; } = string.Empty;
+        public string Value { get; init; } = string.Empty;
+    }
+
+    private static string ToReadableLabel(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return key;
+        }
+
+        var spaced = System.Text.RegularExpressions.Regex.Replace(key, "([a-z0-9])([A-Z])", "$1 $2");
+        return string.Concat(spaced[0].ToString().ToUpperInvariant(), spaced.AsSpan(1));
+    }
+
+    private static string FormatJsonValue(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString() ?? string.Empty,
+            JsonValueKind.Number => value.GetRawText(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null => "null",
+            _ => value.GetRawText()
+        };
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement obj, string propertyName, out JsonElement result)
+    {
+        foreach (var prop in obj.EnumerateObject())
+        {
+            if (string.Equals(prop.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                result = prop.Value;
+                return true;
+            }
+        }
+
+        result = default;
+        return false;
+    }
+
+    private static bool TryAddTransitionLine(string path, JsonElement obj, List<ChangeLine> lines)
+    {
+        var label = path;
+        if (TryGetPropertyIgnoreCase(obj, "field", out var fieldProp) && fieldProp.ValueKind == JsonValueKind.String)
+        {
+            label = fieldProp.GetString() ?? label;
+        }
+        else if (TryGetPropertyIgnoreCase(obj, "property", out var propertyProp) && propertyProp.ValueKind == JsonValueKind.String)
+        {
+            label = propertyProp.GetString() ?? label;
+        }
+        else if (TryGetPropertyIgnoreCase(obj, "name", out var nameProp) && nameProp.ValueKind == JsonValueKind.String)
+        {
+            label = nameProp.GetString() ?? label;
+        }
+        else if (TryGetPropertyIgnoreCase(obj, "key", out var keyProp) && keyProp.ValueKind == JsonValueKind.String)
+        {
+            label = keyProp.GetString() ?? label;
+        }
+        else if (TryGetPropertyIgnoreCase(obj, "path", out var pathProp) && pathProp.ValueKind == JsonValueKind.String)
+        {
+            var rawPath = pathProp.GetString() ?? string.Empty;
+            label = rawPath.Trim().TrimStart('/').Replace("/", ".");
+        }
+
+        var hasOld = TryGetPropertyIgnoreCase(obj, "old", out var oldValue) || TryGetPropertyIgnoreCase(obj, "oldValue", out oldValue);
+        var hasNew = TryGetPropertyIgnoreCase(obj, "new", out var newValue) || TryGetPropertyIgnoreCase(obj, "newValue", out newValue);
+        var hasFrom = TryGetPropertyIgnoreCase(obj, "from", out var fromValue);
+        var hasTo = TryGetPropertyIgnoreCase(obj, "to", out var toValue);
+        var hasCurrent = TryGetPropertyIgnoreCase(obj, "current", out var currentValue) || TryGetPropertyIgnoreCase(obj, "value", out currentValue);
+        var hasPrevious = TryGetPropertyIgnoreCase(obj, "previous", out var previousValue);
+
+        if (hasOld || hasNew)
+        {
+            lines.Add(new ChangeLine
+            {
+                Field = string.IsNullOrWhiteSpace(label) ? "Value" : ToReadableLabel(label),
+                Value = $"{(hasOld ? FormatJsonValue(oldValue) : "-")} -> {(hasNew ? FormatJsonValue(newValue) : "-")}"
+            });
+            return true;
+        }
+
+        if (hasFrom || hasTo)
+        {
+            lines.Add(new ChangeLine
+            {
+                Field = string.IsNullOrWhiteSpace(label) ? "Value" : ToReadableLabel(label),
+                Value = $"{(hasFrom ? FormatJsonValue(fromValue) : "-")} -> {(hasTo ? FormatJsonValue(toValue) : "-")}"
+            });
+            return true;
+        }
+
+        if (hasPrevious || hasCurrent)
+        {
+            lines.Add(new ChangeLine
+            {
+                Field = string.IsNullOrWhiteSpace(label) ? "Value" : ToReadableLabel(label),
+                Value = $"{(hasPrevious ? FormatJsonValue(previousValue) : "-")} -> {(hasCurrent ? FormatJsonValue(currentValue) : "-")}"
+            });
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void FlattenChangeElement(string path, JsonElement value, List<ChangeLine> lines)
+    {
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            if (TryAddTransitionLine(path, value, lines))
+            {
+                return;
+            }
+
+            var hadProperties = false;
+            foreach (var child in value.EnumerateObject())
+            {
+                hadProperties = true;
+                var childPath = string.IsNullOrEmpty(path) ? child.Name : $"{path}.{child.Name}";
+                FlattenChangeElement(childPath, child.Value, lines);
+            }
+
+            if (!hadProperties && !string.IsNullOrEmpty(path))
+            {
+                lines.Add(new ChangeLine { Field = ToReadableLabel(path), Value = "{}" });
+            }
+
+            return;
+        }
+
+        if (value.ValueKind == JsonValueKind.Array)
+        {
+            // Common audit shape: array of change records with field + old/new.
+            var isLikelyChangeRecordArray = true;
+            var tempLines = new List<ChangeLine>();
+            foreach (var arrayItem in value.EnumerateArray())
+            {
+                if (arrayItem.ValueKind != JsonValueKind.Object || !TryAddTransitionLine(path, arrayItem, tempLines))
+                {
+                    isLikelyChangeRecordArray = false;
+                    break;
+                }
+            }
+
+            if (isLikelyChangeRecordArray)
+            {
+                lines.AddRange(tempLines);
+                return;
+            }
+
+            var index = 0;
+            foreach (var arrayItem in value.EnumerateArray())
+            {
+                FlattenChangeElement($"{path}[{index}]", arrayItem, lines);
+                index++;
+            }
+
+            if (index == 0 && !string.IsNullOrEmpty(path))
+            {
+                lines.Add(new ChangeLine { Field = ToReadableLabel(path), Value = "[]" });
+            }
+
+            return;
+        }
+
+        lines.Add(new ChangeLine
+        {
+            Field = string.IsNullOrWhiteSpace(path) ? "Value" : ToReadableLabel(path),
+            Value = FormatJsonValue(value)
+        });
+    }
+
+    private static List<ChangeLine>? TryParseChangeLines(string rawChanges)
+    {
+        try
+        {
+            using var jsonDoc = JsonDocument.Parse(rawChanges);
+            var root = jsonDoc.RootElement;
+
+            if (root.ValueKind == JsonValueKind.String)
+            {
+                var nested = root.GetString();
+                if (!string.IsNullOrWhiteSpace(nested))
+                {
+                    return TryParseChangeLines(nested);
+                }
+            }
+
+            var lines = new List<ChangeLine>();
+            FlattenChangeElement(string.Empty, root, lines);
+            return lines;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+}
+
 <div class="home-page reservation-page">
     <section class="home-content">
+        @if (TempData["MaintenanceAssignSuccess"] is string assignSuccess && !string.IsNullOrWhiteSpace(assignSuccess))
+        {
+            <div class="alert alert-success" role="alert">@assignSuccess</div>
+        }
+        @if (TempData["MaintenanceAssignError"] is string assignError && !string.IsNullOrWhiteSpace(assignError))
+        {
+            <div class="alert alert-danger" role="alert">@assignError</div>
+        }
+
         <div class="vehicle-header-row">
             <h2>@App.Resources.Views.Company.Maintenance.Details.Heading</h2>
             <div class="vehicle-actions">
@@ -83,17 +299,36 @@
         <div class="station-card">
             <div class="station-details">
                 <div class="station-name">@App.Resources.Views.Company.Maintenance.Details.AssignmentHeading</div>
-                <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Assign" class="vehicle-actions">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="companyId" value="@Model.CompanyId" />
-                    <input type="hidden" name="id" value="@Model.Id" />
-                    <button type="submit" name="assignedToUserId" value="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" class="station-button">
-                        @App.Resources.Views.Company.Maintenance.Details.AssignToMe
-                    </button>
-                    <button type="submit" name="assignedToUserId" value="" class="filter-chip">
-                        @App.Resources.Views.Company.Maintenance.Details.ClearAssignment
-                    </button>
-                </form>
+                @{
+                    var currentUserIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    var currentUserId = Guid.TryParse(currentUserIdValue, out var parsedCurrentUserId) ? parsedCurrentUserId : (Guid?)null;
+                    var isAssignedToCurrentUser = currentUserId.HasValue && Model.AssignedToUserId == currentUserId.Value;
+                }
+                <div class="vehicle-actions">
+                    @if (isAssignedToCurrentUser)
+                    {
+                        <button type="button" class="station-button" disabled>Assigned to you</button>
+                    }
+                    else
+                    {
+                        <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="AssignToMe">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="station-button">
+                                @App.Resources.Views.Company.Maintenance.Details.AssignToMe
+                            </button>
+                        </form>
+                    }
+                    <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="ClearAssignment">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="filter-chip">
+                            @App.Resources.Views.Company.Maintenance.Details.ClearAssignment
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -106,7 +341,7 @@
                 }
                 else
                 {
-                    <div class="operator-table">
+                    <div class="operator-table maintenance-history-table">
                         <div class="operator-table-row operator-table-head">
                             <div>@App.Resources.Views.Company.Maintenance.Details.HistoryAt</div>
                             <div>@App.Resources.Views.Company.Maintenance.Details.HistoryAction</div>
@@ -119,7 +354,32 @@
                                 <div>@item.AtUtc.ToString("u")</div>
                                 <div>@item.Action</div>
                                 <div>@item.Actor</div>
-                                <div>@item.Changes</div>
+                                <div class="maintenance-history-changes">
+                                    @{
+                                        if (string.IsNullOrWhiteSpace(item.Changes))
+                                        {
+                                            <span>-</span>
+                                        }
+                                        else
+                                        {
+                                            var parsedLines = TryParseChangeLines(item.Changes);
+                                            if (parsedLines is { Count: > 0 })
+                                            {
+                                                foreach (var line in parsedLines)
+                                                {
+                                                    <div class="maintenance-history-change-row">
+                                                        <span class="maintenance-history-change-key">@line.Field:</span>
+                                                        <span class="maintenance-history-change-values">@line.Value</span>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="maintenance-history-raw">@item.Changes</span>
+                                            }
+                                        }
+                                    }
+                                </div>
                             </div>
                         }
                     </div>

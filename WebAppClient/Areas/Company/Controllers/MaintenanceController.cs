@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebApp.Areas.Company.ViewModels;
 using WebAppClient.Helpers;
 using WebAppClient.Models;
@@ -110,15 +111,52 @@ public class MaintenanceController : CompanyBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Assign(Guid companyId, Guid id, Guid? assignedToUserId)
     {
+        return await AssignInternal(companyId, id, assignedToUserId, successMessage: "Assignment updated.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignToMe(Guid companyId, Guid id)
+    {
+        var currentUserIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(currentUserIdValue, out var currentUserId))
+        {
+            TempData["MaintenanceAssignError"] = "Could not resolve current user.";
+            return RedirectToAction(nameof(Details), new { id, companyId });
+        }
+
+        return await AssignInternal(companyId, id, currentUserId, successMessage: "Issue assigned to you.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearAssignment(Guid companyId, Guid id)
+    {
+        return await AssignInternal(companyId, id, null, successMessage: "Assignment cleared.");
+    }
+
+    private async Task<IActionResult> AssignInternal(Guid companyId, Guid id, Guid? assignedToUserId, string successMessage)
+    {
         var company = await ResolveCompanyAsync(companyId);
-        if (company == null || !HasManagerAccess(company.Value.Role))
+        if (company == null)
         {
             return Forbid();
         }
 
-        await ApiClient.PatchAsync<MaintenanceIssueResponseDto>(
-            $"api/v1/company/{company.Value.CompanyId}/maintenance/{id}/assign",
-            new MaintenanceAssignmentRequestDto { AssignedToUserId = assignedToUserId });
+        try
+        {
+            await ApiClient.PatchAsync<MaintenanceIssueResponseDto>(
+                $"api/v1/company/{company.Value.CompanyId}/maintenance/{id}/assign",
+                new MaintenanceAssignmentRequestDto { AssignedToUserId = assignedToUserId });
+
+            TempData["MaintenanceAssignSuccess"] = successMessage;
+        }
+        catch (ApiException ex)
+        {
+            TempData["MaintenanceAssignError"] = string.IsNullOrWhiteSpace(ex.Message)
+                ? "Unable to update assignment."
+                : ex.Message;
+        }
 
         return RedirectToAction(nameof(Details), new { id, companyId = company.Value.CompanyId });
     }

@@ -592,6 +592,39 @@ body {
     font-weight: 700;
 }
 
+.maintenance-history-table .operator-table-row {
+    grid-template-columns: minmax(150px, 1fr) minmax(110px, 0.8fr) minmax(120px, 0.8fr) minmax(260px, 2fr);
+    align-items: start;
+}
+
+.maintenance-history-changes {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.maintenance-history-change-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.maintenance-history-change-row:last-child {
+    margin-bottom: 0;
+}
+
+.maintenance-history-change-key {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.maintenance-history-change-values,
+.maintenance-history-raw {
+    color: #4b5563;
+}
+
 .trend-card .station-details {
     display: flex;
     flex-direction: column;

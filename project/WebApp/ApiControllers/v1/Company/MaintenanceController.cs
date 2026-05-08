@@ -159,7 +159,7 @@ public class MaintenanceController : ControllerBase
     public async Task<ActionResult<MaintenanceIssueResponse>> AssignIssue(Guid companyId, Guid id, [FromBody] MaintenanceAssignment request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId, ECompanyRole.Manager))
+        if (!await IsCompanyMemberAsync(companyId, userId, ECompanyRole.Employee))
         {
             return Forbid();
         }
