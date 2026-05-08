@@ -3,6 +3,21 @@
 @model WebApp.Areas.Company.ViewModels.MaintenanceDetailsViewModel
 @{
     ViewData["Title"] = App.Resources.Views.Company.Maintenance.Details.Title;
+    var assignSuccessKey = TempData["MaintenanceAssignSuccessKey"] as string;
+    var assignErrorKey = TempData["MaintenanceAssignErrorKey"] as string;
+    var assignSuccessText = assignSuccessKey switch
+    {
+        "AssignmentUpdatedSuccess" => App.Resources.Views.Company.Maintenance.Details.AssignmentUpdatedSuccess,
+        "AssignedToYouSuccess" => App.Resources.Views.Company.Maintenance.Details.AssignedToYouSuccess,
+        "AssignmentClearedSuccess" => App.Resources.Views.Company.Maintenance.Details.AssignmentClearedSuccess,
+        _ => null
+    };
+    var assignErrorTextFromKey = assignErrorKey switch
+    {
+        "AssignmentUpdateFailed" => App.Resources.Views.Company.Maintenance.Details.AssignmentUpdateFailed,
+        "CurrentUserResolutionFailed" => App.Resources.Views.Company.Maintenance.Details.CurrentUserResolutionFailed,
+        _ => null
+    };
 }
 
 @functions {
@@ -212,13 +227,17 @@
 
 <div class="home-page reservation-page">
     <section class="home-content">
-        @if (TempData["MaintenanceAssignSuccess"] is string assignSuccess && !string.IsNullOrWhiteSpace(assignSuccess))
+        @if (!string.IsNullOrWhiteSpace(assignSuccessText))
         {
-            <div class="alert alert-success" role="alert">@assignSuccess</div>
+            <div class="alert alert-success" role="alert">@assignSuccessText</div>
         }
         @if (TempData["MaintenanceAssignError"] is string assignError && !string.IsNullOrWhiteSpace(assignError))
         {
             <div class="alert alert-danger" role="alert">@assignError</div>
+        }
+        else if (!string.IsNullOrWhiteSpace(assignErrorTextFromKey))
+        {
+            <div class="alert alert-danger" role="alert">@assignErrorTextFromKey</div>
         }
 
         <div class="vehicle-header-row">
@@ -307,7 +326,9 @@
                 <div class="vehicle-actions">
                     @if (isAssignedToCurrentUser)
                     {
-                        <button type="button" class="station-button" disabled>Assigned to you</button>
+                        <button type="button" class="station-button" disabled>
+                            @App.Resources.Views.Company.Maintenance.Details.AssignedToYou
+                        </button>
                     }
                     else
                     {

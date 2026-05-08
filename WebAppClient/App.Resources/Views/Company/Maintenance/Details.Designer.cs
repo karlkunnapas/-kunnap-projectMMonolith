@@ -58,5 +58,11 @@ namespace App.Resources.Views.Company.Maintenance {
         public static string HistoryAction => ResourceManager.GetString("HistoryAction", resourceCulture);
         public static string HistoryActor => ResourceManager.GetString("HistoryActor", resourceCulture);
         public static string HistoryChanges => ResourceManager.GetString("HistoryChanges", resourceCulture);
+        public static string AssignedToYou => ResourceManager.GetString("AssignedToYou", resourceCulture);
+        public static string AssignmentUpdatedSuccess => ResourceManager.GetString("AssignmentUpdatedSuccess", resourceCulture);
+        public static string AssignedToYouSuccess => ResourceManager.GetString("AssignedToYouSuccess", resourceCulture);
+        public static string AssignmentClearedSuccess => ResourceManager.GetString("AssignmentClearedSuccess", resourceCulture);
+        public static string AssignmentUpdateFailed => ResourceManager.GetString("AssignmentUpdateFailed", resourceCulture);
+        public static string CurrentUserResolutionFailed => ResourceManager.GetString("CurrentUserResolutionFailed", resourceCulture);
     }
 }

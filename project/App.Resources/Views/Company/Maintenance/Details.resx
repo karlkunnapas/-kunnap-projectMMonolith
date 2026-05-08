@@ -32,4 +32,10 @@
   <data name="HistoryAction" xml:space="preserve"><value>Action</value></data>
   <data name="HistoryActor" xml:space="preserve"><value>Actor</value></data>
   <data name="HistoryChanges" xml:space="preserve"><value>Changes</value></data>
+  <data name="AssignedToYou" xml:space="preserve"><value>Assigned to you</value></data>
+  <data name="AssignmentUpdatedSuccess" xml:space="preserve"><value>Assignment updated.</value></data>
+  <data name="AssignedToYouSuccess" xml:space="preserve"><value>Issue assigned to you.</value></data>
+  <data name="AssignmentClearedSuccess" xml:space="preserve"><value>Assignment cleared.</value></data>
+  <data name="AssignmentUpdateFailed" xml:space="preserve"><value>Unable to update assignment.</value></data>
+  <data name="CurrentUserResolutionFailed" xml:space="preserve"><value>Could not resolve current user.</value></data>
 </root>
