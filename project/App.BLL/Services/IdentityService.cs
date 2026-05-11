@@ -1,12 +1,11 @@
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF;
-using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using Shared.Contracts.Users;
 using System.Security.Claims;
 
@@ -20,23 +19,20 @@ public class IdentityService : IIdentityService
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
     private readonly IUsersModuleApi _usersModuleApi;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly IAuditService _auditService;
 
     public IdentityService(
         SignInManager<AppUser> signInManager,
         UserManager<AppUser> userManager,
         IUsersModuleApi usersModuleApi,
-        IUnitOfWork unitOfWork,
-        AppDbContext context,
+        ICompaniesModuleApi companiesModuleApi,
         IAuditService auditService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _usersModuleApi = usersModuleApi;
-        _unitOfWork = unitOfWork;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
         _auditService = auditService;
     }
 
@@ -52,22 +48,25 @@ public class IdentityService : IIdentityService
 
     public async Task<ServiceResult<UserCompanyListResultDto>> GetUserCompaniesAsync(Guid userId)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null)
+        var userExists = await _usersModuleApi.UserExistsAsync(userId);
+        if (!userExists)
         {
             return ServiceResult<UserCompanyListResultDto>.Fail("USER_NOT_FOUND", "User not found.");
         }
 
-        // Get all AppUserCompany records for this user across all tenants
-        // Need to ignore query filters to see all companies
-        var userCompanies = await _context.AppUserCompanies
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive)
-            .Include(uc => uc.Company)
-            .ToListAsync();
-
-        var companyDtos = userCompanies.Select(uc => BllDtoFactory.CreateCompanySelectionItemDto(uc, translatedName: false)).ToList();
-
-        var result = BllDtoFactory.CreateUserCompanyListResultDto(userId, user.Email ?? "", companyDtos);
+        var userCompanies = await _companiesModuleApi.GetUserCompaniesAsync(userId);
+        var companyDtos = userCompanies
+            .Select(uc => new CompanySelectionItemDto
+            {
+                MembershipId = uc.MembershipId,
+                CompanyId = uc.CompanyId,
+                CompanyName = uc.CompanyName,
+                CompanySlug = uc.Slug,
+                Role = uc.Role
+            })
+            .ToList();
+        var userDisplay = await _usersModuleApi.GetUserDisplayNameAsync(userId) ?? string.Empty;
+        var result = BllDtoFactory.CreateUserCompanyListResultDto(userId, userDisplay, companyDtos);
 
         return ServiceResult<UserCompanyListResultDto>.Ok(result);
     }
@@ -85,15 +84,21 @@ public class IdentityService : IIdentityService
             return ServiceResult<List<CompanyUserMembershipDto>>.Fail(ownerValidation.Errors);
         }
 
-        var memberships = await _context.AppUserCompanies
-            .AsNoTracking()
-            .Where(uc => uc.CompanyId == companyId)
-            .Include(uc => uc.AppUser)
-            .OrderByDescending(uc => uc.IsActive)
-            .ThenByDescending(uc => uc.JoinedAtUtc)
-            .ToListAsync();
-
-        var result = memberships.Select(BllDtoFactory.CreateCompanyUserMembershipDto).ToList();
+        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(companyId);
+        var result = new List<CompanyUserMembershipDto>(memberships.Count);
+        foreach (var membership in memberships)
+        {
+            var display = await _usersModuleApi.GetUserDisplayNameAsync(membership.UserId) ?? string.Empty;
+            result.Add(new CompanyUserMembershipDto
+            {
+                MembershipId = membership.MembershipId,
+                UserId = membership.UserId,
+                Email = display,
+                Role = ParseCompanyRole(membership.Role),
+                IsActive = membership.IsActive,
+                JoinedAtUtc = membership.JoinedAtUtc
+            });
+        }
 
         return ServiceResult<List<CompanyUserMembershipDto>>.Ok(result);
     }
@@ -111,17 +116,23 @@ public class IdentityService : IIdentityService
             return ServiceResult<CompanyUserMembershipDto>.Fail(ownerValidation.Errors);
         }
 
-        var membership = await _context.AppUserCompanies
-            .AsNoTracking()
-            .Include(uc => uc.AppUser)
-            .FirstOrDefaultAsync(uc => uc.Id == membershipId && uc.CompanyId == companyId);
+        var membership = await _companiesModuleApi.GetCompanyMembershipAsync(companyId, membershipId);
 
         if (membership == null)
         {
             return ServiceResult<CompanyUserMembershipDto>.Fail("NOT_FOUND", "Membership not found.");
         }
 
-        return ServiceResult<CompanyUserMembershipDto>.Ok(MapMembershipDto(membership));
+        var display = await _usersModuleApi.GetUserDisplayNameAsync(membership.UserId) ?? string.Empty;
+        return ServiceResult<CompanyUserMembershipDto>.Ok(new CompanyUserMembershipDto
+        {
+            MembershipId = membership.MembershipId,
+            UserId = membership.UserId,
+            Email = display,
+            Role = ParseCompanyRole(membership.Role),
+            IsActive = membership.IsActive,
+            JoinedAtUtc = membership.JoinedAtUtc
+        });
     }
 
     public async Task<ServiceResult<AddCompanyUserResultDto>> AddUserToCompanyAsync(
@@ -206,9 +217,7 @@ public class IdentityService : IIdentityService
             return ServiceResult<CompanyUserMembershipDto>.Fail(ownerValidation.Errors);
         }
 
-        var membership = await _context.AppUserCompanies
-            .Include(uc => uc.AppUser)
-            .FirstOrDefaultAsync(uc => uc.Id == membershipId && uc.CompanyId == companyId);
+        var membership = await _companiesModuleApi.GetCompanyMembershipAsync(companyId, membershipId);
 
         if (membership == null)
         {
@@ -220,7 +229,7 @@ public class IdentityService : IIdentityService
             return ServiceResult<CompanyUserMembershipDto>.Fail("MEMBERSHIP_INACTIVE", "Cannot edit inactive membership.");
         }
 
-        if (membership.Role == ECompanyRole.Owner && dto.Role != ECompanyRole.Owner)
+        if (ParseCompanyRole(membership.Role) == ECompanyRole.Owner && dto.Role != ECompanyRole.Owner)
         {
             var lastOwnerCheck = await PreventLastOwnerChangeAsync(companyId);
             if (!lastOwnerCheck.Success)
@@ -229,11 +238,13 @@ public class IdentityService : IIdentityService
             }
         }
 
-        membership.Role = dto.Role;
-        _unitOfWork.AppUserCompanies.Update(membership);
-        await _unitOfWork.SaveAsync();
+        var updatedMembership = await _companiesModuleApi.UpdateCompanyMembershipRoleAsync(companyId, membershipId, dto.Role.ToString());
+        if (updatedMembership == null)
+        {
+            return ServiceResult<CompanyUserMembershipDto>.Fail("NOT_FOUND", "Membership not found.");
+        }
 
-        var targetUser = membership.AppUser;
+        var targetUser = await _userManager.FindByIdAsync(updatedMembership.UserId.ToString());
         if (targetUser != null)
         {
             if (dto.Role == ECompanyRole.Owner)
@@ -258,11 +269,19 @@ public class IdentityService : IIdentityService
             companyId,
             ownerUserName,
             nameof(AppUserCompany),
-            membership.Id,
+            updatedMembership.MembershipId,
             "MembershipRoleUpdated",
-            $"{{\"targetUserId\":\"{membership.AppUserId}\",\"role\":\"{membership.Role}\"}}");
+            $"{{\"targetUserId\":\"{updatedMembership.UserId}\",\"role\":\"{updatedMembership.Role}\"}}");
 
-        return ServiceResult<CompanyUserMembershipDto>.Ok(MapMembershipDto(membership));
+        return ServiceResult<CompanyUserMembershipDto>.Ok(new CompanyUserMembershipDto
+        {
+            MembershipId = updatedMembership.MembershipId,
+            UserId = updatedMembership.UserId,
+            Email = await _usersModuleApi.GetUserDisplayNameAsync(updatedMembership.UserId) ?? string.Empty,
+            Role = ParseCompanyRole(updatedMembership.Role),
+            IsActive = updatedMembership.IsActive,
+            JoinedAtUtc = updatedMembership.JoinedAtUtc
+        });
     }
 
     public async Task<ServiceResult> RemoveCompanyUserAsync(Guid companyId, Guid ownerUserId, string ownerUserName, Guid membershipId)
@@ -278,9 +297,7 @@ public class IdentityService : IIdentityService
             return ServiceResult.Fail(ownerValidation.Errors);
         }
 
-        var membership = await _context.AppUserCompanies
-            .Include(uc => uc.AppUser)
-            .FirstOrDefaultAsync(uc => uc.Id == membershipId && uc.CompanyId == companyId);
+        var membership = await _companiesModuleApi.GetCompanyMembershipAsync(companyId, membershipId);
 
         if (membership == null)
         {
@@ -292,7 +309,7 @@ public class IdentityService : IIdentityService
             return ServiceResult.Fail("MEMBERSHIP_INACTIVE", "Membership is already inactive.");
         }
 
-        if (membership.Role == ECompanyRole.Owner)
+        if (ParseCompanyRole(membership.Role) == ECompanyRole.Owner)
         {
             var lastOwnerCheck = await PreventLastOwnerChangeAsync(companyId);
             if (!lastOwnerCheck.Success)
@@ -301,13 +318,16 @@ public class IdentityService : IIdentityService
             }
         }
 
-        membership.IsActive = false;
-        _unitOfWork.AppUserCompanies.Update(membership);
-        await _unitOfWork.SaveAsync();
-
-        if (membership.AppUser != null)
+        var removedMembership = await _companiesModuleApi.DeactivateCompanyMembershipAsync(companyId, membershipId);
+        if (removedMembership == null)
         {
-            var cleanupResult = await RemoveOwnerRoleIfNoMembershipsAsync(membership.AppUser);
+            return ServiceResult.Fail("NOT_FOUND", "Membership not found.");
+        }
+
+        var membershipUser = await _userManager.FindByIdAsync(removedMembership.UserId.ToString());
+        if (membershipUser != null)
+        {
+            var cleanupResult = await RemoveOwnerRoleIfNoMembershipsAsync(membershipUser);
             if (!cleanupResult.Success)
             {
                 return ServiceResult.Fail("ROLE_ASSIGNMENT_FAILED", cleanupResult.ErrorMessage ?? "Failed to update owner role.");
@@ -318,9 +338,9 @@ public class IdentityService : IIdentityService
             companyId,
             ownerUserName,
             nameof(AppUserCompany),
-            membership.Id,
+            removedMembership.MembershipId,
             "MembershipRemoved",
-            $"{{\"targetUserId\":\"{membership.AppUserId}\",\"role\":\"{membership.Role}\"}}");
+            $"{{\"targetUserId\":\"{removedMembership.UserId}\",\"role\":\"{removedMembership.Role}\"}}");
 
         return ServiceResult.Ok();
     }
@@ -332,12 +352,8 @@ public class IdentityService : IIdentityService
             return ServiceResult<CompanySelectionItemDto>.Fail("VALIDATION", "User and company identifiers are required.");
         }
 
-        var membership = await _context.AppUserCompanies
-            .AsNoTracking()
-            .Include(uc => uc.Company)
-            .FirstOrDefaultAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive);
-
-        if (membership == null || membership.Company == null || !membership.Company.IsActive)
+        var membership = await _companiesModuleApi.GetActiveCompanySelectionAsync(userId, companyId);
+        if (membership == null)
         {
             return ServiceResult<CompanySelectionItemDto>.Fail("FORBIDDEN", "Company selection is not allowed.");
         }
@@ -346,47 +362,28 @@ public class IdentityService : IIdentityService
             companyId,
             actorUserName,
             nameof(AppUserCompany),
-            membership.Id,
+            membership.MembershipId,
             "CompanySwitched",
             $"{{\"userId\":\"{userId}\",\"role\":\"{membership.Role}\"}}");
 
-        return ServiceResult<CompanySelectionItemDto>.Ok(BllDtoFactory.CreateCompanySelectionItemDto(membership, translatedName: true));
+        return ServiceResult<CompanySelectionItemDto>.Ok(new CompanySelectionItemDto
+        {
+            MembershipId = membership.MembershipId,
+            CompanyId = membership.CompanyId,
+            CompanyName = membership.CompanyName,
+            CompanySlug = membership.Slug,
+            Role = membership.Role
+        });
     }
 
     public async Task<ServiceResult<Guid>> RegisterCompanyOwnerAsync(RegisterCompanyOwnerDto dto)
     {
-        // Check for duplicate company slug
-        var existingCompany = await _context.Companies
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(c => c.Slug == dto.CompanySlug.ToLowerInvariant());
-
-        if (existingCompany != null)
-        {
-            return ServiceResult<Guid>.Fail("DUPLICATE_SLUG", "A company with this slug already exists.");
-        }
-
         // Check for duplicate email
         var existingUser = await _userManager.FindByEmailAsync(dto.Email);
         if (existingUser != null)
         {
             return ServiceResult<Guid>.Fail("DUPLICATE_EMAIL", "A user with this email already exists.");
         }
-
-        // Create the company
-        var company = new Company
-        {
-            Id = Guid.NewGuid(),
-            Name = new LangStr(dto.CompanyName),
-            ContactEmail = dto.Email,
-            ContactPhone = dto.PhoneNumber,
-            Slug = dto.CompanySlug.ToLowerInvariant(),
-            IsActive = true,
-        };
-
-        await _unitOfWork.Companies.AddAsync(company);
-
-        // Save to get company ID assigned
-        await _unitOfWork.SaveAsync();
 
         // Create the user via UserManager
         var user = new AppUser
@@ -413,22 +410,22 @@ public class IdentityService : IIdentityService
                 string.Join(", ", ownerRoleResult.Errors.Select(e => e.Description)));
         }
 
-        // Create AppUserCompany linking user to company as Owner
-        var appUserCompany = new AppUserCompany
+        var companyResult = await _companiesModuleApi.CreateCompanyWithOwnerMembershipAsync(new CreateCompanyWithOwnerMembershipContract
         {
-            Id = Guid.NewGuid(),
-            AppUserId = user.Id,
-            CompanyId = company.Id,
-            Role = ECompanyRole.Owner,
-            IsActive = true,
-            JoinedAtUtc = DateTime.UtcNow
-        };
+            OwnerUserId = user.Id,
+            ContactEmail = dto.Email,
+            ContactPhone = dto.PhoneNumber,
+            CompanyName = dto.CompanyName,
+            CompanySlug = dto.CompanySlug
+        });
+        if (!companyResult.Success)
+        {
+            return ServiceResult<Guid>.Fail(
+                companyResult.ErrorCode ?? "COMPANY_CREATION_FAILED",
+                companyResult.ErrorMessage ?? "Company creation failed.");
+        }
 
-        await _unitOfWork.AppUserCompanies.AddAsync(appUserCompany);
-        
-        await _unitOfWork.SaveAsync();
-
-        return ServiceResult<Guid>.Ok(company.Id);
+        return ServiceResult<Guid>.Ok(companyResult.CompanyId);
     }
 
     public async Task<ServiceResult<Guid>> RegisterCustomerAsync(RegisterCustomerDto dto)
@@ -454,32 +451,17 @@ public class IdentityService : IIdentityService
 
     private async Task<ServiceResult> EnsureOwnerAsync(Guid companyId, Guid ownerUserId)
     {
-        var company = await _context.Companies
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == companyId);
-
-        if (company == null)
-        {
-            return ServiceResult.Fail("FORBIDDEN", "Company not found.");
-        }
-
-        if (!company.IsActive)
-        {
-            return ServiceResult.Fail("COMPANY_INACTIVE", "Company is inactive.");
-        }
-
-        var ownerMembership = await _context.AppUserCompanies
-            .AsNoTracking()
-            .FirstOrDefaultAsync(uc =>
-                uc.CompanyId == companyId
-                && uc.AppUserId == ownerUserId
-                && uc.IsActive
-                && uc.Role == ECompanyRole.Owner);
-
-        return ownerMembership == null
+        var hasOwner = await _companiesModuleApi.HasActiveOwnerMembershipAsync(companyId, ownerUserId);
+        return !hasOwner
             ? ServiceResult.Fail("NOT_OWNER", "Only company owners can manage users.")
             : ServiceResult.Ok();
+    }
+
+    private static ECompanyRole ParseCompanyRole(string role)
+    {
+        return Enum.TryParse<ECompanyRole>(role, ignoreCase: true, out var parsed)
+            ? parsed
+            : ECompanyRole.Employee;
     }
 
     private async Task<ServiceResult<AddCompanyUserResultDto>> LinkExistingUserMembershipAsync(
@@ -488,16 +470,14 @@ public class IdentityService : IIdentityService
         AppUser user,
         ECompanyRole role)
     {
-        var membership = await _context.AppUserCompanies
-            .FirstOrDefaultAsync(uc => uc.CompanyId == companyId && uc.AppUserId == user.Id);
-
-        if (membership != null)
+        var existingMembership = await _companiesModuleApi.GetCompanyMembershipByUserAsync(companyId, user.Id);
+        if (existingMembership != null)
         {
-            if (membership.IsActive)
+            if (existingMembership.IsActive)
             {
                 return ServiceResult<AddCompanyUserResultDto>.Ok(BuildAddResult(
                     companyId,
-                    membership.Id,
+                    existingMembership.MembershipId,
                     user.Id,
                     user.Email ?? string.Empty,
                     role,
@@ -507,10 +487,12 @@ public class IdentityService : IIdentityService
                     membershipAlreadyActive: true));
             }
 
-            membership.IsActive = true;
-            membership.Role = role;
-            membership.JoinedAtUtc = DateTime.UtcNow;
-            await _unitOfWork.SaveAsync();
+            var reactivatedMembership = await _companiesModuleApi.UpsertCompanyMembershipAsync(new UpsertCompanyMembershipContract
+            {
+                CompanyId = companyId,
+                UserId = user.Id,
+                Role = role.ToString()
+            });
 
             if (role == ECompanyRole.Owner)
             {
@@ -525,13 +507,13 @@ public class IdentityService : IIdentityService
                 companyId,
                 ownerUserName,
                 nameof(AppUserCompany),
-                membership.Id,
+                reactivatedMembership.Membership.MembershipId,
                 "MembershipReactivated",
                 $"{{\"targetUserId\":\"{user.Id}\",\"email\":\"{user.Email}\",\"role\":\"{role}\"}}");
 
             return ServiceResult<AddCompanyUserResultDto>.Ok(BuildAddResult(
                 companyId,
-                membership.Id,
+                reactivatedMembership.Membership.MembershipId,
                 user.Id,
                 user.Email ?? string.Empty,
                 role,
@@ -541,18 +523,12 @@ public class IdentityService : IIdentityService
                 membershipReactivated: true));
         }
 
-        var newMembership = new AppUserCompany
+        var createdMembership = await _companiesModuleApi.UpsertCompanyMembershipAsync(new UpsertCompanyMembershipContract
         {
-            Id = Guid.NewGuid(),
-            AppUserId = user.Id,
             CompanyId = companyId,
-            Role = role,
-            IsActive = true,
-            JoinedAtUtc = DateTime.UtcNow
-        };
-
-        await _unitOfWork.AppUserCompanies.AddAsync(newMembership);
-        await _unitOfWork.SaveAsync();
+            UserId = user.Id,
+            Role = role.ToString()
+        });
 
         if (role == ECompanyRole.Owner)
         {
@@ -567,13 +543,13 @@ public class IdentityService : IIdentityService
             companyId,
             ownerUserName,
             nameof(AppUserCompany),
-            newMembership.Id,
+            createdMembership.Membership.MembershipId,
             "ExistingUserLinked",
             $"{{\"targetUserId\":\"{user.Id}\",\"email\":\"{user.Email}\",\"role\":\"{role}\"}}");
 
         return ServiceResult<AddCompanyUserResultDto>.Ok(BuildAddResult(
             companyId,
-            newMembership.Id,
+            createdMembership.Membership.MembershipId,
             user.Id,
             user.Email ?? string.Empty,
             role,
@@ -630,21 +606,32 @@ public class IdentityService : IIdentityService
             }
         }
 
-        var membership = new AppUserCompany
-        {
-            Id = Guid.NewGuid(),
-            AppUserId = newUser.Id,
-            CompanyId = companyId,
-            Role = dto.Role,
-            IsActive = true,
-            JoinedAtUtc = DateTime.UtcNow
-        };
-
-        await _unitOfWork.AppUserCompanies.AddAsync(membership);
-
         try
         {
-            await _unitOfWork.SaveAsync();
+            var membership = await _companiesModuleApi.UpsertCompanyMembershipAsync(new UpsertCompanyMembershipContract
+            {
+                CompanyId = companyId,
+                UserId = newUser.Id,
+                Role = dto.Role.ToString()
+            });
+
+            await _auditService.LogMutationAsync(
+                companyId,
+                ownerUserName,
+                nameof(AppUserCompany),
+                membership.Membership.MembershipId,
+                "UserAddedToCompany",
+                $"{{\"targetUserId\":\"{newUser.Id}\",\"email\":\"{newUser.Email}\",\"role\":\"{dto.Role}\"}}");
+
+            return ServiceResult<AddCompanyUserResultDto>.Ok(BuildAddResult(
+                companyId,
+                membership.Membership.MembershipId,
+                newUser.Id,
+                newUser.Email ?? email,
+                dto.Role,
+                isExistingUser: false,
+                accessStatus: "Immediate access",
+                nextAction: "User can log in immediately with the password defined by the company owner."));
         }
         catch (DbUpdateException)
         {
@@ -653,24 +640,6 @@ public class IdentityService : IIdentityService
                 "MEMBERSHIP_PERSIST_FAILED",
                 "Membership could not be created. User creation was rolled back.");
         }
-
-        await _auditService.LogMutationAsync(
-            companyId,
-            ownerUserName,
-            nameof(AppUserCompany),
-            membership.Id,
-            "UserAddedToCompany",
-            $"{{\"targetUserId\":\"{newUser.Id}\",\"email\":\"{newUser.Email}\",\"role\":\"{dto.Role}\"}}");
-
-        return ServiceResult<AddCompanyUserResultDto>.Ok(BuildAddResult(
-            companyId,
-            membership.Id,
-            newUser.Id,
-            newUser.Email ?? email,
-            dto.Role,
-            isExistingUser: false,
-            accessStatus: "Immediate access",
-            nextAction: "User can log in immediately with the password defined by the company owner."));
     }
 
     private static AddCompanyUserResultDto BuildAddResult(
@@ -696,11 +665,6 @@ public class IdentityService : IIdentityService
             nextAction,
             membershipReactivated,
             membershipAlreadyActive);
-    }
-
-    private static CompanyUserMembershipDto MapMembershipDto(AppUserCompany membership)
-    {
-        return BllDtoFactory.CreateCompanyUserMembershipDto(membership);
     }
 
     private static List<ServiceError> ValidateNewUserInput(AddCompanyUserRequestDto dto)
@@ -749,9 +713,7 @@ public class IdentityService : IIdentityService
 
     private async Task<(bool Success, string? ErrorMessage)> RemoveOwnerRoleIfNoMembershipsAsync(AppUser user)
     {
-        var hasAnyOwnerMembership = await _context.AppUserCompanies
-            .AsNoTracking()
-            .AnyAsync(uc => uc.AppUserId == user.Id && uc.IsActive && uc.Role == ECompanyRole.Owner);
+        var hasAnyOwnerMembership = await _companiesModuleApi.HasAnyActiveOwnerMembershipForUserAsync(user.Id);
 
         if (hasAnyOwnerMembership || !await _userManager.IsInRoleAsync(user, CompanyOwnerRole))
         {
@@ -780,9 +742,7 @@ public class IdentityService : IIdentityService
 
     private async Task<ServiceResult> PreventLastOwnerChangeAsync(Guid companyId)
     {
-        var activeOwnerCount = await _context.AppUserCompanies
-            .AsNoTracking()
-            .CountAsync(uc => uc.CompanyId == companyId && uc.IsActive && uc.Role == ECompanyRole.Owner);
+        var activeOwnerCount = await _companiesModuleApi.CountActiveCompanyOwnersAsync(companyId);
 
         return activeOwnerCount <= 1
             ? ServiceResult.Fail("LAST_OWNER_PROTECTION", "Cannot remove or demote the last active owner.")

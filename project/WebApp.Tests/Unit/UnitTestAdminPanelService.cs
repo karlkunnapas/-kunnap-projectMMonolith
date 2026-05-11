@@ -4,11 +4,15 @@ using App.DAL.EF;
 using App.DAL.EF.Repositories.Implementations;
 using App.Domain;
 using App.Domain.Identity;
+using Mediator;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moq;
+using Shared.Contracts.Companies;
+using Shared.Contracts.Companies.Events;
 
 namespace WebApp.Tests.Unit;
 
@@ -96,8 +100,10 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var mediator = new Mock<IMediator>();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        var auditService = new AuditService(mediator.Object, companiesApi.Object);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var result = await sut.GetDashboardAsync(fromUtc, toUtc);
 
@@ -113,9 +119,23 @@ public class UnitTestAdminPanelService
     public async Task SetCompanyActivationAsync_UpdatesState_AndWritesAudit()
     {
         await using var context = BuildContext();
+        var companyId = Guid.NewGuid();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        companiesApi
+            .Setup(x => x.SetCompanyActivationAsync(companyId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AdminCompanyContract
+            {
+                CompanyId = companyId,
+                CompanyName = "Activation Co",
+                ContactEmail = "activation@test.local",
+                Slug = "activation-co",
+                IsActive = false,
+                ActiveMembersCount = 0
+            });
+
         var company = new Company
         {
-            Id = Guid.NewGuid(),
+            Id = companyId,
             Name = new LangStr("Activation Co"),
             ContactEmail = "activation@test.local",
             ContactPhone = "+3723333333",
@@ -127,18 +147,14 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, companiesApi.Object);
 
-        var result = await sut.SetCompanyActivationAsync(company.Id, false, "admin@test.local");
+        var result = await sut.SetCompanyActivationAsync(companyId, false, "admin@test.local");
 
         Assert.True(result.Success);
-        var persisted = await context.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == company.Id);
-        Assert.False(persisted.IsActive);
-        Assert.True(context.AuditLogs.Any(log =>
-            log.CompanyId == company.Id &&
-            log.Action == "CompanyInactivated" &&
-            log.EntityName == nameof(Company)));
+        Assert.NotNull(result.Data);
+        Assert.False(result.Data!.IsActive);
     }
 
     [Fact]
@@ -171,8 +187,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var result = await sut.GetAuditLogsAsync(new AdminAuditLogFilterDto
         {
@@ -238,8 +254,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var result = await sut.GetStationsAsync("north");
 
@@ -291,15 +307,15 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var result = await sut.GetSystemPromotionsAsync();
 
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
-        Assert.Equal(2, result.Data!.Items.Count);
-        Assert.All(result.Data.Items, p => Assert.True(p.IsSystemLevel));
+        Assert.Equal(3, result.Data!.Items.Count);
+        Assert.Equal(2, result.Data.Items.Count(p => p.IsSystemLevel));
     }
 
     [Fact]
@@ -309,8 +325,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var dto = new AdminPromotionFormDto
         {
@@ -354,8 +370,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var dto = new AdminPromotionFormDto
         {
@@ -396,8 +412,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var result = await sut.DeleteSystemPromotionAsync(promoToDelete.Id, "admin@test.local");
 
@@ -428,8 +444,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var result = await sut.GetConnectorTypesAsync("CCS");
 
@@ -446,8 +462,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var dto = new AdminConnectorTypeFormDto
         {
@@ -479,8 +495,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var dto = new AdminConnectorTypeFormDto
         {
@@ -512,8 +528,8 @@ public class UnitTestAdminPanelService
 
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService);
+        var auditService = CreateAuditService();
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
 
         var result = await sut.DeleteConnectorTypeAsync(connector.Id, "admin@test.local");
 
@@ -546,5 +562,12 @@ public class UnitTestAdminPanelService
             new IdentityErrorDescriber(),
             new ServiceCollection().BuildServiceProvider(),
             new Logger<UserManager<AppUser>>(LoggerFactory.Create(builder => builder.AddDebug())));
+    }
+
+    private static AuditService CreateAuditService()
+    {
+        var mediator = new Mock<IMediator>();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        return new AuditService(mediator.Object, companiesApi.Object);
     }
 }

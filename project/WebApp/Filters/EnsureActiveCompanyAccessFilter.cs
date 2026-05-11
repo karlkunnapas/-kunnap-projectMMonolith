@@ -1,15 +1,15 @@
 using System.Security.Claims;
-using App.DAL.EF;
+using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Filters;
 
-public sealed class EnsureActiveCompanyAccessFilter(AppDbContext context) : IAsyncActionFilter
+public sealed class EnsureActiveCompanyAccessFilter(ICompaniesModuleApi companiesModuleApi) : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext contextAction, ActionExecutionDelegate next)
     {
@@ -32,20 +32,14 @@ public sealed class EnsureActiveCompanyAccessFilter(AppDbContext context) : IAsy
             return;
         }
 
-        var memberships = await context.AppUserCompanies
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .Include(uc => uc.Company)
-            .Where(uc => uc.AppUserId == userId && uc.IsActive)
-            .ToListAsync();
-
-        if (memberships.Any(uc => uc.Company != null && uc.Company.IsActive))
+        var memberships = await companiesModuleApi.GetUserCompaniesAsync(userId);
+        if (memberships.Any(m => Enum.TryParse<ECompanyRole>(m.Role, true, out _)))
         {
             await next();
             return;
         }
 
-        if (memberships.Count > 0)
+        if (await companiesModuleApi.HasDeactivatedActiveMembershipAsync(userId))
         {
             contextAction.Result = new RedirectToActionResult("CompanyDeactivated", "Account", new { area = "" });
             return;

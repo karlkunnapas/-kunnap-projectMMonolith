@@ -4,6 +4,8 @@ using App.DAL.EF.Repositories.Implementations;
 using App.Domain;
 using App.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Tests.Unit;
 
@@ -43,19 +45,32 @@ public class UnitTestPromotionService
             new Company { Id = promoCompanyId, Name = "PromoCo", ContactEmail = "p@test.local", ContactPhone = "+3721000001", Slug = $"p-{Guid.NewGuid():N}", IsActive = true },
             new Company { Id = stationCompanyId, Name = "StationCo", ContactEmail = "s@test.local", ContactPhone = "+3721000002", Slug = $"s-{Guid.NewGuid():N}", IsActive = true }
         );
-        context.Promotions.Add(promotion);
-        context.UserPromotions.Add(new UserPromotion
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            PromotionId = promotion.Id,
-            AddedAt = DateTime.UtcNow
-        });
         context.ChargingStations.Add(station);
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new PromotionService(uow);
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        companiesApi
+            .Setup(x => x.GetValidUserPromotionByCodeAsync(userId, promotion.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Shared.Contracts.Companies.UserPromotionContract
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                PromotionId = promotion.Id,
+                AddedAtUtc = DateTime.UtcNow,
+                IsUsed = false,
+                Promotion = new CompanyPromotionContract
+                {
+                    Id = promotion.Id,
+                    Code = promotion.Code,
+                    DiscountValue = promotion.DiscountValue,
+                    ValidFromUtc = promotion.ValidFrom,
+                    ValidToUtc = promotion.ValidTo,
+                    IsActive = true,
+                    CompanyId = promoCompanyId
+                }
+            });
+        var service = new PromotionService(uow, companiesApi.Object);
 
         var result = await service.ValidateUserPromotionAsync(userId, station.Id, promotion.Code);
 
@@ -101,19 +116,32 @@ public class UnitTestPromotionService
             Slug = $"sc-{Guid.NewGuid():N}",
             IsActive = true
         });
-        context.Promotions.Add(promotion);
-        context.UserPromotions.Add(new UserPromotion
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            PromotionId = promotion.Id,
-            AddedAt = DateTime.UtcNow
-        });
         context.ChargingStations.Add(station);
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new PromotionService(uow);
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        companiesApi
+            .Setup(x => x.GetValidUserPromotionByCodeAsync(userId, promotion.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Shared.Contracts.Companies.UserPromotionContract
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                PromotionId = promotion.Id,
+                AddedAtUtc = DateTime.UtcNow,
+                IsUsed = false,
+                Promotion = new CompanyPromotionContract
+                {
+                    Id = promotion.Id,
+                    Code = promotion.Code,
+                    DiscountValue = promotion.DiscountValue,
+                    ValidFromUtc = promotion.ValidFrom,
+                    ValidToUtc = promotion.ValidTo,
+                    IsActive = true,
+                    CompanyId = null
+                }
+            });
+        var service = new PromotionService(uow, companiesApi.Object);
 
         var result = await service.ValidateUserPromotionAsync(userId, station.Id, promotion.Code);
 
@@ -150,19 +178,32 @@ public class UnitTestPromotionService
         };
 
         context.Users.Add(new AppUser { Id = userId, UserName = $"user-{userId}", Email = $"user-{userId}@test.local" });
-        context.Promotions.Add(promotion);
-        context.UserPromotions.Add(new UserPromotion
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            PromotionId = promotion.Id,
-            AddedAt = DateTime.UtcNow
-        });
         context.ChargingStations.Add(station);
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new PromotionService(uow);
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        companiesApi
+            .Setup(x => x.GetValidUserPromotionByCodeAsync(userId, promotion.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Shared.Contracts.Companies.UserPromotionContract
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                PromotionId = promotion.Id,
+                AddedAtUtc = DateTime.UtcNow,
+                IsUsed = false,
+                Promotion = new CompanyPromotionContract
+                {
+                    Id = promotion.Id,
+                    Code = promotion.Code,
+                    DiscountValue = promotion.DiscountValue,
+                    ValidFromUtc = promotion.ValidFrom,
+                    ValidToUtc = promotion.ValidTo,
+                    IsActive = true,
+                    CompanyId = null
+                }
+            });
+        var service = new PromotionService(uow, companiesApi.Object);
 
         var result = await service.ValidateUserPromotionAsync(userId, station.Id, promotion.Code);
 

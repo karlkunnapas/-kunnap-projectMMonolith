@@ -1,17 +1,21 @@
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
+using Mediator;
+using Shared.Contracts.Companies;
+using Shared.Contracts.Companies.Events;
 
 namespace App.BLL.Services;
 
 public class AuditService : IAuditService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMediator _mediator;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public AuditService(IUnitOfWork unitOfWork)
+    public AuditService(IMediator mediator, ICompaniesModuleApi companiesModuleApi)
     {
-        _unitOfWork = unitOfWork;
+        _mediator = mediator;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     public async Task<ServiceResult<AuditTrailDto>> GetAuditTrailAsync(string entityName, Guid entityId, Guid? companyId)
@@ -26,12 +30,13 @@ public class AuditService : IAuditService
             return ServiceResult<AuditTrailDto>.Fail("VALIDATION", "Entity id is required.");
         }
 
-        var entries = await _unitOfWork.AuditLogQueries.GetByEntityAsync(entityName, entityId, companyId);
+        var trail = await _companiesModuleApi.GetAuditTrailAsync(entityName, entityId, companyId);
+        var entries = trail.Entries
+            .OrderBy(x => x.AtUtc)
+            .Select(MapEntry)
+            .ToList();
 
-        var dto = BllDtoFactory.CreateAuditTrailDto(
-            entityName,
-            entityId,
-            entries.OrderBy(e => e.AtUtc).Select(MapEntry).ToList());
+        var dto = BllDtoFactory.CreateAuditTrailDto(entityName, entityId, entries);
 
         return ServiceResult<AuditTrailDto>.Ok(dto);
     }
@@ -48,7 +53,7 @@ public class AuditService : IAuditService
             return ServiceResult<List<AuditEntryDto>>.Fail("VALIDATION", "Company id is required.");
         }
 
-        var logs = await _unitOfWork.AuditLogQueries.GetByCompanyAsync(companyId, fromUtc, toUtc, entityName, action);
+        var logs = await _companiesModuleApi.GetCompanyAuditAsync(companyId, fromUtc, toUtc, entityName, action);
         return ServiceResult<List<AuditEntryDto>>.Ok(logs.Select(MapEntry).ToList());
     }
 
@@ -70,9 +75,8 @@ public class AuditService : IAuditService
             return ServiceResult.Fail("VALIDATION", "Entity name and action are required.");
         }
 
-        await _unitOfWork.AuditLogs.AddAsync(new App.Domain.AuditLog
+        await _mediator.Publish(new AuditLogMutationRequestedNotification
         {
-            Id = Guid.NewGuid(),
             CompanyId = companyId,
             UserName = string.IsNullOrWhiteSpace(userName) ? "system" : userName.Trim(),
             EntityName = entityName.Trim(),
@@ -81,13 +85,20 @@ public class AuditService : IAuditService
             AtUtc = DateTime.UtcNow,
             ChangesJson = changesJson
         });
-
-        await _unitOfWork.SaveAsync();
         return ServiceResult.Ok();
     }
 
-    private static AuditEntryDto MapEntry(App.Domain.AuditLog entry)
+    private static AuditEntryDto MapEntry(CompanyAuditEntryContract entry)
     {
-        return BllDtoFactory.CreateAuditEntryDto(entry);
+        return new AuditEntryDto
+        {
+            Id = entry.Id,
+            UserName = entry.UserName,
+            EntityName = entry.EntityName,
+            EntityId = entry.EntityId,
+            Action = entry.Action,
+            AtUtc = entry.AtUtc,
+            ChangesJson = entry.ChangesJson
+        };
     }
 }

@@ -1,6 +1,5 @@
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF;
 using App.Domain;
 using App.DTO.v1.Company;
 using App.Dto.v1;
@@ -8,7 +7,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -23,12 +22,12 @@ namespace WebApp.ApiControllers.v1.Company;
 public class PromotionController : ControllerBase
 {
     private readonly IPromotionService _promotionService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public PromotionController(IPromotionService promotionService, AppDbContext context)
+    public PromotionController(IPromotionService promotionService, ICompaniesModuleApi companiesModuleApi)
     {
         _promotionService = promotionService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     /// <summary>
@@ -170,9 +169,14 @@ public class PromotionController : ControllerBase
 
     private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole = ECompanyRole.Manager)
     {
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .AnyAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive && uc.Role >= minRole);
+        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(companyId);
+        var membership = memberships.FirstOrDefault(m => m.UserId == userId && m.IsActive);
+        if (membership == null)
+        {
+            return false;
+        }
+
+        return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= minRole;
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

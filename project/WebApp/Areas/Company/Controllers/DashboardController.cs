@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF;
 using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Company.ViewModels;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -14,12 +13,12 @@ namespace WebApp.Areas.Company.Controllers;
 public class DashboardController : Controller
 {
     private readonly IOperatorDashboardService _dashboardService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public DashboardController(IOperatorDashboardService dashboardService, AppDbContext context)
+    public DashboardController(IOperatorDashboardService dashboardService, ICompaniesModuleApi companiesModuleApi)
     {
         _dashboardService = dashboardService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     [HttpGet]
@@ -183,12 +182,11 @@ public class DashboardController : Controller
             return new List<Guid>();
         }
 
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive && uc.Role >= ECompanyRole.Manager)
-            .OrderByDescending(uc => uc.JoinedAtUtc)
-            .Select(uc => uc.CompanyId)
-            .ToListAsync();
+        var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
+        return memberships
+            .Where(m => Enum.TryParse<ECompanyRole>(m.Role, true, out var role) && role >= ECompanyRole.Manager)
+            .Select(m => m.CompanyId)
+            .ToList();
     }
 
     private static DateTime? NormalizeToUtc(DateTime? value)

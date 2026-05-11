@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Tests.Integration;
 
@@ -29,6 +30,7 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
         await using var scope = _factory.Services.CreateAsyncScope();
         var identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var companiesModuleApi = scope.ServiceProvider.GetRequiredService<ICompaniesModuleApi>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
         await EnsureRoleExistsAsync(roleManager, "CompanyOwner");
@@ -95,7 +97,7 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
             };
 
             var middleware = new TenantResolutionMiddleware(next);
-            await middleware.InvokeAsync(context, db, tenantContext);
+            await middleware.InvokeAsync(context, db, tenantContext, companiesModuleApi);
 
             Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
             Assert.False(nextCalled);
@@ -123,7 +125,6 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
         Assert.True(roleResult.Succeeded, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
     }
 }
-
 
 
 

@@ -1,8 +1,7 @@
 using App.BLL.Services;
-using App.DAL.EF;
-using App.DAL.EF.Repositories.Implementations;
-using App.Domain;
-using Microsoft.EntityFrameworkCore;
+using Mediator;
+using Moq;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Tests.Unit;
 
@@ -11,40 +10,24 @@ public class UnitTestAuditService
     [Fact]
     public async Task GetAuditTrailAsync_ReturnsChronologicalEntriesForEntity()
     {
-        await using var context = BuildContext();
         var companyId = Guid.NewGuid();
         var entityId = Guid.NewGuid();
-
-        context.AuditLogs.AddRange(
-            new AuditLog
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        companiesApi
+            .Setup(x => x.GetAuditTrailAsync("ChargingSession", entityId, companyId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CompanyAuditTrailContract
             {
-                Id = Guid.NewGuid(),
-                CompanyId = companyId,
-                EntityName = nameof(ChargingSession),
+                EntityName = "ChargingSession",
                 EntityId = entityId,
-                Action = "Create",
-                UserName = "u1",
-                AtUtc = DateTime.UtcNow.AddMinutes(-10),
-                ChangesJson = "[]"
-            },
-            new AuditLog
-            {
-                Id = Guid.NewGuid(),
-                CompanyId = companyId,
-                EntityName = nameof(ChargingSession),
-                EntityId = entityId,
-                Action = "Update",
-                UserName = "u2",
-                AtUtc = DateTime.UtcNow.AddMinutes(-5),
-                ChangesJson = "[]"
+                Entries =
+                [
+                    new CompanyAuditEntryContract { Id = Guid.NewGuid(), CompanyId = companyId, EntityName = "ChargingSession", EntityId = entityId, Action = "Create", UserName = "u1", AtUtc = DateTime.UtcNow.AddMinutes(-10), ChangesJson = "[]" },
+                    new CompanyAuditEntryContract { Id = Guid.NewGuid(), CompanyId = companyId, EntityName = "ChargingSession", EntityId = entityId, Action = "Update", UserName = "u2", AtUtc = DateTime.UtcNow.AddMinutes(-5), ChangesJson = "[]" }
+                ]
             });
+        var sut = new AuditService(new Mock<IMediator>().Object, companiesApi.Object);
 
-        await context.SaveChangesAsync();
-
-        await using var uow = new UnitOfWork(context);
-        var sut = new AuditService(uow);
-
-        var result = await sut.GetAuditTrailAsync(nameof(ChargingSession), entityId, companyId);
+        var result = await sut.GetAuditTrailAsync("ChargingSession", entityId, companyId);
 
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
@@ -56,53 +39,23 @@ public class UnitTestAuditService
     [Fact]
     public async Task GetCompanyAuditAsync_AppliesEntityAndActionFilters()
     {
-        await using var context = BuildContext();
         var companyId = Guid.NewGuid();
-
-        context.AuditLogs.AddRange(
-            new AuditLog
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        companiesApi
+            .Setup(x => x.GetCompanyAuditAsync(companyId, null, null, "ChargingSession", "Update", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CompanyAuditEntryContract>
             {
-                Id = Guid.NewGuid(),
-                CompanyId = companyId,
-                EntityName = nameof(Reservation),
-                EntityId = Guid.NewGuid(),
-                Action = "Create",
-                UserName = "u1",
-                AtUtc = DateTime.UtcNow.AddMinutes(-30),
-                ChangesJson = "[]"
-            },
-            new AuditLog
-            {
-                Id = Guid.NewGuid(),
-                CompanyId = companyId,
-                EntityName = nameof(ChargingSession),
-                EntityId = Guid.NewGuid(),
-                Action = "Update",
-                UserName = "u2",
-                AtUtc = DateTime.UtcNow.AddMinutes(-20),
-                ChangesJson = "[]"
+                new() { Id = Guid.NewGuid(), CompanyId = companyId, EntityName = "ChargingSession", EntityId = Guid.NewGuid(), Action = "Update", UserName = "u2", AtUtc = DateTime.UtcNow.AddMinutes(-20), ChangesJson = "[]" }
             });
+        var sut = new AuditService(new Mock<IMediator>().Object, companiesApi.Object);
 
-        await context.SaveChangesAsync();
-
-        await using var uow = new UnitOfWork(context);
-        var sut = new AuditService(uow);
-
-        var result = await sut.GetCompanyAuditAsync(companyId, entityName: nameof(ChargingSession), action: "Update");
+        var result = await sut.GetCompanyAuditAsync(companyId, entityName: "ChargingSession", action: "Update");
 
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
         Assert.Single(result.Data!);
-        Assert.Equal(nameof(ChargingSession), result.Data[0].EntityName);
+        Assert.Equal("ChargingSession", result.Data[0].EntityName);
         Assert.Equal("Update", result.Data[0].Action);
     }
 
-    private static AppDbContext BuildContext()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new AppDbContext(options);
-    }
 }

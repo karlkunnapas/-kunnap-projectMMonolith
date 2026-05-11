@@ -2,6 +2,8 @@ using App.DAL.EF;
 using App.Domain;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Tests.Unit;
 
@@ -33,10 +35,11 @@ public class UnitTestTenantResolutionMiddleware
         };
 
         var middleware = new TenantResolutionMiddleware(next);
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
         var context = new DefaultHttpContext();
         context.Request.Path = "/Account/Register";
 
-        await middleware.InvokeAsync(context, db, tenantContext);
+        await middleware.InvokeAsync(context, db, tenantContext, companiesModuleApi.Object);
 
         Assert.True(nextCalled);
         Assert.False(tenantContext.IsResolved);
@@ -56,11 +59,12 @@ public class UnitTestTenantResolutionMiddleware
         };
 
         var middleware = new TenantResolutionMiddleware(next);
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
         var context = new DefaultHttpContext();
         context.Request.Path = "/Home/SetLanguage";
         context.Request.QueryString = new QueryString("?culture=et&returnUrl=%2FAccount%2FRegister");
 
-        await middleware.InvokeAsync(context, db, tenantContext);
+        await middleware.InvokeAsync(context, db, tenantContext, companiesModuleApi.Object);
 
         Assert.True(nextCalled);
         Assert.False(tenantContext.IsResolved);
@@ -74,11 +78,12 @@ public class UnitTestTenantResolutionMiddleware
         var tenantContext = new TenantContext();
 
         var middleware = new TenantResolutionMiddleware(_ => Task.CompletedTask);
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
         var context = new DefaultHttpContext();
         context.Request.Path = "/missing-tenant/festivaleditions";
         context.Response.Body = new MemoryStream();
 
-        await middleware.InvokeAsync(context, db, tenantContext);
+        await middleware.InvokeAsync(context, db, tenantContext, companiesModuleApi.Object);
 
         Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
         Assert.False(tenantContext.IsResolved);
@@ -107,11 +112,12 @@ public class UnitTestTenantResolutionMiddleware
             return Task.CompletedTask;
         };
         var middleware = new TenantResolutionMiddleware(next);
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
         var context = new DefaultHttpContext();
         context.Request.Path = "/inactive-tenant/festivaleditions";
         context.Response.Body = new MemoryStream();
 
-        await middleware.InvokeAsync(context, db, tenantContext);
+        await middleware.InvokeAsync(context, db, tenantContext, companiesModuleApi.Object);
 
         Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
         Assert.True(nextCalled);
@@ -145,10 +151,11 @@ public class UnitTestTenantResolutionMiddleware
         };
 
         var middleware = new TenantResolutionMiddleware(next);
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
         var context = new DefaultHttpContext();
         context.Request.Path = "/active-tenant/festivaleditions";
 
-        await middleware.InvokeAsync(context, db, tenantContext);
+        await middleware.InvokeAsync(context, db, tenantContext, companiesModuleApi.Object);
 
         Assert.True(nextCalled);
         Assert.True(tenantContext.IsResolved);
@@ -156,5 +163,4 @@ public class UnitTestTenantResolutionMiddleware
         Assert.Equal(company.Slug, tenantContext.CompanySlug);
     }
 }
-
 

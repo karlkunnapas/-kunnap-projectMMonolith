@@ -1,6 +1,5 @@
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF;
 using App.Domain;
 using App.DTO.v1.Company;
 using App.Dto.v1;
@@ -8,7 +7,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -23,12 +22,12 @@ namespace WebApp.ApiControllers.v1.Company;
 public class UsersController : ControllerBase
 {
     private readonly IIdentityService _identityService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public UsersController(IIdentityService identityService, AppDbContext context)
+    public UsersController(IIdentityService identityService, ICompaniesModuleApi companiesModuleApi)
     {
         _identityService = identityService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     /// <summary>
@@ -201,9 +200,7 @@ public class UsersController : ControllerBase
 
     private async Task<bool> IsCompanyOwnerAsync(Guid companyId, Guid userId)
     {
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .AnyAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive && uc.Role == ECompanyRole.Owner);
+        return await _companiesModuleApi.HasActiveOwnerMembershipAsync(companyId, userId);
     }
 
     private static bool HasNotOwnerOrForbidden(IEnumerable<ServiceError> errors)

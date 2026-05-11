@@ -4,7 +4,7 @@ using App.DAL.EF;
 using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.ViewModels;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -14,13 +14,16 @@ namespace WebApp.Areas.Company.Controllers;
 public class AuditController : Controller
 {
     private readonly IAuditService _auditService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly ITenantContext _tenantContext;
 
-    public AuditController(IAuditService auditService, AppDbContext context, ITenantContext tenantContext)
+    public AuditController(
+        IAuditService auditService,
+        ICompaniesModuleApi companiesModuleApi,
+        ITenantContext tenantContext)
     {
         _auditService = auditService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
         _tenantContext = tenantContext;
     }
 
@@ -90,12 +93,11 @@ public class AuditController : Controller
             return new List<Guid>();
         }
 
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive && uc.Role >= ECompanyRole.Manager)
-            .OrderByDescending(uc => uc.JoinedAtUtc)
-            .Select(uc => uc.CompanyId)
-            .ToListAsync();
+        var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
+        return memberships
+            .Where(m => Enum.TryParse<ECompanyRole>(m.Role, true, out var role) && role >= ECompanyRole.Manager)
+            .Select(m => m.CompanyId)
+            .ToList();
     }
 
     private static DateTime? NormalizeToUtc(DateTime? value)

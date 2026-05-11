@@ -8,7 +8,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -23,12 +23,12 @@ namespace WebApp.ApiControllers.v1.Company;
 public class StationController : ControllerBase
 {
     private readonly IChargingStationCompanyService _stationService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public StationController(IChargingStationCompanyService stationService, AppDbContext context)
+    public StationController(IChargingStationCompanyService stationService, ICompaniesModuleApi companiesModuleApi)
     {
         _stationService = stationService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     /// <summary>
@@ -249,9 +249,14 @@ public class StationController : ControllerBase
 
     private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole = ECompanyRole.Manager)
     {
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .AnyAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId && uc.IsActive && uc.Role >= minRole);
+        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(companyId);
+        var membership = memberships.FirstOrDefault(m => m.UserId == userId && m.IsActive);
+        if (membership == null)
+        {
+            return false;
+        }
+
+        return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= minRole;
     }
 
     private static bool HasForbidden(IEnumerable<ServiceError> errors)

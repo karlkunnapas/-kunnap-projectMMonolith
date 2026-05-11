@@ -1,13 +1,12 @@
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF;
 using App.DTO.v1.Identity;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using System.Security.Claims;
 using Shared.Contracts.Users;
 using WebApp.Helpers;
@@ -31,18 +30,18 @@ public class CustomerAccountController : ControllerBase
 
     private readonly IIdentityService _identityService;
     private readonly IConfiguration _configuration;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly IUsersModuleApi _usersModuleApi;
 
     public CustomerAccountController(
         IIdentityService identityService,
         IConfiguration configuration,
-        AppDbContext context,
+        ICompaniesModuleApi companiesModuleApi,
         IUsersModuleApi usersModuleApi)
     {
         _identityService = identityService;
         _configuration = configuration;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
         _usersModuleApi = usersModuleApi;
     }
 
@@ -133,15 +132,7 @@ public class CustomerAccountController : ControllerBase
     {
         var userId = User.UserId();
 
-        var hasDeactivatedMembership = await _context.AppUserCompanies
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .Include(uc => uc.Company)
-            .AnyAsync(uc =>
-                uc.AppUserId == userId
-                && uc.IsActive
-                && uc.Company != null
-                && !uc.Company.IsActive);
+        var hasDeactivatedMembership = await _companiesModuleApi.HasDeactivatedActiveMembershipAsync(userId);
 
         return Ok(hasDeactivatedMembership);
     }

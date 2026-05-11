@@ -2,11 +2,11 @@
 @using System.Security.Claims
 @using App.Domain
 @using App.DAL.EF
-@using Microsoft.EntityFrameworkCore
+@using Shared.Contracts.Companies
 @using WebApp.Helpers
 @inject AppNameService AppNameService;
 @inject ITenantContext TenantContext;
-@inject AppDbContext DbContext;
+@inject ICompaniesModuleApi CompaniesModuleApi;
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,34 +37,29 @@
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (User.Identity?.IsAuthenticated == true && Guid.TryParse(userIdClaim, out var currentUserId))
         {
-            var memberships = await DbContext.AppUserCompanies
-                .AsNoTracking()
-                .Include(uc => uc.Company)
-                .Where(uc => uc.AppUserId == currentUserId && uc.IsActive)
-                .OrderByDescending(uc => uc.JoinedAtUtc)
-                .ToListAsync();
-
-            var activeCompanyMemberships = memberships
-                .Where(uc => uc.Company != null && uc.Company.IsActive)
+            var memberships = (await CompaniesModuleApi.GetUserCompaniesAsync(currentUserId))
+                .OrderByDescending(uc => uc.MembershipId)
                 .ToList();
 
-            isCompanyUser = activeCompanyMemberships.Count > 0;
+            isCompanyUser = memberships.Count > 0;
             hasMultipleCompanyMemberships = memberships.Count > 1;
             if (isCompanyUser)
             {
                 var currentMembership = !string.IsNullOrWhiteSpace(currentCompanySlug)
-                    ? activeCompanyMemberships.FirstOrDefault(uc => string.Equals(uc.Company?.Slug, currentCompanySlug, StringComparison.OrdinalIgnoreCase))
+                    ? memberships.FirstOrDefault(uc => string.Equals(uc.Slug, currentCompanySlug, StringComparison.OrdinalIgnoreCase))
                     : null;
 
                 currentMembership ??= TenantContext.CompanyId.HasValue
-                    ? activeCompanyMemberships.FirstOrDefault(uc => uc.CompanyId == TenantContext.CompanyId.Value)
+                    ? memberships.FirstOrDefault(uc => uc.CompanyId == TenantContext.CompanyId.Value)
                     : null;
 
-                currentMembership ??= activeCompanyMemberships.First();
+                currentMembership ??= memberships.First();
 
-                currentCompanyRole = currentMembership.Role;
-                currentCompanySlug = currentMembership.Company?.Slug ?? currentCompanySlug;
-                canAccessManagerFeatures = currentCompanyRole.Value >= ECompanyRole.Manager;
+                currentCompanyRole = Enum.TryParse<ECompanyRole>(currentMembership.Role, true, out var parsedRole)
+                    ? parsedRole
+                    : ECompanyRole.Employee;
+                currentCompanySlug = currentMembership.Slug ?? currentCompanySlug;
+                canAccessManagerFeatures = currentCompanyRole >= ECompanyRole.Manager;
                 canManageUsers = currentCompanyRole == ECompanyRole.Owner;
             }
         }

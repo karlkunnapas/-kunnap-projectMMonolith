@@ -5,7 +5,7 @@ using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Company.ViewModels;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -16,18 +16,18 @@ public class MaintenanceController : Controller
 {
     private readonly IMaintenanceService _maintenanceService;
     private readonly IChargingStationCompanyService _chargingStationCompanyService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly ITenantContext _tenantContext;
 
     public MaintenanceController(
         IMaintenanceService maintenanceService,
         IChargingStationCompanyService chargingStationCompanyService,
-        AppDbContext context,
+        ICompaniesModuleApi companiesModuleApi,
         ITenantContext tenantContext)
     {
         _maintenanceService = maintenanceService;
         _chargingStationCompanyService = chargingStationCompanyService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
         _tenantContext = tenantContext;
     }
 
@@ -196,12 +196,10 @@ public class MaintenanceController : Controller
             return new List<Guid>();
         }
 
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive)
-            .OrderByDescending(uc => uc.JoinedAtUtc)
-            .Select(uc => uc.CompanyId)
-            .ToListAsync();
+        var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
+        return memberships
+            .Select(m => m.CompanyId)
+            .ToList();
     }
 
     private Guid? ResolveCurrentUserId()
@@ -218,15 +216,13 @@ public class MaintenanceController : Controller
             return false;
         }
 
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .AnyAsync(uc =>
-                uc.CompanyId == companyId
-                && uc.AppUserId == userId.Value
-                && uc.IsActive
-                && uc.Company != null
-                && uc.Company.IsActive
-                && uc.Role >= ECompanyRole.Manager);
+        var membership = await _companiesModuleApi.GetActiveCompanySelectionAsync(userId.Value, companyId);
+        if (membership == null)
+        {
+            return false;
+        }
+
+        return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= ECompanyRole.Manager;
     }
 
     private static MaintenanceQueueItemViewModel MapIssue(App.BLL.DTOs.MaintenanceIssueDto issue)

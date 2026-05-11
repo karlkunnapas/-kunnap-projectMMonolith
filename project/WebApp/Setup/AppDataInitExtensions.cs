@@ -23,7 +23,10 @@ public static class AppDataInitExtensions
 
         using var context = serviceScope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        if (context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory") return;
+        if (context.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL")
+        {
+            return;
+        }
 
         WaitDbConnection(context, logger);
 

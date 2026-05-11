@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF;
 using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Areas.Company.Controllers;
 
@@ -13,12 +12,12 @@ namespace WebApp.Areas.Company.Controllers;
 public class ConnectorController : Controller
 {
     private readonly IChargingStationCompanyService _stationService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public ConnectorController(IChargingStationCompanyService stationService, AppDbContext context)
+    public ConnectorController(IChargingStationCompanyService stationService, ICompaniesModuleApi companiesModuleApi)
     {
         _stationService = stationService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     [HttpPost]
@@ -103,12 +102,11 @@ public class ConnectorController : Controller
             return new List<Guid>();
         }
 
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId && uc.IsActive && uc.Company != null && uc.Company.IsActive && uc.Role >= ECompanyRole.Manager)
-            .OrderByDescending(uc => uc.JoinedAtUtc)
-            .Select(uc => uc.CompanyId)
-            .ToListAsync();
+        var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
+        return memberships
+            .Where(m => Enum.TryParse<ECompanyRole>(m.Role, true, out var role) && role >= ECompanyRole.Manager)
+            .Select(m => m.CompanyId)
+            .ToList();
     }
 
     private Guid? ResolveCurrentUserId()

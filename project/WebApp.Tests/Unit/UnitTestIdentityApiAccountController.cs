@@ -179,7 +179,7 @@ public class UnitTestIdentityApiAccountController
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["JWT:Key"] = "this-is-a-long-test-key-for-jwt-signing-1234567890",
+                ["JWT:Key"] = "this-is-a-long-test-key-for-jwt-signing-1234567890-and-even-longer-abcdef",
                 ["JWT:Issuer"] = "test-issuer",
                 ["JWT:Audience"] = "test-audience",
                 ["JWT:ExpiresInSeconds"] = "3600",
@@ -195,7 +195,7 @@ public class UnitTestIdentityApiAccountController
     {
         return IdentityExtensions.GenerateJwt(
             claims,
-            "this-is-a-long-test-key-for-jwt-signing-1234567890",
+            "this-is-a-long-test-key-for-jwt-signing-1234567890-and-even-longer-abcdef",
             "test-issuer",
             "test-audience",
             DateTime.UtcNow.AddMinutes(10));

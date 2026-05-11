@@ -1,18 +1,19 @@
 using App.BLL.DTOs;
-using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
-using App.Domain;
+using Shared.Contracts.Companies;
 
 namespace App.BLL.Services;
 
 public class PromotionService : IPromotionService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public PromotionService(IUnitOfWork unitOfWork)
+    public PromotionService(IUnitOfWork unitOfWork, ICompaniesModuleApi companiesModuleApi)
     {
         _unitOfWork = unitOfWork;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     public async Task<ServiceResult<List<PromotionSummaryDto>>> GetCompanyPromotionsAsync(Guid companyId)
@@ -22,7 +23,7 @@ public class PromotionService : IPromotionService
             return ServiceResult<List<PromotionSummaryDto>>.Fail("VALIDATION", "Company id is required.");
         }
 
-        var promotions = await _unitOfWork.Promotions.GetByCompanyAsync(companyId);
+        var promotions = await _companiesModuleApi.GetCompanyPromotionsAsync(companyId);
         return ServiceResult<List<PromotionSummaryDto>>.Ok(promotions.Select(MapPromotion).ToList());
     }
 
@@ -33,7 +34,7 @@ public class PromotionService : IPromotionService
             return ServiceResult<PromotionSummaryDto>.Fail("VALIDATION", "Company id and promotion id are required.");
         }
 
-        var promotion = await _unitOfWork.Promotions.GetByIdForCompanyAsync(promotionId, companyId);
+        var promotion = await _companiesModuleApi.GetCompanyPromotionAsync(companyId, promotionId);
         return promotion == null
             ? ServiceResult<PromotionSummaryDto>.Fail("FORBIDDEN", "Promotion not found or access denied.")
             : ServiceResult<PromotionSummaryDto>.Ok(MapPromotion(promotion));
@@ -52,21 +53,10 @@ public class PromotionService : IPromotionService
             return ServiceResult<PromotionSummaryDto>.Fail(validationErrors);
         }
 
-        var promotion = new Promotion
-        {
-            Id = Guid.NewGuid(),
-            CompanyId = companyId,
-            Code = NormalizeCode(dto.Code),
-            DiscountValue = dto.DiscountValue,
-            ValidFrom = ToUtc(dto.ValidFromUtc),
-            ValidTo = ToUtc(dto.ValidToUtc),
-            IsActive = dto.IsActive
-        };
-
-        await _unitOfWork.Promotions.AddAsync(promotion);
-        await _unitOfWork.SaveAsync();
-
-        return ServiceResult<PromotionSummaryDto>.Ok(MapPromotion(promotion));
+        var result = await _companiesModuleApi.CreateCompanyPromotionAsync(companyId, MapUpsert(dto));
+        return result.Success && result.Promotion != null
+            ? ServiceResult<PromotionSummaryDto>.Ok(MapPromotion(result.Promotion))
+            : ServiceResult<PromotionSummaryDto>.Fail(result.ErrorCode ?? "ERROR", result.ErrorMessage ?? "Failed to create promotion.");
     }
 
     public async Task<ServiceResult<PromotionSummaryDto>> UpdateCompanyPromotionAsync(Guid companyId, Guid promotionId, PromotionUpsertDto dto)
@@ -82,22 +72,10 @@ public class PromotionService : IPromotionService
             return ServiceResult<PromotionSummaryDto>.Fail(validationErrors);
         }
 
-        var promotion = await _unitOfWork.Promotions.GetByIdForCompanyAsync(promotionId, companyId);
-        if (promotion == null)
-        {
-            return ServiceResult<PromotionSummaryDto>.Fail("FORBIDDEN", "Promotion not found or access denied.");
-        }
-
-        promotion.Code = NormalizeCode(dto.Code);
-        promotion.DiscountValue = dto.DiscountValue;
-        promotion.ValidFrom = ToUtc(dto.ValidFromUtc);
-        promotion.ValidTo = ToUtc(dto.ValidToUtc);
-        promotion.IsActive = dto.IsActive;
-
-        _unitOfWork.Promotions.Update(promotion);
-        await _unitOfWork.SaveAsync();
-
-        return ServiceResult<PromotionSummaryDto>.Ok(MapPromotion(promotion));
+        var result = await _companiesModuleApi.UpdateCompanyPromotionAsync(companyId, promotionId, MapUpsert(dto));
+        return result.Success && result.Promotion != null
+            ? ServiceResult<PromotionSummaryDto>.Ok(MapPromotion(result.Promotion))
+            : ServiceResult<PromotionSummaryDto>.Fail(result.ErrorCode ?? "ERROR", result.ErrorMessage ?? "Failed to update promotion.");
     }
 
     public async Task<ServiceResult> DeleteCompanyPromotionAsync(Guid companyId, Guid promotionId)
@@ -107,14 +85,12 @@ public class PromotionService : IPromotionService
             return ServiceResult.Fail("VALIDATION", "Company id and promotion id are required.");
         }
 
-        var promotion = await _unitOfWork.Promotions.GetByIdForCompanyAsync(promotionId, companyId);
-        if (promotion == null)
+        var deleted = await _companiesModuleApi.DeleteCompanyPromotionAsync(companyId, promotionId);
+        if (!deleted)
         {
             return ServiceResult.Fail("FORBIDDEN", "Promotion not found or access denied.");
         }
 
-        _unitOfWork.Promotions.Remove(promotion);
-        await _unitOfWork.SaveAsync();
         return ServiceResult.Ok();
     }
 
@@ -125,7 +101,7 @@ public class PromotionService : IPromotionService
             return ServiceResult<List<UserPromotionDto>>.Fail("VALIDATION", "User id is required.");
         }
 
-        var entries = await _unitOfWork.UserPromotions.GetByUserIdAsync(userId);
+        var entries = await _companiesModuleApi.GetUserPromotionsAsync(userId);
         return ServiceResult<List<UserPromotionDto>>.Ok(entries.Select(MapUserPromotion).ToList());
     }
 
@@ -142,38 +118,23 @@ public class PromotionService : IPromotionService
             return ServiceResult<UserPromotionDto>.Fail("VALIDATION", "Promotion code is required.");
         }
 
-        var candidates = await _unitOfWork.Promotions.GetActiveByCodeAsync(normalizedCode, DateTime.UtcNow);
-        if (candidates.Count == 0)
+        var result = await _companiesModuleApi.RedeemPromotionAsync(userId, normalizedCode);
+        if (!result.Success || result.Promotion == null)
         {
-            return ServiceResult<UserPromotionDto>.Fail("NOT_FOUND", "Promotion code is invalid or expired.");
+            return ServiceResult<UserPromotionDto>.Fail(
+                result.ErrorCode ?? "ERROR",
+                result.ErrorMessage ?? "Failed to redeem promotion.");
         }
 
-        if (candidates.Count > 1)
-        {
-            return ServiceResult<UserPromotionDto>.Fail("VALIDATION", "Promotion code is ambiguous. Contact support.");
-        }
+        var promotions = await _companiesModuleApi.GetUserPromotionsAsync(userId);
+        var latest = promotions
+            .Where(x => x.PromotionId == result.Promotion.Id)
+            .OrderByDescending(x => x.AddedAtUtc)
+            .FirstOrDefault();
 
-        var promotion = candidates[0];
-        var existing = await _unitOfWork.UserPromotions.GetByUserAndPromotionAsync(userId, promotion.Id);
-        if (existing != null)
-        {
-            return ServiceResult<UserPromotionDto>.Fail("VALIDATION", "Promotion is already in your wallet.");
-        }
-
-        var userPromotion = new UserPromotion
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            PromotionId = promotion.Id,
-            AddedAt = DateTime.UtcNow,
-            IsUsed = false
-        };
-
-        await _unitOfWork.UserPromotions.AddAsync(userPromotion);
-        await _unitOfWork.SaveAsync();
-
-        userPromotion.Promotion = promotion;
-        return ServiceResult<UserPromotionDto>.Ok(MapUserPromotion(userPromotion));
+        return latest == null
+            ? ServiceResult<UserPromotionDto>.Fail("ERROR", "Promotion was redeemed but could not be loaded.")
+            : ServiceResult<UserPromotionDto>.Ok(MapUserPromotion(latest));
     }
 
     public async Task<ServiceResult> RemoveUserPromotionAsync(Guid userId, Guid userPromotionId)
@@ -183,14 +144,11 @@ public class PromotionService : IPromotionService
             return ServiceResult.Fail("VALIDATION", "User id and user promotion id are required.");
         }
 
-        var userPromotion = await _unitOfWork.UserPromotions.GetByIdForUserAsync(userPromotionId, userId);
-        if (userPromotion == null)
+        var removed = await _companiesModuleApi.RemoveUserPromotionAsync(userId, userPromotionId);
+        if (!removed)
         {
             return ServiceResult.Fail("FORBIDDEN", "Promotion not found or access denied.");
         }
-
-        _unitOfWork.UserPromotions.Remove(userPromotion);
-        await _unitOfWork.SaveAsync();
 
         return ServiceResult.Ok();
     }
@@ -230,10 +188,7 @@ public class PromotionService : IPromotionService
             return ServiceResult<AppliedPromotionDto>.Fail("VALIDATION", "Promotion code is required.");
         }
 
-        var userPromotion = await _unitOfWork.UserPromotions.GetValidByCodeForUserAsync(
-            userId,
-            normalizedCode,
-            DateTime.UtcNow);
+        var userPromotion = await _companiesModuleApi.GetValidUserPromotionByCodeAsync(userId, normalizedCode);
 
         if (userPromotion?.Promotion == null)
         {
@@ -249,10 +204,12 @@ public class PromotionService : IPromotionService
         }
 
         return ServiceResult<AppliedPromotionDto>.Ok(
-            BllDtoFactory.CreateAppliedPromotionDto(
-                userPromotion.PromotionId,
-                userPromotion.Promotion.Code,
-                userPromotion.Promotion.DiscountValue));
+            new AppliedPromotionDto
+            {
+                PromotionId = userPromotion.PromotionId,
+                Code = userPromotion.Promotion.Code,
+                DiscountValue = userPromotion.Promotion.DiscountValue
+            });
     }
 
     private static List<ServiceError> ValidateUpsertDto(PromotionUpsertDto dto)
@@ -278,15 +235,44 @@ public class PromotionService : IPromotionService
         return errors;
     }
 
-    private static PromotionSummaryDto MapPromotion(Promotion promotion)
+    private static PromotionSummaryDto MapPromotion(CompanyPromotionContract promotion)
     {
-        return BllDtoFactory.CreatePromotionSummaryDto(promotion);
+        return new PromotionSummaryDto
+        {
+            Id = promotion.Id,
+            Code = promotion.Code,
+            DiscountValue = promotion.DiscountValue,
+            ValidFromUtc = promotion.ValidFromUtc,
+            ValidToUtc = promotion.ValidToUtc,
+            IsActive = promotion.IsActive
+        };
     }
 
-    private static UserPromotionDto MapUserPromotion(UserPromotion userPromotion)
+    private static UserPromotionDto MapUserPromotion(Shared.Contracts.Companies.UserPromotionContract userPromotion)
     {
-        return BllDtoFactory.CreateUserPromotionDto(userPromotion, DateTime.UtcNow);
+        var promotion = userPromotion.Promotion;
+        return new UserPromotionDto
+        {
+            Id = userPromotion.Id,
+            PromotionId = userPromotion.PromotionId,
+            Code = promotion?.Code ?? string.Empty,
+            DiscountValue = promotion?.DiscountValue ?? 0,
+            ValidFromUtc = promotion?.ValidFromUtc ?? DateTime.MinValue,
+            ValidToUtc = promotion?.ValidToUtc ?? DateTime.MinValue,
+            AddedAtUtc = userPromotion.AddedAtUtc,
+            IsActive = promotion != null && promotion.IsActive && promotion.ValidFromUtc <= DateTime.UtcNow && promotion.ValidToUtc >= DateTime.UtcNow,
+            IsUsed = userPromotion.IsUsed
+        };
     }
+
+    private static UpsertCompanyPromotionContract MapUpsert(PromotionUpsertDto dto) => new()
+    {
+        Code = dto.Code,
+        DiscountValue = dto.DiscountValue,
+        ValidFromUtc = dto.ValidFromUtc,
+        ValidToUtc = dto.ValidToUtc,
+        IsActive = dto.IsActive
+    };
 
     private static string NormalizeCode(string code)
     {

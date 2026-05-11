@@ -1,11 +1,10 @@
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF;
 using App.DTO.v1.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Moq;
+using Shared.Contracts.Companies;
 using Shared.Contracts.Users;
 using WebApp.ApiControllers.v1;
 
@@ -16,14 +15,14 @@ public class UnitTestCustomerAccountController
     [Fact]
     public async Task RegisterCustomer_ReturnsBadRequest_WhenRegistrationFails()
     {
-        await using var context = BuildContext();
         var identityService = new Mock<IIdentityService>();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
         var usersApi = new Mock<IUsersModuleApi>();
         identityService
             .Setup(x => x.RegisterCustomerAsync(It.IsAny<RegisterCustomerDto>()))
             .ReturnsAsync(ServiceResult<Guid>.Fail("VALIDATION", "Invalid request."));
 
-        var sut = BuildController(identityService.Object, usersApi.Object, context);
+        var sut = BuildController(identityService.Object, companiesApi.Object, usersApi.Object);
         var request = BuildRequest();
 
         var action = await sut.RegisterCustomer(request, jwtExpiresInSeconds: 60, refreshTokenExpiresInSeconds: 120);
@@ -35,8 +34,8 @@ public class UnitTestCustomerAccountController
     [Fact]
     public async Task RegisterCustomer_ReturnsBadRequest_WhenUserNotFoundAfterRegistration()
     {
-        await using var context = BuildContext();
         var identityService = new Mock<IIdentityService>();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
         var usersApi = new Mock<IUsersModuleApi>();
         identityService
             .Setup(x => x.RegisterCustomerAsync(It.IsAny<RegisterCustomerDto>()))
@@ -45,7 +44,7 @@ public class UnitTestCustomerAccountController
             .Setup(x => x.GetUserIdByEmailAsync("john@example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Guid?)null);
 
-        var sut = BuildController(identityService.Object, usersApi.Object, context);
+        var sut = BuildController(identityService.Object, companiesApi.Object, usersApi.Object);
         var request = BuildRequest();
 
         var action = await sut.RegisterCustomer(request, jwtExpiresInSeconds: 60, refreshTokenExpiresInSeconds: 120);
@@ -57,8 +56,8 @@ public class UnitTestCustomerAccountController
     [Fact]
     public async Task RegisterCustomer_ReturnsJwtResponse_WhenRegistrationSucceeds()
     {
-        await using var context = BuildContext();
         var identityService = new Mock<IIdentityService>();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
         var usersApi = new Mock<IUsersModuleApi>();
         var userId = Guid.NewGuid();
 
@@ -79,7 +78,7 @@ public class UnitTestCustomerAccountController
             .Setup(x => x.IssueRefreshTokenAsync(It.IsAny<IssueRefreshTokenContract>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("refresh-token");
 
-        var sut = BuildController(identityService.Object, usersApi.Object, context);
+        var sut = BuildController(identityService.Object, companiesApi.Object, usersApi.Object);
         var request = BuildRequest();
 
         var action = await sut.RegisterCustomer(request, jwtExpiresInSeconds: 60, refreshTokenExpiresInSeconds: 120);
@@ -91,13 +90,13 @@ public class UnitTestCustomerAccountController
 
     private static CustomerAccountController BuildController(
         IIdentityService identityService,
-        IUsersModuleApi usersApi,
-        AppDbContext context)
+        ICompaniesModuleApi companiesApi,
+        IUsersModuleApi usersApi)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["JWT:Key"] = "this-is-a-long-test-key-for-jwt-signing-1234567890",
+                ["JWT:Key"] = "this-is-a-long-test-key-for-jwt-signing-1234567890-and-even-longer-abcdef",
                 ["JWT:Issuer"] = "test-issuer",
                 ["JWT:Audience"] = "test-audience",
                 ["JWT:ExpiresInSeconds"] = "3600",
@@ -106,7 +105,7 @@ public class UnitTestCustomerAccountController
             })
             .Build();
 
-        return new CustomerAccountController(identityService, configuration, context, usersApi);
+        return new CustomerAccountController(identityService, configuration, companiesApi, usersApi);
     }
 
     private static RegisterCustomer BuildRequest() => new()
@@ -119,11 +118,4 @@ public class UnitTestCustomerAccountController
         ConfirmPassword = "Password#123"
     };
 
-    private static AppDbContext BuildContext()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        return new AppDbContext(options);
-    }
 }

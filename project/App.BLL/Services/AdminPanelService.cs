@@ -6,6 +6,7 @@ using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 
 namespace App.BLL.Services;
 
@@ -14,15 +15,18 @@ public class AdminPanelService : IAdminPanelService
     private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<AppUser> _userManager;
     private readonly IAuditService _auditService;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
     public AdminPanelService(
         IUnitOfWork unitOfWork,
         UserManager<AppUser> userManager,
-        IAuditService auditService)
+        IAuditService auditService,
+        ICompaniesModuleApi companiesModuleApi)
     {
         _unitOfWork = unitOfWork;
         _userManager = userManager;
         _auditService = auditService;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     public async Task<ServiceResult<AdminDashboardDto>> GetDashboardAsync(DateTime fromUtc, DateTime toUtc)
@@ -56,31 +60,18 @@ public class AdminPanelService : IAdminPanelService
 
     public async Task<ServiceResult<AdminCompanyListDto>> GetCompaniesAsync(string? search = null)
     {
-        var companies = (await _unitOfWork.Companies.GetAllIgnoringFiltersAsync()).ToList();
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
-
-        if (!string.IsNullOrWhiteSpace(normalizedSearch))
-        {
-            companies = companies
-                .Where(company =>
-                    (company.Name?.Translate() ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
-                    (company.Name?.Translate("et") ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
-                    company.Slug.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
-                    company.ContactEmail.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        var memberCounts = await _unitOfWork.AppUserCompanies.GetQueryable()
-            .Where(uc => uc.IsActive)
-            .GroupBy(uc => uc.CompanyId)
-            .Select(group => new { CompanyId = group.Key, Count = group.Select(x => x.AppUserId).Distinct().Count() })
-            .ToDictionaryAsync(item => item.CompanyId, item => item.Count);
-
+        var companies = await _companiesModuleApi.GetCompaniesForAdminAsync(normalizedSearch);
         var mapped = companies
-            .OrderBy(company => company.Name?.Translate() ?? string.Empty)
-            .Select(company => BllDtoFactory.CreateAdminCompanyListItemDto(
-                company,
-                memberCounts.GetValueOrDefault(company.Id, 0)))
+            .Select(company => new AdminCompanyListItemDto
+            {
+                CompanyId = company.CompanyId,
+                Name = company.CompanyName,
+                ContactEmail = company.ContactEmail,
+                Slug = company.Slug,
+                IsActive = company.IsActive,
+                ActiveMemberCount = company.ActiveMembersCount
+            })
             .ToList();
 
         return ServiceResult<AdminCompanyListDto>.Ok(BllDtoFactory.CreateAdminCompanyListDto(normalizedSearch, mapped));
@@ -122,34 +113,29 @@ public class AdminPanelService : IAdminPanelService
             return ServiceResult<AdminCompanyListItemDto>.Fail("VALIDATION", "Company id is required.");
         }
 
-        var company = await _unitOfWork.Companies.GetByIdIgnoringFiltersAsync(companyId);
+        var company = await _companiesModuleApi.SetCompanyActivationAsync(companyId, isActive);
         if (company == null)
         {
             return ServiceResult<AdminCompanyListItemDto>.Fail("NOT_FOUND", "Company not found.");
         }
 
-        if (company.IsActive != isActive)
-        {
-            company.IsActive = isActive;
-            _unitOfWork.Companies.Update(company);
-            await _unitOfWork.SaveAsync();
-        }
-
-        var memberCount = await _unitOfWork.AppUserCompanies.GetQueryable()
-            .Where(uc => uc.CompanyId == companyId && uc.IsActive)
-            .Select(uc => uc.AppUserId)
-            .Distinct()
-            .CountAsync();
-
         await _auditService.LogMutationAsync(
-            company.Id,
+            company.CompanyId,
             actorUserName,
             nameof(Company),
-            company.Id,
+            company.CompanyId,
             isActive ? "CompanyActivated" : "CompanyInactivated",
             $"{{\"isActive\":{isActive.ToString().ToLowerInvariant()}}}");
 
-        return ServiceResult<AdminCompanyListItemDto>.Ok(BllDtoFactory.CreateAdminCompanyListItemDto(company, memberCount));
+        return ServiceResult<AdminCompanyListItemDto>.Ok(new AdminCompanyListItemDto
+        {
+            CompanyId = company.CompanyId,
+            Name = company.CompanyName,
+            ContactEmail = company.ContactEmail,
+            Slug = company.Slug,
+            IsActive = company.IsActive,
+            ActiveMemberCount = company.ActiveMembersCount
+        });
     }
 
     public async Task<ServiceResult<AdminAuditLogListDto>> GetAuditLogsAsync(AdminAuditLogFilterDto filter)

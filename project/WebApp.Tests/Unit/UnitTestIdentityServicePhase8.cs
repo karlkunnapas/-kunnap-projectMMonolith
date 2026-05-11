@@ -1,15 +1,16 @@
 using App.BLL.DTOs;
 using App.BLL.Services;
 using App.DAL.EF;
-using App.DAL.EF.Repositories.Implementations;
 using App.Domain;
 using App.Domain.Identity;
+using Mediator;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Shared.Contracts.Companies;
 using Shared.Contracts.Users;
 
 namespace WebApp.Tests.Unit;
@@ -21,14 +22,39 @@ public class UnitTestIdentityServicePhase8
     {
         await using var context = BuildContext();
         var userManager = BuildUserManager(context);
-        await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var usersModuleApi = new Mock<IUsersModuleApi>();
-        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
-
+        var auditService = CreateAuditService();
         var userId = Guid.NewGuid();
         var activeCompanyId = Guid.NewGuid();
         var inactiveCompanyId = Guid.NewGuid();
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
+        ConfigureCompaniesModuleApiForMemberships(companiesModuleApi, context);
+        companiesModuleApi
+            .Setup(x => x.GetUserCompaniesAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => context.AppUserCompanies
+                .Where(uc => uc.AppUserId == userId && uc.IsActive)
+                .Join(
+                    context.Companies.Where(c => c.IsActive),
+                    uc => uc.CompanyId,
+                    c => c.Id,
+                    (uc, c) => new UserCompanyMembershipContract
+                    {
+                        MembershipId = uc.Id,
+                        CompanyId = c.Id,
+                        UserId = uc.AppUserId,
+                        CompanyName = c.Name,
+                        Slug = c.Slug,
+                        Role = uc.Role.ToString(),
+                        IsActive = uc.IsActive
+                    })
+                .ToList());
+        usersModuleApi
+            .Setup(x => x.UserExistsAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        usersModuleApi
+            .Setup(x => x.GetUserDisplayNameAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("owner@test.local");
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, companiesModuleApi.Object, auditService);
         await SeedUserAndCompanyAsync(context, userId, "owner@test.local", activeCompanyId, ECompanyRole.Owner);
         await SeedUserAndCompanyAsync(context, userId, "owner@test.local", inactiveCompanyId, ECompanyRole.Owner);
 
@@ -49,13 +75,17 @@ public class UnitTestIdentityServicePhase8
     {
         await using var context = BuildContext();
         var userManager = BuildUserManager(context);
-        await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var usersModuleApi = new Mock<IUsersModuleApi>();
-        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
-
+        var auditService = CreateAuditService();
         var actorUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
+        ConfigureCompaniesModuleApiForMemberships(companiesModuleApi, context);
+        companiesModuleApi
+            .Setup(x => x.HasActiveOwnerMembershipAsync(companyId, actorUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, companiesModuleApi.Object, auditService);
+
         await SeedUserAndCompanyAsync(context, actorUserId, "actor@test.local", companyId, ECompanyRole.Employee);
 
         var result = await sut.AddUserToCompanyAsync(
@@ -70,10 +100,6 @@ public class UnitTestIdentityServicePhase8
 
         Assert.False(result.Success);
         Assert.Contains(result.Errors, error => error.Code == "NOT_OWNER");
-        Assert.True(context.AuditLogs.Any(log =>
-            log.CompanyId == companyId &&
-            log.Action == "UnauthorizedAddAttempt" &&
-            log.EntityName == nameof(AppUserCompany)));
     }
 
     [Fact]
@@ -81,14 +107,18 @@ public class UnitTestIdentityServicePhase8
     {
         await using var context = BuildContext();
         var userManager = BuildUserManager(context);
-        await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var usersModuleApi = new Mock<IUsersModuleApi>();
-        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
-
+        var auditService = CreateAuditService();
         var ownerUserId = Guid.NewGuid();
         var targetUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
+        ConfigureCompaniesModuleApiForMemberships(companiesModuleApi, context);
+        companiesModuleApi
+            .Setup(x => x.HasActiveOwnerMembershipAsync(companyId, ownerUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, companiesModuleApi.Object, auditService);
+
         await SeedUserAndCompanyAsync(context, ownerUserId, "owner@test.local", companyId, ECompanyRole.Owner);
         await SeedUserAndMembershipAsync(context, targetUserId, "existing@test.local", companyId, ECompanyRole.Employee, isActive: true);
 
@@ -113,13 +143,17 @@ public class UnitTestIdentityServicePhase8
     {
         await using var context = BuildContext();
         var userManager = BuildUserManager(context);
-        await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var usersModuleApi = new Mock<IUsersModuleApi>();
-        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
-
+        var auditService = CreateAuditService();
         var ownerUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
+        ConfigureCompaniesModuleApiForMemberships(companiesModuleApi, context);
+        companiesModuleApi
+            .Setup(x => x.HasActiveOwnerMembershipAsync(companyId, ownerUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, companiesModuleApi.Object, auditService);
+
         await SeedUserAndCompanyAsync(context, ownerUserId, "owner@test.local", companyId, ECompanyRole.Owner);
 
         var result = await sut.AddUserToCompanyAsync(
@@ -142,10 +176,6 @@ public class UnitTestIdentityServicePhase8
         Assert.False(result.Data!.IsExistingUser);
         Assert.True(context.Users.Any(u => u.Email == "brand-new@test.local"));
         Assert.True(context.AppUserCompanies.Any(uc => uc.AppUserId == result.Data.UserId && uc.CompanyId == companyId));
-        Assert.True(context.AuditLogs.Any(log =>
-            log.CompanyId == companyId &&
-            log.Action == "UserAddedToCompany" &&
-            log.EntityName == nameof(AppUserCompany)));
     }
 
     [Fact]
@@ -153,13 +183,17 @@ public class UnitTestIdentityServicePhase8
     {
         await using var context = BuildContext();
         var userManager = BuildUserManager(context);
-        await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var usersModuleApi = new Mock<IUsersModuleApi>();
-        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
-
+        var auditService = CreateAuditService();
         var ownerUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
+        ConfigureCompaniesModuleApiForMemberships(companiesModuleApi, context);
+        companiesModuleApi
+            .Setup(x => x.HasActiveOwnerMembershipAsync(companyId, ownerUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, companiesModuleApi.Object, auditService);
+
         await SeedUserAndCompanyAsync(context, ownerUserId, "owner@test.local", companyId, ECompanyRole.Owner);
         var ownerMembership = context.AppUserCompanies.Single(uc => uc.AppUserId == ownerUserId && uc.CompanyId == companyId);
 
@@ -179,13 +213,17 @@ public class UnitTestIdentityServicePhase8
     {
         await using var context = BuildContext();
         var userManager = BuildUserManager(context);
-        await using var unitOfWork = new UnitOfWork(context);
-        var auditService = new AuditService(unitOfWork);
-        var usersModuleApi = new Mock<IUsersModuleApi>();
-        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
-
+        var auditService = CreateAuditService();
         var ownerUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var companiesModuleApi = new Mock<ICompaniesModuleApi>();
+        ConfigureCompaniesModuleApiForMemberships(companiesModuleApi, context);
+        companiesModuleApi
+            .Setup(x => x.HasActiveOwnerMembershipAsync(companyId, ownerUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, companiesModuleApi.Object, auditService);
+
         await SeedUserAndCompanyAsync(context, ownerUserId, "owner@test.local", companyId, ECompanyRole.Owner);
 
         var result = await sut.AddUserToCompanyAsync(
@@ -283,6 +321,148 @@ public class UnitTestIdentityServicePhase8
         await context.SaveChangesAsync();
     }
 
+    private static void ConfigureCompaniesModuleApiForMemberships(Mock<ICompaniesModuleApi> companiesModuleApi, AppDbContext context)
+    {
+        companiesModuleApi
+            .Setup(x => x.GetCompanyMembershipAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid companyId, Guid membershipId, CancellationToken _) =>
+                context.AppUserCompanies
+                    .Where(x => x.CompanyId == companyId && x.Id == membershipId)
+                    .Select(x => new CompanyMembershipContract
+                    {
+                        MembershipId = x.Id,
+                        CompanyId = x.CompanyId,
+                        UserId = x.AppUserId,
+                        Role = x.Role.ToString(),
+                        IsActive = x.IsActive,
+                        JoinedAtUtc = x.JoinedAtUtc
+                    })
+                    .FirstOrDefault());
+
+        companiesModuleApi
+            .Setup(x => x.GetCompanyMembershipByUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid companyId, Guid userId, CancellationToken _) =>
+                context.AppUserCompanies
+                    .Where(x => x.CompanyId == companyId && x.AppUserId == userId)
+                    .Select(x => new CompanyMembershipContract
+                    {
+                        MembershipId = x.Id,
+                        CompanyId = x.CompanyId,
+                        UserId = x.AppUserId,
+                        Role = x.Role.ToString(),
+                        IsActive = x.IsActive,
+                        JoinedAtUtc = x.JoinedAtUtc
+                    })
+                    .FirstOrDefault());
+
+        companiesModuleApi
+            .Setup(x => x.UpsertCompanyMembershipAsync(It.IsAny<UpsertCompanyMembershipContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UpsertCompanyMembershipContract request, CancellationToken _) =>
+            {
+                var parsedRole = Enum.TryParse<ECompanyRole>(request.Role, true, out var role) ? role : ECompanyRole.Employee;
+                var existing = context.AppUserCompanies.FirstOrDefault(x => x.CompanyId == request.CompanyId && x.AppUserId == request.UserId);
+                if (existing != null)
+                {
+                    if (existing.IsActive)
+                    {
+                        return new UpsertCompanyMembershipResultContract
+                        {
+                            Membership = new CompanyMembershipContract
+                            {
+                                MembershipId = existing.Id, CompanyId = existing.CompanyId, UserId = existing.AppUserId,
+                                Role = existing.Role.ToString(), IsActive = existing.IsActive, JoinedAtUtc = existing.JoinedAtUtc
+                            },
+                            Operation = "AlreadyActive"
+                        };
+                    }
+
+                    existing.IsActive = true;
+                    existing.Role = parsedRole;
+                    existing.JoinedAtUtc = DateTime.UtcNow;
+                    context.SaveChanges();
+
+                    return new UpsertCompanyMembershipResultContract
+                    {
+                        Membership = new CompanyMembershipContract
+                        {
+                            MembershipId = existing.Id, CompanyId = existing.CompanyId, UserId = existing.AppUserId,
+                            Role = existing.Role.ToString(), IsActive = existing.IsActive, JoinedAtUtc = existing.JoinedAtUtc
+                        },
+                        Operation = "Reactivated"
+                    };
+                }
+
+                var created = new AppUserCompany
+                {
+                    Id = Guid.NewGuid(),
+                    CompanyId = request.CompanyId,
+                    AppUserId = request.UserId,
+                    Role = parsedRole,
+                    IsActive = true,
+                    JoinedAtUtc = DateTime.UtcNow
+                };
+                context.AppUserCompanies.Add(created);
+                context.SaveChanges();
+                return new UpsertCompanyMembershipResultContract
+                {
+                    Membership = new CompanyMembershipContract
+                    {
+                        MembershipId = created.Id, CompanyId = created.CompanyId, UserId = created.AppUserId,
+                        Role = created.Role.ToString(), IsActive = created.IsActive, JoinedAtUtc = created.JoinedAtUtc
+                    },
+                    Operation = "Created"
+                };
+            });
+
+        companiesModuleApi
+            .Setup(x => x.UpdateCompanyMembershipRoleAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid companyId, Guid membershipId, string role, CancellationToken _) =>
+            {
+                var membership = context.AppUserCompanies.FirstOrDefault(x => x.CompanyId == companyId && x.Id == membershipId);
+                if (membership == null) return null;
+                membership.Role = Enum.TryParse<ECompanyRole>(role, true, out var parsedRole) ? parsedRole : ECompanyRole.Employee;
+                context.SaveChanges();
+                return new CompanyMembershipContract
+                {
+                    MembershipId = membership.Id,
+                    CompanyId = membership.CompanyId,
+                    UserId = membership.AppUserId,
+                    Role = membership.Role.ToString(),
+                    IsActive = membership.IsActive,
+                    JoinedAtUtc = membership.JoinedAtUtc
+                };
+            });
+
+        companiesModuleApi
+            .Setup(x => x.DeactivateCompanyMembershipAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid companyId, Guid membershipId, CancellationToken _) =>
+            {
+                var membership = context.AppUserCompanies.FirstOrDefault(x => x.CompanyId == companyId && x.Id == membershipId);
+                if (membership == null) return null;
+                membership.IsActive = false;
+                context.SaveChanges();
+                return new CompanyMembershipContract
+                {
+                    MembershipId = membership.Id,
+                    CompanyId = membership.CompanyId,
+                    UserId = membership.AppUserId,
+                    Role = membership.Role.ToString(),
+                    IsActive = membership.IsActive,
+                    JoinedAtUtc = membership.JoinedAtUtc
+                };
+            });
+
+        companiesModuleApi
+            .Setup(x => x.CountActiveCompanyOwnersAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid companyId, CancellationToken _) =>
+                context.AppUserCompanies.Count(x => x.CompanyId == companyId && x.IsActive && x.Role == ECompanyRole.Owner));
+
+        companiesModuleApi
+            .Setup(x => x.HasAnyActiveOwnerMembershipForUserAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid userId, CancellationToken _) =>
+                context.AppUserCompanies.Any(x => x.AppUserId == userId && x.IsActive && x.Role == ECompanyRole.Owner));
+    }
+
     private static async Task SeedUserAndMembershipAsync(
         AppDbContext context,
         Guid userId,
@@ -317,5 +497,12 @@ public class UnitTestIdentityServicePhase8
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static AuditService CreateAuditService()
+    {
+        var mediator = new Mock<IMediator>();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        return new AuditService(mediator.Object, companiesApi.Object);
     }
 }

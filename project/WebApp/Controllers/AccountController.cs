@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.ViewModels.Account;
 
 namespace WebApp.Controllers;
@@ -19,17 +20,20 @@ public class AccountController : Controller
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
     private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
     public AccountController(
         IIdentityService identityService,
         SignInManager<AppUser> signInManager,
         UserManager<AppUser> userManager,
-        AppDbContext context)
+        AppDbContext context,
+        ICompaniesModuleApi companiesModuleApi)
     {
         _identityService = identityService;
         _signInManager = signInManager;
         _userManager = userManager;
         _context = context;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     // GET: /Account/Register (customer)
@@ -419,14 +423,6 @@ public class AccountController : Controller
             return false;
         }
 
-        return await _context.AppUserCompanies
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .Include(uc => uc.Company)
-            .AnyAsync(uc =>
-                uc.AppUserId == userId
-                && uc.IsActive
-                && uc.Company != null
-                && !uc.Company.IsActive);
+        return await _companiesModuleApi.HasDeactivatedActiveMembershipAsync(userId);
     }
 }

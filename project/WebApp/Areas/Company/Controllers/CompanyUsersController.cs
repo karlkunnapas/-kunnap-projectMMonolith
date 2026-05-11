@@ -6,7 +6,7 @@ using App.DAL.EF;
 using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Company.ViewModels;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -16,13 +16,16 @@ namespace WebApp.Areas.Company.Controllers;
 public class CompanyUsersController : Controller
 {
     private readonly IIdentityService _identityService;
-    private readonly AppDbContext _context;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly ITenantContext _tenantContext;
 
-    public CompanyUsersController(IIdentityService identityService, AppDbContext context, ITenantContext tenantContext)
+    public CompanyUsersController(
+        IIdentityService identityService,
+        ICompaniesModuleApi companiesModuleApi,
+        ITenantContext tenantContext)
     {
         _identityService = identityService;
-        _context = context;
+        _companiesModuleApi = companiesModuleApi;
         _tenantContext = tenantContext;
     }
 
@@ -287,12 +290,12 @@ public class CompanyUsersController : Controller
             return new List<Guid>();
         }
 
-        return await _context.AppUserCompanies
-            .AsNoTracking()
-            .Where(uc => uc.AppUserId == userId.Value && uc.IsActive && uc.Company != null && uc.Company.IsActive && uc.Role == ECompanyRole.Owner)
-            .OrderByDescending(uc => uc.JoinedAtUtc)
-            .Select(uc => uc.CompanyId)
-            .ToListAsync();
+        var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId.Value);
+        return memberships
+            .Where(m => string.Equals(m.Role, ECompanyRole.Owner.ToString(), StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(m => m.MembershipId)
+            .Select(m => m.CompanyId)
+            .ToList();
     }
 
     private Guid? ResolveCurrentUserId()

@@ -22,7 +22,18 @@ public static class AppDataInit
         var seedOwner = context.Users.SingleOrDefault(u => u.Email == SeedCompanyOwnerEmail);
         if (seedOwner == null)
         {
-            throw new ApplicationException($"Seed owner user '{SeedCompanyOwnerEmail}' was not found.");
+            seedOwner = new AppUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = SeedCompanyOwnerEmail,
+                NormalizedUserName = SeedCompanyOwnerEmail.ToUpperInvariant(),
+                Email = SeedCompanyOwnerEmail,
+                NormalizedEmail = SeedCompanyOwnerEmail.ToUpperInvariant(),
+                EmailConfirmed = true,
+                PhoneNumber = "+3725000000"
+            };
+            context.Users.Add(seedOwner);
+            context.SaveChanges();
         }
 
         var company = context.Companies.SingleOrDefault(c => c.Slug == SeedCompanySlug);

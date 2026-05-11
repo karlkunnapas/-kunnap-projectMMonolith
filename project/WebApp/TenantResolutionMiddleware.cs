@@ -2,6 +2,7 @@ using System.Security.Claims;
 using App.DAL.EF;
 using App.Domain;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Companies;
 
 namespace WebApp;
 
@@ -30,7 +31,11 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         "Users"
     };
 
-    public async Task InvokeAsync(HttpContext context, AppDbContext db, ITenantContext tenantContext)
+    public async Task InvokeAsync(
+        HttpContext context,
+        AppDbContext db,
+        ITenantContext tenantContext,
+        ICompaniesModuleApi companiesModuleApi)
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
@@ -122,10 +127,7 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
             var isSystemUser = context.User.IsInRole("root") || context.User.IsInRole("Admin") || context.User.IsInRole("SystemAdmin");
             if (!isSystemUser)
             {
-                var hasMembership = await db.AppUserCompanies
-                    .IgnoreQueryFilters()
-                    .AsNoTracking()
-                    .AnyAsync(uc => uc.AppUserId == currentUserId.Value && uc.CompanyId == company.Id && uc.IsActive);
+                var hasMembership = await companiesModuleApi.GetActiveCompanySelectionAsync(currentUserId.Value, company.Id) != null;
 
                 if (!hasMembership)
                 {

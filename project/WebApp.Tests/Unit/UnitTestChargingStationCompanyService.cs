@@ -2,7 +2,10 @@ using App.BLL.Services;
 using App.DAL.EF;
 using App.DAL.EF.Repositories.Implementations;
 using App.Domain;
+using Mediator;
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Tests.Unit;
 
@@ -30,7 +33,7 @@ public class UnitTestChargingStationCompanyService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ChargingStationCompanyService(uow, new AuditService(uow));
+        var service = new ChargingStationCompanyService(uow, CreateAuditService());
 
         var result = await service.CreateStationAsync(companyId, userId, "owner@test.local", new App.BLL.DTOs.CompanyStationUpsertDto
         {
@@ -88,7 +91,7 @@ public class UnitTestChargingStationCompanyService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ChargingStationCompanyService(uow, new AuditService(uow));
+        var service = new ChargingStationCompanyService(uow, CreateAuditService());
 
         var result = await service.UpdateStatusAsync(stationId, companyId, userId, "owner@test.local", (EStationStatus)999);
 
@@ -140,7 +143,7 @@ public class UnitTestChargingStationCompanyService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ChargingStationCompanyService(uow, new AuditService(uow));
+        var service = new ChargingStationCompanyService(uow, CreateAuditService());
 
         var result = await service.AssignConnectorAsync(stationId, companyId, userId, "owner@test.local", connectorId);
 
@@ -176,7 +179,7 @@ public class UnitTestChargingStationCompanyService
         await context.SaveChangesAsync();
 
         await using var uow = new UnitOfWork(context);
-        var service = new ChargingStationCompanyService(uow, new AuditService(uow));
+        var service = new ChargingStationCompanyService(uow, CreateAuditService());
 
         var result = await service.UpdateStationAsync(stationId, ownerCompanyId, userId, "owner@test.local", new App.BLL.DTOs.CompanyStationUpsertDto
         {
@@ -200,5 +203,12 @@ public class UnitTestChargingStationCompanyService
             .Options;
 
         return new AppDbContext(options);
+    }
+
+    private static AuditService CreateAuditService()
+    {
+        var mediator = new Mock<IMediator>();
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        return new AuditService(mediator.Object, companiesApi.Object);
     }
 }

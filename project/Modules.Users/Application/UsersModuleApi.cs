@@ -74,11 +74,33 @@ internal sealed class UsersModuleApi : IUsersModuleApi
                 Make = v.Make,
                 Model = v.Model,
                 BatteryCapacity = v.BatteryCapacity,
-                ConnectorIds = v.VehicleConnectors == null
-                    ? Array.Empty<Guid>()
-                    : v.VehicleConnectors.Select(vc => vc.ConnectorId).Distinct().ToList()
+                ConnectorIds = Array.Empty<Guid>()
             })
             .ToListAsync(ct);
+
+        if (vehicles.Count == 0)
+        {
+            return vehicles;
+        }
+
+        var vehicleIds = vehicles.Select(v => v.VehicleId).ToList();
+        var connectorLookup = await _dbContext.VehicleConnectors
+            .AsNoTracking()
+            .Where(vc => vehicleIds.Contains(vc.VehicleId))
+            .GroupBy(vc => vc.VehicleId)
+            .Select(g => new
+            {
+                VehicleId = g.Key,
+                ConnectorIds = g.Select(x => x.ConnectorId).Distinct().ToList()
+            })
+            .ToDictionaryAsync(x => x.VehicleId, x => (IReadOnlyCollection<Guid>)x.ConnectorIds, ct);
+
+        foreach (var vehicle in vehicles)
+        {
+            vehicle.ConnectorIds = connectorLookup.TryGetValue(vehicle.VehicleId, out var ids)
+                ? ids
+                : Array.Empty<Guid>();
+        }
 
         return vehicles;
     }
@@ -95,11 +117,21 @@ internal sealed class UsersModuleApi : IUsersModuleApi
                 Make = v.Make,
                 Model = v.Model,
                 BatteryCapacity = v.BatteryCapacity,
-                ConnectorIds = v.VehicleConnectors == null
-                    ? Array.Empty<Guid>()
-                    : v.VehicleConnectors.Select(vc => vc.ConnectorId).Distinct().ToList()
+                ConnectorIds = Array.Empty<Guid>()
             })
             .FirstOrDefaultAsync(ct);
+
+        if (vehicle == null)
+        {
+            return null;
+        }
+
+        vehicle.ConnectorIds = await _dbContext.VehicleConnectors
+            .AsNoTracking()
+            .Where(vc => vc.VehicleId == vehicleId)
+            .Select(vc => vc.ConnectorId)
+            .Distinct()
+            .ToListAsync(ct);
 
         return vehicle;
     }
