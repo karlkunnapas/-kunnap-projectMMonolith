@@ -36,7 +36,7 @@ builder.Services.AddScoped<IChargingStationCompanyService, ChargingStationCompan
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<EnsureActiveCompanyAccessFilter>();
 
-// Build and configure pipeline
+// Build and configure pipeline 
 var app = builder.Build();
 
 app.SetupAppData();
