@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using Shared.Contracts.Users;
 
 namespace WebApp.Tests.Unit;
 
@@ -21,7 +23,8 @@ public class UnitTestIdentityServicePhase8
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = new AuditService(unitOfWork);
-        var sut = new IdentityService(null!, userManager, unitOfWork, context, auditService);
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
 
         var userId = Guid.NewGuid();
         var activeCompanyId = Guid.NewGuid();
@@ -48,7 +51,8 @@ public class UnitTestIdentityServicePhase8
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = new AuditService(unitOfWork);
-        var sut = new IdentityService(null!, userManager, unitOfWork, context, auditService);
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
 
         var actorUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
@@ -79,7 +83,8 @@ public class UnitTestIdentityServicePhase8
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = new AuditService(unitOfWork);
-        var sut = new IdentityService(null!, userManager, unitOfWork, context, auditService);
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
 
         var ownerUserId = Guid.NewGuid();
         var targetUserId = Guid.NewGuid();
@@ -110,7 +115,8 @@ public class UnitTestIdentityServicePhase8
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = new AuditService(unitOfWork);
-        var sut = new IdentityService(null!, userManager, unitOfWork, context, auditService);
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
 
         var ownerUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
@@ -149,7 +155,8 @@ public class UnitTestIdentityServicePhase8
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = new AuditService(unitOfWork);
-        var sut = new IdentityService(null!, userManager, unitOfWork, context, auditService);
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
 
         var ownerUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();
@@ -174,7 +181,8 @@ public class UnitTestIdentityServicePhase8
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = new AuditService(unitOfWork);
-        var sut = new IdentityService(null!, userManager, unitOfWork, context, auditService);
+        var usersModuleApi = new Mock<IUsersModuleApi>();
+        var sut = new IdentityService(null!, userManager, usersModuleApi.Object, unitOfWork, context, auditService);
 
         var ownerUserId = Guid.NewGuid();
         var companyId = Guid.NewGuid();

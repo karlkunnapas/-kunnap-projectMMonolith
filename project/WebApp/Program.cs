@@ -1,15 +1,27 @@
 using App.BLL.Services;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
+using Mediator;
+using Modules.Charging;
+using Modules.Companies;
+using Modules.Users;
 using WebApp.Filters;
 using WebApp.Helpers;
 using WebApp.Setup;
 
+[assembly: MediatorOptions(ServiceLifetime = ServiceLifetime.Scoped, Namespace = "WebApp.Mediator")]
+
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 // Service registration
 builder.Services.AddAppDatabase(builder.Configuration, builder.Environment);
 builder.Services.AddAppIdentity(builder.Configuration);
+builder.Services.AddUsersModule(connectionString);
+builder.Services.AddCompaniesModule(connectionString);
+builder.Services.AddChargingModule(connectionString);
+builder.Services.AddMediator();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<AppNameService>();
 builder.Services.AddAppControllers();

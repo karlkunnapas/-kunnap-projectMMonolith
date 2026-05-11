@@ -1,18 +1,15 @@
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF;
-using App.Domain.Identity;
 using App.DTO.v1.Identity;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Encodings.Web;
-using System.Text;
 using System.Security.Claims;
+using Shared.Contracts.Users;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -33,26 +30,20 @@ public class CustomerAccountController : ControllerBase
     private const string SettingsJWTRefreshTokenExpiresInSeconds = SettingsJWTPrefix + ":RefreshTokenExpiresInSeconds";
 
     private readonly IIdentityService _identityService;
-    private readonly UserManager<AppUser> _userManager;
-    private readonly SignInManager<AppUser> _signInManager;
     private readonly IConfiguration _configuration;
     private readonly AppDbContext _context;
-    private readonly UrlEncoder _urlEncoder;
+    private readonly IUsersModuleApi _usersModuleApi;
 
     public CustomerAccountController(
         IIdentityService identityService,
-        UserManager<AppUser> userManager,
-        SignInManager<AppUser> signInManager,
         IConfiguration configuration,
         AppDbContext context,
-        UrlEncoder urlEncoder)
+        IUsersModuleApi usersModuleApi)
     {
         _identityService = identityService;
-        _userManager = userManager;
-        _signInManager = signInManager;
         _configuration = configuration;
         _context = context;
-        _urlEncoder = urlEncoder;
+        _usersModuleApi = usersModuleApi;
     }
 
     /// <summary>
@@ -74,13 +65,13 @@ public class CustomerAccountController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        var appUser = await _userManager.FindByEmailAsync(request.Email);
-        if (appUser == null)
+        var userId = await _usersModuleApi.GetUserIdByEmailAsync(request.Email);
+        if (userId == null)
         {
             return BadRequest(new Message("User was not found after registration."));
         }
 
-        var token = await GenerateJwtResponseAsync(appUser, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
+        var token = await GenerateJwtResponseAsync(userId.Value, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
         return Ok(token);
     }
 
@@ -103,13 +94,13 @@ public class CustomerAccountController : ControllerBase
             return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
         }
 
-        var appUser = await _userManager.FindByEmailAsync(request.Email);
-        if (appUser == null)
+        var userId = await _usersModuleApi.GetUserIdByEmailAsync(request.Email);
+        if (userId == null)
         {
             return BadRequest(new Message("User was not found after registration."));
         }
 
-        var token = await GenerateJwtResponseAsync(appUser, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
+        var token = await GenerateJwtResponseAsync(userId.Value, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
         return Ok(token);
     }
 
@@ -165,22 +156,18 @@ public class CustomerAccountController : ControllerBase
     public async Task<ActionResult<UserProfileResponse>> GetProfile()
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var profile = await _usersModuleApi.GetUserProfileAsync(userId);
+        if (profile == null)
         {
             return NotFound(new Message("User not found."));
         }
 
-        var claims = await _userManager.GetClaimsAsync(appUser);
-        var firstName = claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value ?? string.Empty;
-        var lastName = claims.FirstOrDefault(c => c.Type == ClaimTypes.Surname)?.Value ?? string.Empty;
-
         return Ok(new UserProfileResponse
         {
-            Email = appUser.Email ?? string.Empty,
-            FirstName = firstName,
-            LastName = lastName,
-            PhoneNumber = appUser.PhoneNumber ?? string.Empty
+            Email = profile.Email,
+            FirstName = profile.FirstName,
+            LastName = profile.LastName,
+            PhoneNumber = profile.PhoneNumber
         });
     }
 
@@ -195,50 +182,16 @@ public class CustomerAccountController : ControllerBase
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateUserProfile request)
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var updated = await _usersModuleApi.UpdateUserProfileAsync(userId, new UpdateUserProfileContract
         {
-            return NotFound(new Message("User not found."));
-        }
-
-        appUser.PhoneNumber = request.PhoneNumber.Trim();
-        var updateUserResult = await _userManager.UpdateAsync(appUser);
-        if (!updateUserResult.Succeeded)
-        {
-            return BadRequest(new Message(updateUserResult.Errors.Select(e => e.Description).ToArray()));
-        }
-
-        var claims = await _userManager.GetClaimsAsync(appUser);
-        var givenNameClaims = claims.Where(c => c.Type == ClaimTypes.GivenName).ToList();
-        var surnameClaims = claims.Where(c => c.Type == ClaimTypes.Surname).ToList();
-
-        if (givenNameClaims.Count != 0)
-        {
-            var removeGivenNameResult = await _userManager.RemoveClaimsAsync(appUser, givenNameClaims);
-            if (!removeGivenNameResult.Succeeded)
-            {
-                return BadRequest(new Message(removeGivenNameResult.Errors.Select(e => e.Description).ToArray()));
-            }
-        }
-
-        if (surnameClaims.Count != 0)
-        {
-            var removeSurnameResult = await _userManager.RemoveClaimsAsync(appUser, surnameClaims);
-            if (!removeSurnameResult.Succeeded)
-            {
-                return BadRequest(new Message(removeSurnameResult.Errors.Select(e => e.Description).ToArray()));
-            }
-        }
-
-        var addClaimsResult = await _userManager.AddClaimsAsync(appUser, new[]
-        {
-            new Claim(ClaimTypes.GivenName, request.FirstName.Trim()),
-            new Claim(ClaimTypes.Surname, request.LastName.Trim())
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber
         });
 
-        if (!addClaimsResult.Succeeded)
+        if (!updated)
         {
-            return BadRequest(new Message(addClaimsResult.Errors.Select(e => e.Description).ToArray()));
+            return NotFound(new Message("User not found."));
         }
 
         return NoContent();
@@ -252,16 +205,15 @@ public class CustomerAccountController : ControllerBase
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var result = await _usersModuleApi.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+        if (!result.Success)
         {
-            return NotFound(new Message("User not found."));
-        }
+            if (result.ErrorCode == "NOT_FOUND")
+            {
+                return NotFound(new Message(result.ErrorMessage ?? "User not found."));
+            }
 
-        var result = await _userManager.ChangePasswordAsync(appUser, request.CurrentPassword, request.NewPassword);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Description).ToArray()));
+            return BadRequest(new Message(result.ErrorMessage ?? "Password change failed."));
         }
 
         return NoContent();
@@ -274,20 +226,17 @@ public class CustomerAccountController : ControllerBase
     public async Task<ActionResult<TwoFactorStatusResponse>> GetTwoFactorStatus()
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var status = await _usersModuleApi.GetTwoFactorStatusAsync(userId);
+        if (!status.UserExists)
         {
             return NotFound(new Message("User not found."));
         }
 
-        var recoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(appUser);
-        var hasAuthenticator = !string.IsNullOrWhiteSpace(await _userManager.GetAuthenticatorKeyAsync(appUser));
-
         return Ok(new TwoFactorStatusResponse
         {
-            IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(appUser),
-            RecoveryCodesLeft = recoveryCodesLeft,
-            HasAuthenticator = hasAuthenticator
+            IsTwoFactorEnabled = status.IsTwoFactorEnabled,
+            RecoveryCodesLeft = status.RecoveryCodesLeft,
+            HasAuthenticator = status.HasAuthenticator
         });
     }
 
@@ -298,30 +247,18 @@ public class CustomerAccountController : ControllerBase
     public async Task<ActionResult<TwoFactorSetupResponse>> StartTwoFactorSetup()
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var setup = await _usersModuleApi.StartTwoFactorSetupAsync(userId, _configuration["AppName"] ?? "WebApp");
+        if (!setup.UserExists)
         {
             return NotFound(new Message("User not found."));
         }
 
-        var key = await _userManager.GetAuthenticatorKeyAsync(appUser);
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            await _userManager.ResetAuthenticatorKeyAsync(appUser);
-            key = await _userManager.GetAuthenticatorKeyAsync(appUser);
-        }
-
-        key ??= string.Empty;
-        var email = await _userManager.GetEmailAsync(appUser) ?? appUser.UserName ?? "user";
-        var appName = _configuration["AppName"] ?? "WebApp";
-        var recoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(appUser);
-
         return Ok(new TwoFactorSetupResponse
         {
-            SharedKey = FormatKey(key),
-            AuthenticatorUri = GenerateQrCodeUri(appName, email, key),
-            IsTwoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(appUser),
-            RecoveryCodesLeft = recoveryCodesLeft
+            SharedKey = setup.SharedKey,
+            AuthenticatorUri = setup.AuthenticatorUri,
+            IsTwoFactorEnabled = setup.IsTwoFactorEnabled,
+            RecoveryCodesLeft = setup.RecoveryCodesLeft
         });
     }
 
@@ -333,33 +270,20 @@ public class CustomerAccountController : ControllerBase
     public async Task<ActionResult<TwoFactorRecoveryCodesResponse>> EnableTwoFactor([FromBody] EnableTwoFactorRequest request)
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var result = await _usersModuleApi.EnableTwoFactorAsync(userId, request.VerificationCode);
+        if (!result.UserExists)
         {
             return NotFound(new Message("User not found."));
         }
 
-        var verificationCode = request.VerificationCode.Replace(" ", string.Empty).Replace("-", string.Empty);
-        var is2FaTokenValid = await _userManager.VerifyTwoFactorTokenAsync(
-            appUser,
-            _userManager.Options.Tokens.AuthenticatorTokenProvider,
-            verificationCode);
-
-        if (!is2FaTokenValid)
+        if (!result.Success)
         {
-            return BadRequest(new Message("Verification code is invalid."));
+            return BadRequest(new Message(result.ErrorMessage ?? "Two-factor setup failed."));
         }
 
-        var setResult = await _userManager.SetTwoFactorEnabledAsync(appUser, true);
-        if (!setResult.Succeeded)
-        {
-            return BadRequest(new Message(setResult.Errors.Select(e => e.Description).ToArray()));
-        }
-
-        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(appUser, 10);
         return Ok(new TwoFactorRecoveryCodesResponse
         {
-            RecoveryCodes = (recoveryCodes ?? Enumerable.Empty<string>()).ToList()
+            RecoveryCodes = result.RecoveryCodes.ToList()
         });
     }
 
@@ -370,13 +294,12 @@ public class CustomerAccountController : ControllerBase
     public async Task<IActionResult> DisableTwoFactor()
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var disabled = await _usersModuleApi.DisableTwoFactorAsync(userId);
+        if (!disabled)
         {
             return NotFound(new Message("User not found."));
         }
 
-        await _userManager.SetTwoFactorEnabledAsync(appUser, false);
         return NoContent();
     }
 
@@ -387,16 +310,15 @@ public class CustomerAccountController : ControllerBase
     public async Task<ActionResult<TwoFactorRecoveryCodesResponse>> RegenerateRecoveryCodes()
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var result = await _usersModuleApi.RegenerateRecoveryCodesAsync(userId);
+        if (!result.UserExists)
         {
             return NotFound(new Message("User not found."));
         }
 
-        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(appUser, 10);
         return Ok(new TwoFactorRecoveryCodesResponse
         {
-            RecoveryCodes = (recoveryCodes ?? Enumerable.Empty<string>()).ToList()
+            RecoveryCodes = result.RecoveryCodes.ToList()
         });
     }
 
@@ -408,92 +330,37 @@ public class CustomerAccountController : ControllerBase
     public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountRequest request)
     {
         var userId = User.UserId();
-        var appUser = await _userManager.FindByIdAsync(userId.ToString());
-        if (appUser == null)
+        var result = await _usersModuleApi.DeleteAccountAsync(userId, request.Password);
+        if (!result.Success && result.ErrorCode == "NOT_FOUND")
         {
             return NotFound(new Message("User not found."));
         }
 
-        var hasPassword = await _userManager.HasPasswordAsync(appUser);
-        if (hasPassword)
+        if (!result.Success)
         {
-            if (string.IsNullOrWhiteSpace(request.Password))
-            {
-                return BadRequest(new Message("Password is required."));
-            }
-
-            var validPassword = await _userManager.CheckPasswordAsync(appUser, request.Password);
-            if (!validPassword)
-            {
-                return BadRequest(new Message("Incorrect password."));
-            }
-        }
-
-        var result = await _userManager.DeleteAsync(appUser);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Description).ToArray()));
+            return BadRequest(new Message(result.ErrorMessage ?? "Account deletion failed."));
         }
 
         return NoContent();
     }
 
-    private string GenerateQrCodeUri(string appName, string email, string unformattedKey)
+    private async Task<JWTResponse> GenerateJwtResponseAsync(Guid userId, int? jwtExpiresInSeconds, int? refreshTokenExpiresInSeconds)
     {
-        return string.Format(
-            "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6",
-            _urlEncoder.Encode(appName),
-            _urlEncoder.Encode(email),
-            unformattedKey);
-    }
-
-    private static string FormatKey(string unformattedKey)
-    {
-        var result = new StringBuilder();
-        var currentPosition = 0;
-        while (currentPosition + 4 < unformattedKey.Length)
+        var jwtClaims = await _usersModuleApi.GetJwtClaimsAsync(userId);
+        var refreshToken = await _usersModuleApi.IssueRefreshTokenAsync(new IssueRefreshTokenContract
         {
-            result.Append(unformattedKey.AsSpan(currentPosition, 4)).Append(' ');
-            currentPosition += 4;
-        }
-
-        if (currentPosition < unformattedKey.Length)
-        {
-            result.Append(unformattedKey.AsSpan(currentPosition));
-        }
-
-        return result.ToString().ToLowerInvariant();
-    }
-
-    private async Task<JWTResponse> GenerateJwtResponseAsync(AppUser appUser, int? jwtExpiresInSeconds, int? refreshTokenExpiresInSeconds)
-    {
-        var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
-
-        if (!_context.Database.ProviderName!.Contains("InMemory"))
-        {
-            await _context
-                .RefreshTokens
-                .Where(t => t.UserId == appUser.Id && t.Expiration < DateTime.UtcNow)
-                .ExecuteDeleteAsync();
-        }
-
-        var refreshToken = new AppRefreshToken
-        {
-            UserId = appUser.Id,
-            Expiration = GetExpirationDateTime(refreshTokenExpiresInSeconds, SettingsJWTRefreshTokenExpiresInSeconds)
-        };
-
-        _context.RefreshTokens.Add(refreshToken);
-        await _context.SaveChangesAsync();
+            UserId = userId,
+            ExpiresAtUtc = GetExpirationDateTime(refreshTokenExpiresInSeconds, SettingsJWTRefreshTokenExpiresInSeconds)
+        });
 
         var jwt = IdentityExtensions.GenerateJwt(
-            claimsPrincipal.Claims,
+            jwtClaims.Select(c => new Claim(c.Type, c.Value)),
             _configuration.GetValue<string>(SettingsJWTKey)!,
             _configuration.GetValue<string>(SettingsJWTIssuer)!,
             _configuration.GetValue<string>(SettingsJWTAudience)!,
             GetExpirationDateTime(jwtExpiresInSeconds, SettingsJWTExpiresInSeconds));
 
-        return ApiDtoFactory.CreateJwtResponse(jwt, refreshToken.RefreshToken);
+        return ApiDtoFactory.CreateJwtResponse(jwt, refreshToken ?? string.Empty);
     }
 
     private DateTime GetExpirationDateTime(int? expiresInSeconds, string settingsKey)

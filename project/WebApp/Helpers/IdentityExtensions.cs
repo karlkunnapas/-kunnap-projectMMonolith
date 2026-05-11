@@ -13,7 +13,12 @@ public static class IdentityExtensions
     public static TKey UserId<TKey>(this ClaimsPrincipal user)
         where TKey : struct
     {
-        var stringId = user.Claims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value.Trim();
+        var stringId =
+            user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value
+            ?? user.Claims.FirstOrDefault(c => c.Type == "sub")?.Value
+            ?? throw new InvalidOperationException("User id claim not found.");
+
+        stringId = stringId.Trim();
         if (typeof(TKey) == typeof(string))
         {
             return (TKey) Convert.ChangeType(stringId, typeof(TKey));

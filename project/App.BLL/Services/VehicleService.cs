@@ -4,132 +4,123 @@ using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Users;
 
 namespace App.BLL.Services;
 
 public class VehicleService : IVehicleService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUsersModuleApi _usersModuleApi;
 
-    public VehicleService(IUnitOfWork unitOfWork)
+    public VehicleService(IUnitOfWork unitOfWork, IUsersModuleApi usersModuleApi)
     {
         _unitOfWork = unitOfWork;
+        _usersModuleApi = usersModuleApi;
     }
 
     public async Task<ServiceResult<List<VehicleDto>>> GetUserVehiclesAsync(Guid userId)
     {
-        var vehicles = await _unitOfWork.Vehicles.GetByUserIdAsync(userId);
-        return ServiceResult<List<VehicleDto>>.Ok(vehicles.Select(MapVehicle).ToList());
+        var vehicles = await _usersModuleApi.GetUserVehiclesAsync(userId);
+        var connectorNameMap = await LoadConnectorNameMapAsync(vehicles.SelectMany(v => v.ConnectorIds));
+
+        var dto = vehicles
+            .Select(v => MapVehicle(v, connectorNameMap))
+            .ToList();
+
+        return ServiceResult<List<VehicleDto>>.Ok(dto);
     }
 
     public async Task<ServiceResult<VehicleDto>> GetVehicleForUserAsync(Guid id, Guid userId)
     {
-        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserAsync(id, userId);
+        var vehicle = await _usersModuleApi.GetVehicleForUserAsync(id, userId);
         if (vehicle == null)
         {
             return ServiceResult<VehicleDto>.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
-        return ServiceResult<VehicleDto>.Ok(MapVehicle(vehicle));
+        var connectorNameMap = await LoadConnectorNameMapAsync(vehicle.ConnectorIds);
+        return ServiceResult<VehicleDto>.Ok(MapVehicle(vehicle, connectorNameMap));
     }
 
     public async Task<ServiceResult<VehicleDto>> CreateVehicleAsync(Guid userId, VehicleCreateDto dto)
     {
-        var vehicle = new Vehicle
+        var created = await _usersModuleApi.CreateVehicleAsync(userId, new CreateUserVehicleContract
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Make = dto.Make.Trim(),
-            Model = dto.Model.Trim(),
-            BatteryCapacity = dto.BatteryCapacity
-        };
+            Make = dto.Make,
+            Model = dto.Model,
+            BatteryCapacity = dto.BatteryCapacity,
+            ConnectorIds = dto.ConnectorIds
+        });
 
-        await _unitOfWork.Vehicles.AddAsync(vehicle);
-        await _unitOfWork.VehicleConnectors.ReplaceCompatibilityAsync(vehicle.Id, dto.ConnectorIds);
-        await _unitOfWork.SaveAsync();
-
-        var created = await _unitOfWork.Vehicles.GetByIdForUserAsync(vehicle.Id, userId);
-        return ServiceResult<VehicleDto>.Ok(MapVehicle(created!));
+        var connectorNameMap = await LoadConnectorNameMapAsync(created.ConnectorIds);
+        return ServiceResult<VehicleDto>.Ok(MapVehicle(created, connectorNameMap));
     }
 
     public async Task<ServiceResult<VehicleDto>> UpdateVehicleAsync(Guid id, Guid userId, VehicleUpdateDto dto)
     {
-        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserForUpdateAsync(id, userId);
+        var vehicle = await _usersModuleApi.UpdateVehicleAsync(id, userId, new UpdateUserVehicleContract
+        {
+            Make = dto.Make,
+            Model = dto.Model,
+            BatteryCapacity = dto.BatteryCapacity,
+            ConnectorIds = dto.ConnectorIds
+        });
+
         if (vehicle == null)
         {
             return ServiceResult<VehicleDto>.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
-        vehicle.Make = dto.Make.Trim();
-        vehicle.Model = dto.Model.Trim();
-        vehicle.BatteryCapacity = dto.BatteryCapacity;
-
-        // Keep tracked scalar updates and compatibility replacement separate to avoid graph tracking conflicts.
-        await _unitOfWork.VehicleConnectors.ReplaceCompatibilityAsync(vehicle.Id, dto.ConnectorIds);
-        await _unitOfWork.SaveAsync();
-
-        var updated = await _unitOfWork.Vehicles.GetByIdForUserAsync(id, userId);
-        return ServiceResult<VehicleDto>.Ok(MapVehicle(updated!));
+        var connectorNameMap = await LoadConnectorNameMapAsync(vehicle.ConnectorIds);
+        return ServiceResult<VehicleDto>.Ok(MapVehicle(vehicle, connectorNameMap));
     }
 
     public async Task<ServiceResult> DeleteVehicleAsync(Guid id, Guid userId)
     {
-        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserForUpdateAsync(id, userId);
-        if (vehicle == null)
+        var deleted = await _usersModuleApi.DeleteVehicleAsync(id, userId);
+        if (!deleted)
         {
             return ServiceResult.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
-        await _unitOfWork.VehicleConnectors.RemoveAllForVehicleAsync(vehicle.Id);
-        _unitOfWork.Vehicles.Remove(vehicle);
-        await _unitOfWork.SaveAsync();
         return ServiceResult.Ok();
     }
 
     public async Task<ServiceResult> SetConnectorCompatibilityAsync(Guid vehicleId, Guid userId, IReadOnlyCollection<Guid> connectorIds)
     {
-        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserAsync(vehicleId, userId);
-        if (vehicle == null)
+        var updated = await _usersModuleApi.SetConnectorCompatibilityAsync(vehicleId, userId, connectorIds);
+        if (!updated)
         {
             return ServiceResult.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
-        await _unitOfWork.VehicleConnectors.ReplaceCompatibilityAsync(vehicleId, connectorIds);
-        await _unitOfWork.SaveAsync();
         return ServiceResult.Ok();
     }
 
     public async Task<ServiceResult<List<VehicleConnectorDto>>> GetCompatibleConnectorsForVehicleAsync(Guid vehicleId, Guid userId)
     {
-        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserAsync(vehicleId, userId);
-        if (vehicle == null)
+        var connectorIds = await _usersModuleApi.GetVehicleConnectorIdsAsync(vehicleId, userId);
+        if (connectorIds.Count == 0)
         {
             return ServiceResult<List<VehicleConnectorDto>>.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
-        var connectors = vehicle.VehicleConnectors?
-            .Where(vc => vc.Connector != null && vc.Connector.IsActive)
-            .Select(vc => BllDtoFactory.CreateVehicleConnectorDto(
-                vc.ConnectorId,
-                vc.Connector!.Name.Translate() ?? vc.Connector.Name.ToString() ?? string.Empty))
+        var connectorNameMap = await LoadConnectorNameMapAsync(connectorIds);
+        var connectors = connectorNameMap
+            .Select(kvp => BllDtoFactory.CreateVehicleConnectorDto(kvp.Key, kvp.Value))
             .OrderBy(c => c.Name)
-            .ToList() ?? new List<VehicleConnectorDto>();
+            .ToList();
 
         return ServiceResult<List<VehicleConnectorDto>>.Ok(connectors);
     }
 
     public async Task<ServiceResult<List<CompatibleStationDto>>> GetCompatibleStationsForVehicleAsync(Guid vehicleId, Guid userId)
     {
-        var vehicle = await _unitOfWork.Vehicles.GetByIdForUserAsync(vehicleId, userId);
-        if (vehicle == null)
-        {
-            return ServiceResult<List<CompatibleStationDto>>.Fail("FORBIDDEN", "Vehicle not found or access denied.");
-        }
-
-        var connectorIds = vehicle.VehicleConnectors?.Select(vc => vc.ConnectorId).Distinct().ToHashSet() ?? new HashSet<Guid>();
+        var connectorIds = (await _usersModuleApi.GetVehicleConnectorIdsAsync(vehicleId, userId)).ToHashSet();
         if (connectorIds.Count == 0)
         {
-            return ServiceResult<List<CompatibleStationDto>>.Ok(new List<CompatibleStationDto>());
+            return ServiceResult<List<CompatibleStationDto>>.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
         var stations = await _unitOfWork.ChargingStations
@@ -153,16 +144,39 @@ public class VehicleService : IVehicleService
         return ServiceResult<List<CompatibleStationDto>>.Ok(compatible);
     }
 
-    private static VehicleDto MapVehicle(Vehicle vehicle)
+    private async Task<Dictionary<Guid, string>> LoadConnectorNameMapAsync(IEnumerable<Guid> connectorIds)
     {
-        var connectors = vehicle.VehicleConnectors?
-            .Where(vc => vc.Connector != null && vc.Connector.IsActive)
-            .Select(vc => BllDtoFactory.CreateVehicleConnectorDto(
-                vc.ConnectorId,
-                vc.Connector!.Name.Translate() ?? vc.Connector.Name.ToString() ?? string.Empty))
-            .OrderBy(c => c.Name)
-            .ToList() ?? new List<VehicleConnectorDto>();
+        var ids = connectorIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
 
-        return BllDtoFactory.CreateVehicleDto(vehicle, connectors);
+        var connectors = await _unitOfWork.Connectors
+            .GetQueryable()
+            .Where(c => c.IsActive && ids.Contains(c.Id))
+            .ToListAsync();
+
+        return connectors.ToDictionary(
+            c => c.Id,
+            c => c.Name.Translate() ?? c.Name.ToString() ?? string.Empty);
+    }
+
+    private static VehicleDto MapVehicle(UserVehicleContract vehicle, IReadOnlyDictionary<Guid, string> connectorNameMap)
+    {
+        var connectors = vehicle.ConnectorIds
+            .Where(connectorNameMap.ContainsKey)
+            .Select(id => BllDtoFactory.CreateVehicleConnectorDto(id, connectorNameMap[id]))
+            .OrderBy(c => c.Name)
+            .ToList();
+
+        return new VehicleDto
+        {
+            Id = vehicle.VehicleId,
+            Make = vehicle.Make,
+            Model = vehicle.Model,
+            BatteryCapacity = vehicle.BatteryCapacity,
+            CompatibleConnectors = connectors
+        };
     }
 }

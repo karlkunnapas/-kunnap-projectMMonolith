@@ -7,6 +7,7 @@ using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Users;
 using System.Security.Claims;
 
 namespace App.BLL.Services;
@@ -18,6 +19,7 @@ public class IdentityService : IIdentityService
 
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
+    private readonly IUsersModuleApi _usersModuleApi;
     private readonly IUnitOfWork _unitOfWork;
     private readonly AppDbContext _context;
     private readonly IAuditService _auditService;
@@ -25,12 +27,14 @@ public class IdentityService : IIdentityService
     public IdentityService(
         SignInManager<AppUser> signInManager,
         UserManager<AppUser> userManager,
+        IUsersModuleApi usersModuleApi,
         IUnitOfWork unitOfWork,
         AppDbContext context,
         IAuditService auditService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _usersModuleApi = usersModuleApi;
         _unitOfWork = unitOfWork;
         _context = context;
         _auditService = auditService;
@@ -429,38 +433,23 @@ public class IdentityService : IIdentityService
 
     public async Task<ServiceResult<Guid>> RegisterCustomerAsync(RegisterCustomerDto dto)
     {
-        var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-        if (existingUser != null)
+        var result = await _usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
         {
-            return ServiceResult<Guid>.Fail("DUPLICATE_EMAIL", "A user with this email already exists.");
-        }
-
-        var user = new AppUser
-        {
-            Id = Guid.NewGuid(),
-            UserName = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
             Email = dto.Email,
             PhoneNumber = dto.PhoneNumber,
-            EmailConfirmed = true,
-        };
+            Password = dto.Password
+        });
 
-        var createResult = await _userManager.CreateAsync(user, dto.Password);
-        if (!createResult.Succeeded)
+        if (!result.Success)
         {
             return ServiceResult<Guid>.Fail(
-                "USER_CREATION_FAILED",
-                string.Join(", ", createResult.Errors.Select(e => e.Description)));
+                result.ErrorCode ?? "USER_CREATION_FAILED",
+                result.ErrorMessage ?? "Customer registration failed.");
         }
 
-        var roleResult = await _userManager.AddToRoleAsync(user, CustomerRole);
-        if (!roleResult.Succeeded)
-        {
-            return ServiceResult<Guid>.Fail(
-                "ROLE_ASSIGNMENT_FAILED",
-                string.Join(", ", roleResult.Errors.Select(e => e.Description)));
-        }
-
-        return ServiceResult<Guid>.Ok(user.Id);
+        return ServiceResult<Guid>.Ok(result.UserId);
     }
 
     private async Task<ServiceResult> EnsureOwnerAsync(Guid companyId, Guid ownerUserId)

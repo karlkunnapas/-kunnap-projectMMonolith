@@ -10,6 +10,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
+        <PackageReference Include="Mediator.SourceGenerator" Version="3.0.2">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.1"/>
         <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.0" />
@@ -33,6 +38,10 @@
       <ProjectReference Include="..\App.DAL.EF\App.DAL.EF.csproj" />
       <ProjectReference Include="..\App.DTO\App.DTO.csproj" />
       <ProjectReference Include="..\App.Resources\App.Resources.csproj" />
+      <ProjectReference Include="..\Modules.Charging\Modules.Charging.csproj" />
+      <ProjectReference Include="..\Modules.Companies\Modules.Companies.csproj" />
+      <ProjectReference Include="..\Modules.Users\Modules.Users.csproj" />
+      <ProjectReference Include="..\Shared.Contracts\Shared.Contracts.csproj" />
     </ItemGroup>
 
     <ItemGroup>
