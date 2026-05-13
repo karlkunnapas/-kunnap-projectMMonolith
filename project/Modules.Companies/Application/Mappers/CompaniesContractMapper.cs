@@ -19,6 +19,7 @@ internal static class CompaniesContractMapper
     public static CreateCompanyWithOwnerMembershipDto ToDto(CreateCompanyWithOwnerMembershipContract c) => Map<CreateCompanyWithOwnerMembershipDto>(c);
 
     public static AdminCompanyContract ToContract(AdminCompanyDto d) => Map<AdminCompanyContract>(d);
+    public static CompanyTenantContract ToContract(CompanyTenantDto d) => Map<CompanyTenantContract>(d);
     public static UserCompanyMembershipContract ToContract(UserCompanyMembershipDto d) => Map<UserCompanyMembershipContract>(d);
     public static CompanyMembershipContract ToContract(CompanyMembershipDto d) => Map<CompanyMembershipContract>(d);
     public static UpsertCompanyMembershipResultContract ToContract(UpsertCompanyMembershipResultDto d) => Map<UpsertCompanyMembershipResultContract>(d);

@@ -18,20 +18,17 @@ namespace WebApp.ApiControllers.v1;
 [Consumes("application/json")]
 public class StationController : ControllerBase
 {
-    private readonly IHomePageService _homePageService;
     private readonly IReservationService _reservationService;
     private readonly IAvailabilityService _availabilityService;
     private readonly IMaintenanceService _maintenanceService;
     private readonly IChargingModuleApi _chargingModuleApi;
 
     public StationController(
-        IHomePageService homePageService,
         IReservationService reservationService,
         IAvailabilityService availabilityService,
         IMaintenanceService maintenanceService,
         IChargingModuleApi chargingModuleApi)
     {
-        _homePageService = homePageService;
         _reservationService = reservationService;
         _availabilityService = availabilityService;
         _maintenanceService = maintenanceService;
@@ -47,13 +44,8 @@ public class StationController : ControllerBase
     [ProducesResponseType(typeof(Message), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<List<StationSummary>>> GetStations()
     {
-        var result = await _homePageService.GetCustomerHomePageAsync();
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        var response = result.Data.Stations.Select(ApiDtoFactory.CreateDto).ToList();
+        var stations = await _chargingModuleApi.GetStationsForHomeAsync();
+        var response = stations.Select(ApiDtoFactory.CreateDto).ToList();
 
         return Ok(response);
     }

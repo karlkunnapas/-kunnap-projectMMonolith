@@ -23,16 +23,18 @@ public class PromotionController : Controller
         var promotions = await _apiClient.GetAsync<List<UserPromotionResponseDto>>("api/v1/reservation/promotions");
         var model = new PromotionWalletViewModel
         {
-            Promotions = promotions.Select(p => new PromotionWalletItemViewModel
-            {
-                Id = p.Id,
-                Code = p.Code,
-                DiscountValue = p.DiscountValue,
-                ValidFromUtc = p.ValidFromUtc,
-                ValidToUtc = p.ValidToUtc,
-                IsActive = p.IsActive,
-                AddedAtUtc = p.ValidFromUtc
-            }).ToList()
+            Promotions = promotions
+                .Where(p => !p.IsUsed)
+                .Select(p => new PromotionWalletItemViewModel
+                {
+                    Id = p.Id,
+                    Code = p.Code,
+                    DiscountValue = p.DiscountValue,
+                    ValidFromUtc = p.ValidFromUtc,
+                    ValidToUtc = p.ValidToUtc,
+                    IsActive = p.IsActive,
+                    AddedAtUtc = p.ValidFromUtc
+                }).ToList()
         };
         return View(model);
     }
@@ -59,9 +61,18 @@ public class PromotionController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Remove(Guid id)
+    public async Task<IActionResult> Remove(Guid id)
     {
-        TempData["PromotionError"] = "Removing promotions is not supported by the API.";
+        try
+        {
+            await _apiClient.DeleteAsync($"api/v1/reservation/promotions/{id}");
+            TempData["PromotionSuccess"] = "Promotion removed from wallet.";
+        }
+        catch (ApiException ex)
+        {
+            TempData["PromotionError"] = ex.Message;
+        }
+
         return RedirectToAction(nameof(Index));
     }
 }

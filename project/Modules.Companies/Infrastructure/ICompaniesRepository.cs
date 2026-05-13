@@ -4,6 +4,7 @@ namespace Modules.Companies.Infrastructure;
 
 internal interface ICompaniesRepository
 {
+    Task<CompanyTenantDto?> GetCompanyTenantBySlugAsync(string slug, CancellationToken ct = default);
     Task<bool> CompanyExistsAsync(Guid companyId, CancellationToken ct = default);
     Task<bool> IsCompanyActiveAsync(Guid companyId, CancellationToken ct = default);
     Task<bool> HasActiveOwnerMembershipAsync(Guid companyId, Guid userId, CancellationToken ct = default);

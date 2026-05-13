@@ -13,6 +13,7 @@ public class ChargingSessionStartViewModel
     public string StationName { get; set; } = string.Empty;
     public decimal EstimatedCost { get; set; }
     public int EstimatedDurationMinutes { get; set; }
+    public string? PromotionCode { get; set; }
 }
 
 public class ChargingSessionActiveViewModel

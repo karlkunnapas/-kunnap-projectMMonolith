@@ -97,7 +97,7 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
             };
 
             var middleware = new TenantResolutionMiddleware(next);
-            await middleware.InvokeAsync(context, db, tenantContext, companiesModuleApi);
+            await middleware.InvokeAsync(context, tenantContext, companiesModuleApi);
 
             Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
             Assert.False(nextCalled);
@@ -125,7 +125,6 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
         Assert.True(roleResult.Succeeded, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
     }
 }
-
 
 
 

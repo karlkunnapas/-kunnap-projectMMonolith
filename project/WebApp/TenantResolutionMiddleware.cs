@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using App.DAL.EF;
 using App.Domain;
-using Microsoft.EntityFrameworkCore;
 using Shared.Contracts.Companies;
 
 namespace WebApp;
@@ -33,7 +32,6 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(
         HttpContext context,
-        AppDbContext db,
         ITenantContext tenantContext,
         ICompaniesModuleApi companiesModuleApi)
     {
@@ -82,11 +80,8 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
             return;
         }
 
-        // Resolve tenant by slug (ignore query filters so we can return a proper 404/disabled message)
-        var company = await db.Companies
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Slug == first);
+        // Resolve tenant by slug via Companies module contract.
+        var company = await companiesModuleApi.GetCompanyTenantBySlugAsync(first);
 
         if (company is null)
         {
@@ -127,23 +122,25 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
             var isSystemUser = context.User.IsInRole("root") || context.User.IsInRole("Admin") || context.User.IsInRole("SystemAdmin");
             if (!isSystemUser)
             {
-                var hasMembership = await companiesModuleApi.GetActiveCompanySelectionAsync(currentUserId.Value, company.Id) != null;
+                var hasMembership = await companiesModuleApi.GetActiveCompanySelectionAsync(currentUserId.Value, company.CompanyId) != null;
 
                 if (!hasMembership)
                 {
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    var forbidden = new LangStr
-                    {
-                        ["en"] = "Access denied for this company.",
-                        ["et"] = "Ligipaas sellele ettevottele on keelatud."
-                    };
-                    await context.Response.WriteAsync(forbidden.Translate() ?? "Access denied for this company.");
+                    await context.Response.WriteAsync("Access denied for this company.");
                     return;
                 }
             }
         }
 
-        tenantContext.SetCompany(company);
+        tenantContext.SetCompany(new Company
+        {
+            Id = company.CompanyId,
+            Slug = company.Slug,
+            IsActive = company.IsActive,
+            Name = string.Empty,
+            ContactEmail = string.Empty
+        });
 
         await next(context);
     }

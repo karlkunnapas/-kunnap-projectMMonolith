@@ -12,6 +12,7 @@ internal sealed class CompaniesModuleApi : ICompaniesModuleApi
         _service = service;
     }
 
+    public Task<CompanyTenantContract?> GetCompanyTenantBySlugAsync(string slug, CancellationToken ct = default) => _service.GetCompanyTenantBySlugAsync(slug, ct);
     public Task<bool> CompanyExistsAsync(Guid companyId, CancellationToken ct = default) => _service.CompanyExistsAsync(companyId, ct);
     public Task<bool> IsCompanyActiveAsync(Guid companyId, CancellationToken ct = default) => _service.IsCompanyActiveAsync(companyId, ct);
     public Task<bool> HasActiveOwnerMembershipAsync(Guid companyId, Guid userId, CancellationToken ct = default) => _service.HasActiveOwnerMembershipAsync(companyId, userId, ct);

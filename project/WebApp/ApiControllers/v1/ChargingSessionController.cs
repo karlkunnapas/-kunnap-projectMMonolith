@@ -1,6 +1,5 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.DTO.v1.Session;
+using App.BLL.Services.Interfaces;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -19,11 +18,11 @@ namespace WebApp.ApiControllers.v1;
 [Consumes("application/json")]
 public class ChargingSessionController : ControllerBase
 {
-    private readonly IChargingSessionService _sessionService;
+    private readonly IChargingSessionService _chargingSessionService;
 
-    public ChargingSessionController(IChargingSessionService sessionService)
+    public ChargingSessionController(IChargingSessionService chargingSessionService)
     {
-        _sessionService = sessionService;
+        _chargingSessionService = chargingSessionService;
     }
 
     /// <summary>
@@ -34,8 +33,13 @@ public class ChargingSessionController : ControllerBase
     public async Task<ActionResult<List<SessionResponse>>> GetSessions()
     {
         var userId = User.UserId();
-        var result = await _sessionService.GetUserSessionsAsync(userId);
-        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<SessionResponse>();
+        var result = await _chargingSessionService.GetUserSessionsAsync(userId);
+        if (!result.Success || result.Data == null)
+        {
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to load sessions."));
+        }
+
+        var response = result.Data.Select(ApiDtoFactory.CreateDto).ToList();
         return Ok(response);
     }
 
@@ -49,18 +53,19 @@ public class ChargingSessionController : ControllerBase
     public async Task<ActionResult<SessionDetailResponse>> GetSession(Guid id)
     {
         var userId = User.UserId();
-        var result = await _sessionService.GetSessionDetailsAsync(id, userId);
-        if (HasForbidden(result.Errors))
+        var result = await _chargingSessionService.GetSessionDetailsAsync(id, userId);
+        if (result.Success && result.Data != null)
+        {
+            return Ok(ApiDtoFactory.CreateDto(result.Data));
+        }
+
+        var errorCode = result.Errors.FirstOrDefault()?.Code;
+        if (errorCode == "FORBIDDEN")
         {
             return Forbid();
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Charging session not found."));
     }
 
     /// <summary>
@@ -73,16 +78,16 @@ public class ChargingSessionController : ControllerBase
     public async Task<ActionResult<SessionResponse>> StartSession([FromBody] SessionStartRequest request)
     {
         var userId = User.UserId();
-        var result = await _sessionService.StartSessionAsync(userId, ApiDtoFactory.CreateDto(request));
-
-        if (HasForbidden(result.Errors))
-        {
-            return Forbid();
-        }
-
+        var result = await _chargingSessionService.StartSessionAsync(userId, ApiDtoFactory.CreateDto(request));
         if (!result.Success || result.Data == null)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            var errorCode = result.Errors.FirstOrDefault()?.Code;
+            if (errorCode == "FORBIDDEN")
+            {
+                return Forbid();
+            }
+
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to start charging session."));
         }
 
         return Ok(ApiDtoFactory.CreateDto(result.Data));
@@ -98,23 +103,18 @@ public class ChargingSessionController : ControllerBase
     public async Task<ActionResult<SessionResponse>> StopSession(Guid id, [FromBody] SessionStopRequest request)
     {
         var userId = User.UserId();
-        var result = await _sessionService.StopSessionAsync(userId, id, ApiDtoFactory.CreateDto(request));
-
-        if (HasForbidden(result.Errors))
-        {
-            return Forbid();
-        }
-
+        var result = await _chargingSessionService.StopSessionAsync(userId, id, ApiDtoFactory.CreateDto(request));
         if (!result.Success || result.Data == null)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            var errorCode = result.Errors.FirstOrDefault()?.Code;
+            if (errorCode == "FORBIDDEN")
+            {
+                return Forbid();
+            }
+
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to stop charging session."));
         }
 
         return Ok(ApiDtoFactory.CreateDto(result.Data));
-    }
-
-    private static bool HasForbidden(IEnumerable<ServiceError> errors)
-    {
-        return errors.Any(e => e.Code == "FORBIDDEN");
     }
 }

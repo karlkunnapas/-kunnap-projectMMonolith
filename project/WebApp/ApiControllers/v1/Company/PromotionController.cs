@@ -1,5 +1,3 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.Domain;
 using App.DTO.v1.Company;
 using App.Dto.v1;
@@ -21,12 +19,10 @@ namespace WebApp.ApiControllers.v1.Company;
 [Consumes("application/json")]
 public class PromotionController : ControllerBase
 {
-    private readonly IPromotionService _promotionService;
     private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public PromotionController(IPromotionService promotionService, ICompaniesModuleApi companiesModuleApi)
+    public PromotionController(ICompaniesModuleApi companiesModuleApi)
     {
-        _promotionService = promotionService;
         _companiesModuleApi = companiesModuleApi;
     }
 
@@ -45,13 +41,9 @@ public class PromotionController : ControllerBase
             return Forbid();
         }
 
-        var result = await _promotionService.GetCompanyPromotionsAsync(companyId);
-        if (!result.Success)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
+        var result = await _companiesModuleApi.GetCompanyPromotionsAsync(companyId);
 
-        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<PromotionResponse>());
+        return Ok(result.Select(ApiDtoFactory.CreateDto).ToList());
     }
 
     /// <summary>
@@ -69,18 +61,13 @@ public class PromotionController : ControllerBase
             return Forbid();
         }
 
-        var result = await _promotionService.GetCompanyPromotionAsync(companyId, id);
-        if (HasForbidden(result.Errors))
+        var result = await _companiesModuleApi.GetCompanyPromotionAsync(companyId, id);
+        if (result == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Promotion not found."));
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result));
     }
 
     /// <summary>
@@ -98,14 +85,21 @@ public class PromotionController : ControllerBase
             return Forbid();
         }
 
-        var result = await _promotionService.CreateCompanyPromotionAsync(companyId, ApiDtoFactory.CreateDto(request));
-
-        if (!result.Success || result.Data == null)
+        var result = await _companiesModuleApi.CreateCompanyPromotionAsync(companyId, new UpsertCompanyPromotionContract
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            Code = request.Code,
+            DiscountValue = request.DiscountValue,
+            ValidFromUtc = request.ValidFromUtc,
+            ValidToUtc = request.ValidToUtc,
+            IsActive = request.IsActive
+        });
+
+        if (!result.Success || result.Promotion == null)
+        {
+            return BadRequest(new Message(result.ErrorMessage ?? "Unable to create promotion."));
         }
 
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Promotion));
     }
 
     /// <summary>
@@ -123,19 +117,21 @@ public class PromotionController : ControllerBase
             return Forbid();
         }
 
-        var result = await _promotionService.UpdateCompanyPromotionAsync(companyId, id, ApiDtoFactory.CreateDto(request));
-
-        if (HasForbidden(result.Errors))
+        var result = await _companiesModuleApi.UpdateCompanyPromotionAsync(companyId, id, new UpsertCompanyPromotionContract
         {
-            return Forbid();
+            Code = request.Code,
+            DiscountValue = request.DiscountValue,
+            ValidFromUtc = request.ValidFromUtc,
+            ValidToUtc = request.ValidToUtc,
+            IsActive = request.IsActive
+        });
+
+        if (!result.Success || result.Promotion == null)
+        {
+            return BadRequest(new Message(result.ErrorMessage ?? "Unable to update promotion."));
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return Ok(ApiDtoFactory.CreateDto(result.Promotion));
     }
 
     /// <summary>
@@ -153,15 +149,10 @@ public class PromotionController : ControllerBase
             return Forbid();
         }
 
-        var result = await _promotionService.DeleteCompanyPromotionAsync(companyId, id);
-        if (HasForbidden(result.Errors))
+        var result = await _companiesModuleApi.DeleteCompanyPromotionAsync(companyId, id);
+        if (!result)
         {
-            return Forbid();
-        }
-
-        if (!result.Success)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message("Unable to delete promotion."));
         }
 
         return Ok();
@@ -179,8 +170,4 @@ public class PromotionController : ControllerBase
         return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= minRole;
     }
 
-    private static bool HasForbidden(IEnumerable<ServiceError> errors)
-    {
-        return errors.Any(e => e.Code == "FORBIDDEN");
-    }
 }

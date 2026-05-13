@@ -4,6 +4,7 @@ using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
 using WebApp.Areas.Root.ViewModels;
 
 namespace WebApp.Areas.Root.Controllers;
@@ -15,15 +16,18 @@ public class ChargingSessionController : Controller
     private readonly IChargingSessionService _chargingSessionService;
     private readonly IReservationService _reservationService;
     private readonly IPromotionService _promotionService;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
     public ChargingSessionController(
         IChargingSessionService chargingSessionService,
         IReservationService reservationService,
-        IPromotionService promotionService)
+        IPromotionService promotionService,
+        IChargingModuleApi chargingModuleApi)
     {
         _chargingSessionService = chargingSessionService;
         _reservationService = reservationService;
         _promotionService = promotionService;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     [HttpGet]
@@ -75,6 +79,15 @@ public class ChargingSessionController : Controller
             EstimatedCost = reservationResult.Data.EstimatedCost,
             EstimatedDurationMinutes = duration
         };
+
+        var reservationContract = await _chargingModuleApi.GetReservationByIdForUserAsync(reservationId, userId.Value);
+        if (reservationContract?.PromotionId is Guid reservationPromotionId)
+        {
+            var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
+            var lockedPromotion = promotionsResult.Data?
+                .FirstOrDefault(p => p.PromotionId == reservationPromotionId && !p.IsUsed);
+            model.PromotionCode = lockedPromotion?.Code;
+        }
 
         return View(model);
     }
@@ -132,17 +145,64 @@ public class ChargingSessionController : Controller
         }
 
         var model = MapToDetail(result.Data);
-        if (model.IsActive && string.IsNullOrWhiteSpace(model.PromotionCode))
+        if (model.IsActive)
         {
-            var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
-            model.AvailablePromotions = promotionsResult.Data?
-                .OrderBy(p => p.Code)
-                .Select(p => new PromotionSelectOptionViewModel
+            var sessionContract = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(id, userId.Value);
+            if (sessionContract != null)
+            {
+                var durationMinutes = Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - sessionContract.StartTimeUtc).TotalMinutes));
+                var estimatedEnergyKwh = CalculateEnergyEstimateKwh(durationMinutes, sessionContract.StationMaxPower);
+
+                if (model.EnergyConsumedKwh <= 0)
                 {
-                    Code = p.Code,
-                    DisplayText = $"{p.Code} (-{p.DiscountValue:0.##}%)"
-                })
-                .ToList() ?? new List<PromotionSelectOptionViewModel>();
+                    model.DurationMinutes = durationMinutes;
+                    model.EnergyConsumedKwh = estimatedEnergyKwh;
+                }
+
+                if (model.Cost <= 0)
+                {
+                    var estimatedCost = Math.Round(sessionContract.StationPricePerKwh * estimatedEnergyKwh, 2, MidpointRounding.AwayFromZero);
+                    model.BaseCostBeforeDiscount = estimatedCost;
+                    model.Cost = estimatedCost;
+                }
+
+                if (string.IsNullOrWhiteSpace(model.PromotionCode))
+                {
+                    Guid? lockedPromotionId = sessionContract.PromotionId;
+                    if (!lockedPromotionId.HasValue && sessionContract.ReservationId.HasValue)
+                    {
+                        var reservationContract = await _chargingModuleApi.GetReservationByIdForUserAsync(sessionContract.ReservationId.Value, userId.Value);
+                        lockedPromotionId = reservationContract?.PromotionId;
+                    }
+
+                    var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
+                    var userPromotions = promotionsResult.Data ?? new List<UserPromotionDto>();
+
+                    if (lockedPromotionId.HasValue)
+                    {
+                        var lockedPromotion = userPromotions.FirstOrDefault(p => p.PromotionId == lockedPromotionId.Value && !p.IsUsed);
+                        if (lockedPromotion != null)
+                        {
+                            model.PromotionCode = lockedPromotion.Code;
+                            model.DiscountPercent = lockedPromotion.DiscountValue;
+                            model.DiscountAmount = Math.Round(model.BaseCostBeforeDiscount * model.DiscountPercent / 100m, 2, MidpointRounding.AwayFromZero);
+                            model.Cost = Math.Max(0m, model.BaseCostBeforeDiscount - model.DiscountAmount);
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(model.PromotionCode))
+                    {
+                        model.AvailablePromotions = userPromotions
+                            .OrderBy(p => p.Code)
+                            .Select(p => new PromotionSelectOptionViewModel
+                            {
+                                Code = p.Code,
+                                DisplayText = $"{p.Code} (-{p.DiscountValue:0.##}%)"
+                            })
+                            .ToList();
+                    }
+                }
+            }
         }
 
         return View(model);
@@ -228,5 +288,12 @@ public class ChargingSessionController : Controller
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(value, out var userId) ? userId : null;
+    }
+
+    private static decimal CalculateEnergyEstimateKwh(int durationMinutes, decimal? stationMaxPower)
+    {
+        var effectivePower = Math.Max(1m, Math.Min(stationMaxPower ?? 50m, 200m));
+        var durationHours = durationMinutes / 60m;
+        return Math.Round(durationHours * effectivePower, 2, MidpointRounding.AwayFromZero);
     }
 }

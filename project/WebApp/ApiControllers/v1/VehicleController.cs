@@ -1,5 +1,3 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.DTO.v1.Vehicle;
 using App.Dto.v1;
 using Asp.Versioning;
@@ -7,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Charging;
+using Shared.Contracts.Users;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -20,12 +19,12 @@ namespace WebApp.ApiControllers.v1;
 [Consumes("application/json")]
 public class VehicleController : ControllerBase
 {
-    private readonly IVehicleService _vehicleService;
+    private readonly IUsersModuleApi _usersModuleApi;
     private readonly IChargingModuleApi _chargingModuleApi;
 
-    public VehicleController(IVehicleService vehicleService, IChargingModuleApi chargingModuleApi)
+    public VehicleController(IUsersModuleApi usersModuleApi, IChargingModuleApi chargingModuleApi)
     {
-        _vehicleService = vehicleService;
+        _usersModuleApi = usersModuleApi;
         _chargingModuleApi = chargingModuleApi;
     }
 
@@ -37,8 +36,13 @@ public class VehicleController : ControllerBase
     public async Task<ActionResult<List<VehicleResponse>>> GetVehicles()
     {
         var userId = User.UserId();
-        var result = await _vehicleService.GetUserVehiclesAsync(userId);
-        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<VehicleResponse>();
+        var vehicles = await _usersModuleApi.GetUserVehiclesAsync(userId);
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
+        var connectorNamesById = connectors.ToDictionary(x => x.Id, x => x.Name);
+
+        var response = vehicles
+            .Select(v => ApiDtoFactory.CreateDto(v, connectorNamesById))
+            .ToList();
         return Ok(response);
     }
 
@@ -51,18 +55,15 @@ public class VehicleController : ControllerBase
     public async Task<ActionResult<VehicleResponse>> GetVehicle(Guid id)
     {
         var userId = User.UserId();
-        var result = await _vehicleService.GetVehicleForUserAsync(id, userId);
-        if (HasForbidden(result.Errors))
+        var vehicle = await _usersModuleApi.GetVehicleForUserAsync(id, userId);
+        if (vehicle == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Vehicle not found."));
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
+        var connectorNamesById = connectors.ToDictionary(x => x.Id, x => x.Name);
+        return Ok(ApiDtoFactory.CreateDto(vehicle, connectorNamesById));
     }
 
     /// <summary>
@@ -74,14 +75,17 @@ public class VehicleController : ControllerBase
     public async Task<ActionResult<VehicleResponse>> CreateVehicle([FromBody] VehicleCreate request)
     {
         var userId = User.UserId();
-        var result = await _vehicleService.CreateVehicleAsync(userId, ApiDtoFactory.CreateDto(request));
-
-        if (!result.Success || result.Data == null)
+        var vehicle = await _usersModuleApi.CreateVehicleAsync(userId, new CreateUserVehicleContract
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
+            Make = request.Make,
+            Model = request.Model,
+            BatteryCapacity = request.BatteryCapacity,
+            ConnectorIds = request.ConnectorIds
+        });
 
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
+        var connectorNamesById = connectors.ToDictionary(x => x.Id, x => x.Name);
+        return Ok(ApiDtoFactory.CreateDto(vehicle, connectorNamesById));
     }
 
     /// <summary>
@@ -94,19 +98,21 @@ public class VehicleController : ControllerBase
     public async Task<ActionResult<VehicleResponse>> UpdateVehicle(Guid id, [FromBody] VehicleUpdate request)
     {
         var userId = User.UserId();
-        var result = await _vehicleService.UpdateVehicleAsync(id, userId, ApiDtoFactory.CreateDto(request));
-
-        if (HasForbidden(result.Errors))
+        var updated = await _usersModuleApi.UpdateVehicleAsync(id, userId, new UpdateUserVehicleContract
         {
-            return Forbid();
+            Make = request.Make,
+            Model = request.Model,
+            BatteryCapacity = request.BatteryCapacity,
+            ConnectorIds = request.ConnectorIds
+        });
+        if (updated == null)
+        {
+            return BadRequest(new Message("Vehicle not found."));
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
+        var connectorNamesById = connectors.ToDictionary(x => x.Id, x => x.Name);
+        return Ok(ApiDtoFactory.CreateDto(updated, connectorNamesById));
     }
 
     /// <summary>
@@ -119,15 +125,10 @@ public class VehicleController : ControllerBase
     public async Task<IActionResult> DeleteVehicle(Guid id)
     {
         var userId = User.UserId();
-        var result = await _vehicleService.DeleteVehicleAsync(id, userId);
-        if (HasForbidden(result.Errors))
+        var deleted = await _usersModuleApi.DeleteVehicleAsync(id, userId);
+        if (!deleted)
         {
-            return Forbid();
-        }
-
-        if (!result.Success)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message("Unable to delete vehicle."));
         }
 
         return Ok();
@@ -143,15 +144,10 @@ public class VehicleController : ControllerBase
     public async Task<IActionResult> SetCompatibleConnectors(Guid id, [FromBody] List<Guid> connectorIds)
     {
         var userId = User.UserId();
-        var result = await _vehicleService.SetConnectorCompatibilityAsync(id, userId, connectorIds);
-        if (HasForbidden(result.Errors))
+        var updated = await _usersModuleApi.SetConnectorCompatibilityAsync(id, userId, connectorIds);
+        if (!updated)
         {
-            return Forbid();
-        }
-
-        if (!result.Success)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message("Unable to set vehicle connectors."));
         }
 
         return Ok();
@@ -175,8 +171,4 @@ public class VehicleController : ControllerBase
         return Ok(response);
     }
 
-    private static bool HasForbidden(IEnumerable<ServiceError> errors)
-    {
-        return errors.Any(e => e.Code == "FORBIDDEN");
-    }
 }

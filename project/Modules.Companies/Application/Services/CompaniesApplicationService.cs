@@ -13,6 +13,7 @@ internal sealed class CompaniesApplicationService : ICompaniesApplicationService
         _companiesRepository = companiesRepository;
     }
 
+    public async Task<CompanyTenantContract?> GetCompanyTenantBySlugAsync(string slug, CancellationToken ct = default) => (await _companiesRepository.GetCompanyTenantBySlugAsync(slug, ct)) is { } dto ? CompaniesContractMapper.ToContract(dto) : null;
     public Task<bool> CompanyExistsAsync(Guid companyId, CancellationToken ct = default) => _companiesRepository.CompanyExistsAsync(companyId, ct);
     public Task<bool> IsCompanyActiveAsync(Guid companyId, CancellationToken ct = default) => _companiesRepository.IsCompanyActiveAsync(companyId, ct);
     public Task<bool> HasActiveOwnerMembershipAsync(Guid companyId, Guid userId, CancellationToken ct = default) => _companiesRepository.HasActiveOwnerMembershipAsync(companyId, userId, ct);

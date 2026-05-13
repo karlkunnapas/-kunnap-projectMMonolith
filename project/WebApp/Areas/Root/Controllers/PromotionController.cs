@@ -29,7 +29,9 @@ public class PromotionController : Controller
         var result = await _promotionService.GetUserPromotionsAsync(userId.Value);
         var model = new PromotionWalletViewModel
         {
-            Promotions = result.Data?.Select(p => new PromotionWalletItemViewModel
+            Promotions = result.Data?
+                .Where(p => !p.IsUsed)
+                .Select(p => new PromotionWalletItemViewModel
             {
                 Id = p.Id,
                 Code = p.Code,

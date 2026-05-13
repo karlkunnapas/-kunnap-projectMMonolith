@@ -71,6 +71,7 @@ public class ChargingSessionService : IChargingSessionService
         };
 
         var persisted = await _chargingModuleApi.CreateChargingSessionAsync(sessionContract);
+        await EnrichSessionPromotionAsync(userId, persisted);
         return ServiceResult<ChargingSessionDto>.Ok(MapSession(persisted));
     }
 
@@ -164,6 +165,10 @@ public class ChargingSessionService : IChargingSessionService
         }
 
         var updated = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(session.Id, userId);
+        if (updated != null)
+        {
+            await EnrichSessionPromotionAsync(userId, updated);
+        }
         return updated == null
             ? ServiceResult<ChargingSessionDto>.Fail("NOT_FOUND", "Charging session not found.")
             : ServiceResult<ChargingSessionDto>.Ok(MapSession(updated));
@@ -177,12 +182,14 @@ public class ChargingSessionService : IChargingSessionService
             return ServiceResult<ChargingSessionDetailsDto>.Fail("FORBIDDEN", "Charging session not found or access denied.");
         }
 
+        await EnrichSessionPromotionAsync(userId, session);
         return ServiceResult<ChargingSessionDetailsDto>.Ok(MapSessionDetails(session));
     }
 
     public async Task<ServiceResult<List<ChargingSessionDto>>> GetUserSessionsAsync(Guid userId)
     {
-        var sessions = await _chargingModuleApi.GetUserChargingSessionsAsync(userId);
+        var sessions = (await _chargingModuleApi.GetUserChargingSessionsAsync(userId)).ToList();
+        await EnrichSessionsPromotionAsync(userId, sessions);
         return ServiceResult<List<ChargingSessionDto>>.Ok(sessions.Select(MapSession).ToList());
     }
 
@@ -304,6 +311,60 @@ public class ChargingSessionService : IChargingSessionService
         }
 
         return ServiceResult.Ok();
+    }
+
+    private async Task EnrichSessionsPromotionAsync(Guid userId, List<ChargingSessionContract> sessions)
+    {
+        var promotionIds = sessions
+            .Where(s => s.PromotionId.HasValue)
+            .Select(s => s.PromotionId!.Value)
+            .Distinct()
+            .ToList();
+        if (promotionIds.Count == 0)
+        {
+            return;
+        }
+
+        var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId);
+        if (!promotionsResult.Success || promotionsResult.Data == null)
+        {
+            return;
+        }
+
+        var byId = promotionsResult.Data.ToDictionary(x => x.PromotionId, x => x);
+        foreach (var session in sessions.Where(s => s.PromotionId.HasValue))
+        {
+            if (!byId.TryGetValue(session.PromotionId!.Value, out var promotion))
+            {
+                continue;
+            }
+
+            session.PromotionCode = promotion.Code;
+            session.PromotionDiscountValue = promotion.DiscountValue;
+        }
+    }
+
+    private async Task EnrichSessionPromotionAsync(Guid userId, ChargingSessionContract session)
+    {
+        if (!session.PromotionId.HasValue)
+        {
+            return;
+        }
+
+        var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId);
+        if (!promotionsResult.Success || promotionsResult.Data == null)
+        {
+            return;
+        }
+
+        var promotion = promotionsResult.Data.FirstOrDefault(x => x.PromotionId == session.PromotionId.Value);
+        if (promotion == null)
+        {
+            return;
+        }
+
+        session.PromotionCode = promotion.Code;
+        session.PromotionDiscountValue = promotion.DiscountValue;
     }
 
     private static decimal RecoverBaseCost(decimal discountedCost, decimal discountPercent)

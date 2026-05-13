@@ -1,6 +1,6 @@
+using App.DTO.v1.Reservation;
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using App.DTO.v1.Reservation;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,7 +37,12 @@ public class ReservationController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _reservationService.GetUserReservationsAsync(userId);
-        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<ReservationResponse>();
+        if (!result.Success || result.Data == null)
+        {
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to load reservations."));
+        }
+
+        var response = result.Data.Select(ApiDtoFactory.CreateDto).ToList();
         return Ok(response);
     }
 
@@ -52,18 +57,17 @@ public class ReservationController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _reservationService.GetReservationDetailsAsync(id, userId);
+        if (result.Success && result.Data != null)
+        {
+            return Ok(ApiDtoFactory.CreateDto(result.Data));
+        }
 
-        if (HasForbidden(result.Errors))
+        if (result.Errors.Any(e => e.Code == "FORBIDDEN"))
         {
             return Forbid();
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return NotFound(new Message("Reservation not found."));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return NotFound(new Message(result.Errors.FirstOrDefault()?.Message ?? "Reservation not found."));
     }
 
     /// <summary>
@@ -75,11 +79,11 @@ public class ReservationController : ControllerBase
     public async Task<ActionResult<ReservationResponse>> CreateReservation([FromBody] ReservationCreate request)
     {
         var userId = User.UserId();
-        var result = await _reservationService.ReserveAsync(userId, ApiDtoFactory.CreateDto(request));
-
+        var dto = ApiDtoFactory.CreateDto(request);
+        var result = await _reservationService.ReserveAsync(userId, dto);
         if (!result.Success || result.Data == null)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to create reservation."));
         }
 
         return Ok(ApiDtoFactory.CreateDto(result.Data));
@@ -96,14 +100,15 @@ public class ReservationController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _reservationService.StartReservationAsync(id, userId);
-        if (HasForbidden(result.Errors))
-        {
-            return Forbid();
-        }
-
         if (!result.Success)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            var errorCode = result.Errors.FirstOrDefault()?.Code;
+            if (errorCode == "FORBIDDEN")
+            {
+                return Forbid();
+            }
+
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to start reservation."));
         }
 
         return Ok();
@@ -120,14 +125,15 @@ public class ReservationController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _reservationService.CancelReservationAsync(id, userId);
-        if (HasForbidden(result.Errors))
-        {
-            return Forbid();
-        }
-
         if (!result.Success)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            var errorCode = result.Errors.FirstOrDefault()?.Code;
+            if (errorCode == "FORBIDDEN")
+            {
+                return Forbid();
+            }
+
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to cancel reservation."));
         }
 
         return Ok();
@@ -142,7 +148,12 @@ public class ReservationController : ControllerBase
     {
         var userId = User.UserId();
         var result = await _promotionService.GetUserPromotionsAsync(userId);
-        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<UserPromotionResponse>();
+        if (!result.Success || result.Data == null)
+        {
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to load promotions."));
+        }
+
+        var response = result.Data.Select(ApiDtoFactory.CreateDto).ToList();
 
         return Ok(response);
     }
@@ -159,14 +170,33 @@ public class ReservationController : ControllerBase
         var result = await _promotionService.RedeemPromotionAsync(userId, request.Code);
         if (!result.Success || result.Data == null)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to redeem promotion."));
         }
 
         return Ok(ApiDtoFactory.CreateDto(result.Data));
     }
 
-    private static bool HasForbidden(IEnumerable<ServiceError> errors)
+    /// <summary>
+    /// Remove a promotion from the current user's wallet.
+    /// </summary>
+    [HttpDelete("promotions/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(Message), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RemovePromotion(Guid id)
     {
-        return errors.Any(e => e.Code == "FORBIDDEN");
+        var userId = User.UserId();
+        var result = await _promotionService.RemoveUserPromotionAsync(userId, id);
+        if (!result.Success)
+        {
+            if (result.Errors.Any(e => e.Code == "FORBIDDEN"))
+            {
+                return Forbid();
+            }
+
+            return BadRequest(new Message(result.Errors.FirstOrDefault()?.Message ?? "Unable to remove promotion."));
+        }
+
+        return Ok();
     }
 }

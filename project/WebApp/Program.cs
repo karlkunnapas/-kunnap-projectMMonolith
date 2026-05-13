@@ -32,7 +32,6 @@ builder.Services.AddAppSwagger();
 builder.Services.AddAppLocalization(builder.Configuration);
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
-builder.Services.AddScoped<IHomePageService, HomePageService>();
 builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleCompatibilityService, VehicleCompatibilityService>();

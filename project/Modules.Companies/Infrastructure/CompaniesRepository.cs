@@ -13,6 +13,27 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         _dbContext = dbContext;
     }
 
+    public async Task<CompanyTenantDto?> GetCompanyTenantBySlugAsync(string slug, CancellationToken ct = default)
+    {
+        var normalizedSlug = slug.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedSlug))
+        {
+            return null;
+        }
+
+        return await _dbContext.Companies
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(c => c.Slug == normalizedSlug)
+            .Select(c => new CompanyTenantDto
+            {
+                CompanyId = c.Id,
+                Slug = c.Slug,
+                IsActive = c.IsActive
+            })
+            .FirstOrDefaultAsync(ct);
+    }
+
     public Task<bool> CompanyExistsAsync(Guid companyId, CancellationToken ct = default)
     {
         return _dbContext.Companies
@@ -496,7 +517,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             .AnyAsync(x => x.UserId == userId && x.PromotionId == promotion.Id, ct);
         if (existing)
         {
-            return PromotionOperationResultDto.Fail("VALIDATION", "Promotion is already in your wallet.");
+            return PromotionOperationResultDto.Fail("VALIDATION", "Promotion has already been redeemed by this user.");
         }
 
         _dbContext.UserPromotions.Add(new Domain.UserPromotion
@@ -521,7 +542,12 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             return false;
         }
 
-        _dbContext.UserPromotions.Remove(userPromotion);
+        if (userPromotion.IsUsed)
+        {
+            return false;
+        }
+
+        userPromotion.IsUsed = true;
         await _dbContext.SaveChangesAsync(ct);
         return true;
     }
