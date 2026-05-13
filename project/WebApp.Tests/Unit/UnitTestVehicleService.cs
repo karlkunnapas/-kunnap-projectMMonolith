@@ -1,10 +1,7 @@
 using App.BLL.DTOs;
 using App.BLL.Services;
-using App.DAL.EF;
-using App.DAL.EF.Repositories.Implementations;
-using App.Domain;
-using Microsoft.EntityFrameworkCore;
 using Moq;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Users;
 
 namespace WebApp.Tests.Unit;
@@ -14,15 +11,13 @@ public class UnitTestVehicleService
     [Fact]
     public async Task GetVehicleForUserAsync_ReturnsForbidden_WhenUsersModuleReturnsNull()
     {
-        await using var context = BuildContext();
-        await using var uow = new UnitOfWork(context);
-
         var usersApi = new Mock<IUsersModuleApi>();
         usersApi
             .Setup(x => x.GetVehicleForUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((UserVehicleContract?)null);
+        var chargingApi = new Mock<IChargingModuleApi>();
 
-        var service = new VehicleService(uow, usersApi.Object);
+        var service = new VehicleService(chargingApi.Object, usersApi.Object);
         var result = await service.GetVehicleForUserAsync(Guid.NewGuid(), Guid.NewGuid());
 
         Assert.False(result.Success);
@@ -32,18 +27,7 @@ public class UnitTestVehicleService
     [Fact]
     public async Task GetUserVehiclesAsync_MapsConnectorNamesFromChargingConnectors()
     {
-        await using var context = BuildContext();
-
-        var connector = new Connector
-        {
-            Id = Guid.NewGuid(),
-            Name = new LangStr { ["en"] = "CCS" },
-            IsActive = true
-        };
-        context.Connectors.Add(connector);
-        await context.SaveChangesAsync();
-
-        await using var uow = new UnitOfWork(context);
+        var connectorId = Guid.NewGuid();
 
         var usersApi = new Mock<IUsersModuleApi>();
         usersApi
@@ -57,11 +41,17 @@ public class UnitTestVehicleService
                     Make = "Tesla",
                     Model = "Model 3",
                     BatteryCapacity = 75,
-                    ConnectorIds = new List<Guid> { connector.Id }
+                    ConnectorIds = new List<Guid> { connectorId }
                 }
             });
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetConnectorsAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConnectorContract>
+            {
+                new() { Id = connectorId, Name = "CCS", IsActive = true }
+            });
 
-        var service = new VehicleService(uow, usersApi.Object);
+        var service = new VehicleService(chargingApi.Object, usersApi.Object);
         var result = await service.GetUserVehiclesAsync(Guid.NewGuid());
 
         Assert.True(result.Success);
@@ -73,15 +63,13 @@ public class UnitTestVehicleService
     [Fact]
     public async Task SetConnectorCompatibilityAsync_ReturnsForbidden_WhenUsersModuleRejectsOwnership()
     {
-        await using var context = BuildContext();
-        await using var uow = new UnitOfWork(context);
-
         var usersApi = new Mock<IUsersModuleApi>();
         usersApi
             .Setup(x => x.SetConnectorCompatibilityAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        var chargingApi = new Mock<IChargingModuleApi>();
 
-        var service = new VehicleService(uow, usersApi.Object);
+        var service = new VehicleService(chargingApi.Object, usersApi.Object);
         var result = await service.SetConnectorCompatibilityAsync(Guid.NewGuid(), Guid.NewGuid(), new List<Guid> { Guid.NewGuid() });
 
         Assert.False(result.Success);
@@ -91,70 +79,49 @@ public class UnitTestVehicleService
     [Fact]
     public async Task GetCompatibleStationsForVehicleAsync_ReturnsOnlyStationsMatchingUsersConnectorIds()
     {
-        await using var context = BuildContext();
-
-        var connectorMatch = new Connector { Id = Guid.NewGuid(), Name = new LangStr { ["en"] = "CCS" }, IsActive = true };
-        var connectorOther = new Connector { Id = Guid.NewGuid(), Name = new LangStr { ["en"] = "Type 2" }, IsActive = true };
-        var company = new Company
-        {
-            Id = Guid.NewGuid(),
-            Name = new LangStr("Vehicle Test Company"),
-            ContactEmail = "vehicle-company@test.local",
-            ContactPhone = "+3725999999",
-            Slug = "vehicle-test-company",
-            IsActive = true
-        };
-
-        var stationCompatible = new ChargingStation
-        {
-            Id = Guid.NewGuid(),
-            Name = new LangStr { ["en"] = "Compatible station" },
-            Location = "1km",
-            Status = EStationStatus.Available,
-            IsActive = true,
-            CompanyId = company.Id
-        };
-
-        var stationIncompatible = new ChargingStation
-        {
-            Id = Guid.NewGuid(),
-            Name = new LangStr { ["en"] = "Incompatible station" },
-            Location = "2km",
-            Status = EStationStatus.Available,
-            IsActive = true,
-            CompanyId = company.Id
-        };
-
-        context.Companies.Add(company);
-        context.Connectors.AddRange(connectorMatch, connectorOther);
-        context.ChargingStations.AddRange(stationCompatible, stationIncompatible);
-        context.ChargingStationConnectors.AddRange(
-            new ChargingStationConnector { Id = Guid.NewGuid(), ChargingStationId = stationCompatible.Id, ConnectorId = connectorMatch.Id },
-            new ChargingStationConnector { Id = Guid.NewGuid(), ChargingStationId = stationIncompatible.Id, ConnectorId = connectorOther.Id });
-
-        await context.SaveChangesAsync();
-
-        await using var uow = new UnitOfWork(context);
+        var connectorMatchId = Guid.NewGuid();
+        var connectorOtherId = Guid.NewGuid();
+        var stationCompatibleId = Guid.NewGuid();
 
         var usersApi = new Mock<IUsersModuleApi>();
         usersApi
             .Setup(x => x.GetVehicleConnectorIdsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Guid> { connectorMatch.Id });
+            .ReturnsAsync(new List<Guid> { connectorMatchId });
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetStationsForHomeAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChargingStationContract>
+            {
+                new()
+                {
+                    Id = stationCompatibleId,
+                    Name = "Compatible station",
+                    Location = "1km",
+                    Status = Shared.Contracts.Charging.EStationStatus.Available,
+                    IsActive = true,
+                    Connectors = new List<ConnectorContract>
+                    {
+                        new() { Id = connectorMatchId, Name = "CCS", IsActive = true }
+                    }
+                },
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Incompatible station",
+                    Location = "2km",
+                    Status = Shared.Contracts.Charging.EStationStatus.Available,
+                    IsActive = true,
+                    Connectors = new List<ConnectorContract>
+                    {
+                        new() { Id = connectorOtherId, Name = "Type 2", IsActive = true }
+                    }
+                }
+            });
 
-        var service = new VehicleService(uow, usersApi.Object);
+        var service = new VehicleService(chargingApi.Object, usersApi.Object);
         var result = await service.GetCompatibleStationsForVehicleAsync(Guid.NewGuid(), Guid.NewGuid());
 
         Assert.True(result.Success);
         Assert.Single(result.Data!);
-        Assert.Equal(stationCompatible.Id, result.Data![0].StationId);
-    }
-
-    private static AppDbContext BuildContext()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new AppDbContext(options);
+        Assert.Equal(stationCompatibleId, result.Data![0].StationId);
     }
 }

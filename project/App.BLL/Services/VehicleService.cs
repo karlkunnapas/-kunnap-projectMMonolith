@@ -1,21 +1,19 @@
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
-using App.Domain;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Users;
 
 namespace App.BLL.Services;
 
 public class VehicleService : IVehicleService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly IUsersModuleApi _usersModuleApi;
 
-    public VehicleService(IUnitOfWork unitOfWork, IUsersModuleApi usersModuleApi)
+    public VehicleService(IChargingModuleApi chargingModuleApi, IUsersModuleApi usersModuleApi)
     {
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
         _usersModuleApi = usersModuleApi;
     }
 
@@ -123,19 +121,27 @@ public class VehicleService : IVehicleService
             return ServiceResult<List<CompatibleStationDto>>.Fail("FORBIDDEN", "Vehicle not found or access denied.");
         }
 
-        var stations = await _unitOfWork.ChargingStations
-            .GetStationsWithConnectors()
-            .Where(s => s.IsActive && s.Company != null && s.Company.IsActive)
-            .ToListAsync();
+        var stations = await _chargingModuleApi.GetStationsForHomeAsync();
 
         var compatible = stations
-            .Where(station => station.ChargingStationConnectors != null
-                              && station.ChargingStationConnectors.Any(link => connectorIds.Contains(link.ConnectorId)))
+            .Where(station => station.Connectors.Any(link => connectorIds.Contains(link.Id)))
             .Select(station => BllDtoFactory.CreateCompatibleStationDto(
-                station,
-                station.ChargingStationConnectors!
-                    .Where(link => link.Connector != null && connectorIds.Contains(link.ConnectorId))
-                    .Select(link => link.Connector!.Name.Translate() ?? link.Connector.Name.ToString() ?? string.Empty)
+                new App.Domain.ChargingStation
+                {
+                    Id = station.Id,
+                    Name = new App.Domain.LangStr(station.Name),
+                    Location = station.Location,
+                    Status = station.Status switch
+                    {
+                        Shared.Contracts.Charging.EStationStatus.Available => App.Domain.EStationStatus.Available,
+                        Shared.Contracts.Charging.EStationStatus.InUse => App.Domain.EStationStatus.InUse,
+                        Shared.Contracts.Charging.EStationStatus.Maintenance => App.Domain.EStationStatus.Maintenance,
+                        _ => App.Domain.EStationStatus.Available
+                    }
+                },
+                station.Connectors
+                    .Where(link => connectorIds.Contains(link.Id))
+                    .Select(link => link.Name)
                     .Distinct()
                     .OrderBy(name => name)
                     .ToList()))
@@ -152,14 +158,13 @@ public class VehicleService : IVehicleService
             return new Dictionary<Guid, string>();
         }
 
-        var connectors = await _unitOfWork.Connectors
-            .GetQueryable()
-            .Where(c => c.IsActive && ids.Contains(c.Id))
-            .ToListAsync();
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
 
-        return connectors.ToDictionary(
+        return connectors
+            .Where(c => ids.Contains(c.Id))
+            .ToDictionary(
             c => c.Id,
-            c => c.Name.Translate() ?? c.Name.ToString() ?? string.Empty);
+            c => c.Name);
     }
 
     private static VehicleDto MapVehicle(UserVehicleContract vehicle, IReadOnlyDictionary<Guid, string> connectorNameMap)

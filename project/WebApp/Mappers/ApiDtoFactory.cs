@@ -6,6 +6,7 @@ using App.DTO.v1.Reservation;
 using App.DTO.v1.Session;
 using App.DTO.v1.Station;
 using App.DTO.v1.Vehicle;
+using ConnectorContract = Shared.Contracts.Charging.ConnectorContract;
 
 namespace WebApp.Mappers;
 
@@ -357,12 +358,30 @@ public static class ApiDtoFactory
         };
     }
 
+    public static VehicleConnectorResponse CreateDto(ConnectorContract connector)
+    {
+        return new VehicleConnectorResponse
+        {
+            ConnectorId = connector.Id,
+            Name = connector.Name
+        };
+    }
+
     public static ConnectorOption CreateDtoForStationOption(Connector connector)
     {
         return new ConnectorOption
         {
             Id = connector.Id,
             Name = connector.Name.Translate() ?? connector.Name.ToString() ?? string.Empty
+        };
+    }
+
+    public static ConnectorOption CreateDtoForStationOption(ConnectorContract connector)
+    {
+        return new ConnectorOption
+        {
+            Id = connector.Id,
+            Name = connector.Name
         };
     }
 

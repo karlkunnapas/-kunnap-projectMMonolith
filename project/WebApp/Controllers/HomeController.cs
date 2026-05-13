@@ -52,7 +52,7 @@ public class HomeController : Controller
             }
         }
 
-        var filters = BllDtoFactory.CreateHomePageFilterDto(status, connector, location, vehicleId);
+        var filters = BllDtoFactory.CreateHomePageFilterDto(status, connector, location, vehicleId, currentUserId);
 
         var result = await _chargingStationService.GetHomePageAsync(filters);
         if (!result.Success || result.Data == null)

@@ -1,18 +1,18 @@
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
 
 namespace App.BLL.Services;
 
 public class PromotionService : IPromotionService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public PromotionService(IUnitOfWork unitOfWork, ICompaniesModuleApi companiesModuleApi)
+    public PromotionService(IChargingModuleApi chargingModuleApi, ICompaniesModuleApi companiesModuleApi)
     {
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
         _companiesModuleApi = companiesModuleApi;
     }
 
@@ -166,7 +166,7 @@ public class PromotionService : IPromotionService
             return ServiceResult<AppliedPromotionDto>.Fail("VALIDATION", "Promotion code is required.");
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdWithDetailsAsync(stationId);
+        var station = await _chargingModuleApi.GetStationByIdAsync(stationId);
         if (station == null)
         {
             return ServiceResult<AppliedPromotionDto>.Fail("NOT_FOUND", "Charging station not found.");

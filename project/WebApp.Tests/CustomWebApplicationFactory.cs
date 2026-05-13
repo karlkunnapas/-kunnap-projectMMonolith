@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Modules.Charging.Infrastructure;
 using Modules.Companies.Infrastructure;
 using Modules.Users.Infrastructure;
 using Modules.Users.Domain;
@@ -55,16 +56,20 @@ public class CustomWebApplicationFactory<TStartup>
             services.RemoveAll<AppDbContext>();
             services.RemoveAll<UsersDbContext>();
             services.RemoveAll<CompaniesDbContext>();
+            services.RemoveAll<ChargingDbContext>();
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<DbContextOptions<UsersDbContext>>();
             services.RemoveAll<DbContextOptions<CompaniesDbContext>>();
+            services.RemoveAll<DbContextOptions<ChargingDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<UsersDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<CompaniesDbContext>>();
+            services.RemoveAll<IDbContextOptionsConfiguration<ChargingDbContext>>();
 
             services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
             services.AddDbContext<UsersDbContext>(options => options.UseSqlite(_connection));
             services.AddDbContext<CompaniesDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<ChargingDbContext>(options => options.UseSqlite(_connection));
 
             
             // create db and seed data
@@ -74,12 +79,14 @@ public class CustomWebApplicationFactory<TStartup>
             var db = scopedServices.GetRequiredService<AppDbContext>();
             var usersDb = scopedServices.GetRequiredService<UsersDbContext>();
             var companiesDb = scopedServices.GetRequiredService<CompaniesDbContext>();
+            var chargingDb = scopedServices.GetRequiredService<ChargingDbContext>();
             var logger = scopedServices
                 .GetRequiredService<ILogger<CustomWebApplicationFactory<TStartup>>>();
 
             db.Database.EnsureCreated();
             usersDb.Database.EnsureCreated();
             companiesDb.Database.EnsureCreated();
+            chargingDb.Database.EnsureCreated();
 
             try
             {

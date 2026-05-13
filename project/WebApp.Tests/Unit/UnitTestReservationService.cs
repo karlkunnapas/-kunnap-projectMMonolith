@@ -5,6 +5,7 @@ using App.DAL.EF.Repositories.Implementations;
 using App.Domain;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using SC = Shared.Contracts.Charging;
 
 namespace WebApp.Tests.Unit;
 
@@ -28,9 +29,9 @@ public class UnitTestReservationService
         context.ChargingStations.Add(station);
         await context.SaveChangesAsync();
 
-        await using var uow = new UnitOfWork(context);
+        var chargingApi = CreateChargingModuleApiForContext(context);
         var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
+        var service = new ReservationService(chargingApi.Object, new AvailabilityService(chargingApi.Object), new PricingService(chargingApi.Object), promotionService.Object);
         var userId = Guid.NewGuid();
 
         var start = DateTime.UtcNow.AddHours(1);
@@ -79,7 +80,7 @@ public class UnitTestReservationService
         context.ChargingStations.Add(station);
         await context.SaveChangesAsync();
 
-        await using var uow = new UnitOfWork(context);
+        var chargingApi = CreateChargingModuleApiForContext(context);
         var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
         promotionService
             .Setup(s => s.ValidateUserPromotionForCompanyAsync(It.IsAny<Guid>(), station.CompanyId!.Value, "SAVE20"))
@@ -90,7 +91,7 @@ public class UnitTestReservationService
                 DiscountValue = 20m
             }));
 
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
+        var service = new ReservationService(chargingApi.Object, new AvailabilityService(chargingApi.Object), new PricingService(chargingApi.Object), promotionService.Object);
         var userId = Guid.NewGuid();
         var start = DateTime.UtcNow.AddHours(1);
         var end = start.AddHours(1);
@@ -142,9 +143,9 @@ public class UnitTestReservationService
 
         await context.SaveChangesAsync();
 
-        await using var uow = new UnitOfWork(context);
+        var chargingApi = CreateChargingModuleApiForContext(context);
         var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
+        var service = new ReservationService(chargingApi.Object, new AvailabilityService(chargingApi.Object), new PricingService(chargingApi.Object), promotionService.Object);
 
         var result = await service.ReserveAsync(Guid.NewGuid(), new ReservationCreateDto
         {
@@ -175,9 +176,9 @@ public class UnitTestReservationService
         context.ChargingStations.Add(station);
         await context.SaveChangesAsync();
 
-        await using var uow = new UnitOfWork(context);
+        var chargingApi = CreateChargingModuleApiForContext(context);
         var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
+        var service = new ReservationService(chargingApi.Object, new AvailabilityService(chargingApi.Object), new PricingService(chargingApi.Object), promotionService.Object);
 
         var start = DateTime.UtcNow.AddHours(1);
         var end = start.AddMinutes(45);
@@ -225,9 +226,9 @@ public class UnitTestReservationService
         context.Reservations.Add(reservation);
         await context.SaveChangesAsync();
 
-        await using var uow = new UnitOfWork(context);
+        var chargingApi = CreateChargingModuleApiForContext(context);
         var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
+        var service = new ReservationService(chargingApi.Object, new AvailabilityService(chargingApi.Object), new PricingService(chargingApi.Object), promotionService.Object);
 
         var result = await service.StartReservationAsync(reservation.Id, userId);
         Assert.True(result.Success);
@@ -270,9 +271,9 @@ public class UnitTestReservationService
         context.Reservations.Add(reservation);
         await context.SaveChangesAsync();
 
-        await using var uow = new UnitOfWork(context);
+        var chargingApi = CreateChargingModuleApiForContext(context);
         var promotionService = new Mock<App.BLL.Services.Interfaces.IPromotionService>();
-        var service = new ReservationService(uow, new AvailabilityService(uow), new PricingService(uow), promotionService.Object);
+        var service = new ReservationService(chargingApi.Object, new AvailabilityService(chargingApi.Object), new PricingService(chargingApi.Object), promotionService.Object);
 
         var result = await service.CancelReservationAsync(reservation.Id, userId);
 
@@ -287,5 +288,199 @@ public class UnitTestReservationService
             .Options;
 
         return new AppDbContext(options);
+    }
+
+    private static Mock<SC.IChargingModuleApi> CreateChargingModuleApiForContext(AppDbContext context)
+    {
+        var mock = new Mock<SC.IChargingModuleApi>();
+        SC.ReservationContract MapReservation(Reservation r)
+        {
+            var station = context.ChargingStations.FirstOrDefault(s => s.Id == r.ChargingStationId);
+            var stationName = station?.Name.Translate() ?? station?.Name.ToString() ?? string.Empty;
+            return new SC.ReservationContract
+            {
+                Id = r.Id,
+                UserId = r.UserId,
+                ChargingStationId = r.ChargingStationId,
+                StartTimeUtc = r.StartTime,
+                EndTimeUtc = r.EndTime,
+                ExpiresAtUtc = r.ExpiresAtUtc,
+                CancelledAtUtc = r.CancelledAtUtc,
+                EstimatedCost = r.EstimatedCost,
+                Status = r.Status switch
+                {
+                    EReservationStatus.Active => SC.EReservationStatus.Active,
+                    EReservationStatus.Cancelled => SC.EReservationStatus.Cancelled,
+                    EReservationStatus.Expired => SC.EReservationStatus.Expired,
+                    EReservationStatus.Started => SC.EReservationStatus.Started,
+                    _ => SC.EReservationStatus.Active
+                },
+                PromotionId = r.PromotionId,
+                StationName = stationName
+            };
+        }
+
+        mock.Setup(x => x.GetStationByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid stationId, CancellationToken _) =>
+            {
+                var station = context.ChargingStations.FirstOrDefault(s => s.Id == stationId);
+                if (station == null) return null;
+
+                return new SC.ChargingStationContract
+                {
+                    Id = station.Id,
+                    Name = station.Name.Translate() ?? station.Name.ToString() ?? string.Empty,
+                    Location = station.Location,
+                    Status = station.Status switch
+                    {
+                        EStationStatus.Available => SC.EStationStatus.Available,
+                        EStationStatus.InUse => SC.EStationStatus.InUse,
+                        EStationStatus.Maintenance => SC.EStationStatus.Maintenance,
+                        _ => SC.EStationStatus.Available
+                    },
+                    PricePerKwh = station.PricePerKwh,
+                    MaxPower = station.MaxPower,
+                    IsActive = station.IsActive,
+                    CompanyId = station.CompanyId
+                };
+            });
+
+        mock.Setup(x => x.GetOverlappingReservationsAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid stationId, DateTime startUtc, DateTime endUtc, Guid? excludeId, CancellationToken _) =>
+            {
+                var items = context.Reservations
+                    .Where(r => r.ChargingStationId == stationId
+                                && r.StartTime < endUtc
+                                && r.EndTime > startUtc
+                                && r.Status != EReservationStatus.Cancelled
+                                && r.Status != EReservationStatus.Expired
+                                && (!excludeId.HasValue || r.Id != excludeId.Value))
+                    .ToList();
+
+                return items
+                    .Select(r => new SC.ReservationContract
+                    {
+                        Id = r.Id,
+                        UserId = r.UserId,
+                        ChargingStationId = r.ChargingStationId,
+                        StartTimeUtc = r.StartTime,
+                        EndTimeUtc = r.EndTime,
+                        ExpiresAtUtc = r.ExpiresAtUtc,
+                        CancelledAtUtc = r.CancelledAtUtc,
+                        EstimatedCost = r.EstimatedCost,
+                        Status = r.Status switch
+                        {
+                            EReservationStatus.Active => SC.EReservationStatus.Active,
+                            EReservationStatus.Cancelled => SC.EReservationStatus.Cancelled,
+                            EReservationStatus.Expired => SC.EReservationStatus.Expired,
+                            EReservationStatus.Started => SC.EReservationStatus.Started,
+                            _ => SC.EReservationStatus.Active
+                        },
+                        PromotionId = r.PromotionId
+                    })
+                    .ToList()
+                    .AsReadOnly();
+            });
+
+        mock.Setup(x => x.GetStationReservationsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid stationId, CancellationToken _) =>
+                context.Reservations
+                    .Where(r => r.ChargingStationId == stationId)
+                    .OrderBy(r => r.StartTime)
+                    .Select(MapReservation)
+                    .ToList()
+                    .AsReadOnly());
+
+        mock.Setup(x => x.GetUserReservationsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid userId, CancellationToken _) =>
+                context.Reservations
+                    .Where(r => r.UserId == userId)
+                    .OrderBy(r => r.StartTime)
+                    .Select(MapReservation)
+                    .ToList()
+                    .AsReadOnly());
+
+        mock.Setup(x => x.GetReservationByIdForUserAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid reservationId, Guid userId, CancellationToken _) =>
+            {
+                var reservation = context.Reservations.FirstOrDefault(r => r.Id == reservationId && r.UserId == userId);
+                return reservation == null ? null : MapReservation(reservation);
+            });
+
+        mock.Setup(x => x.CreateReservationAsync(It.IsAny<SC.ReservationContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SC.ReservationContract contract, CancellationToken _) =>
+            {
+                context.Reservations.Add(new Reservation
+                {
+                    Id = contract.Id,
+                    UserId = contract.UserId,
+                    ChargingStationId = contract.ChargingStationId,
+                    StartTime = contract.StartTimeUtc,
+                    EndTime = contract.EndTimeUtc,
+                    ExpiresAtUtc = contract.ExpiresAtUtc,
+                    CancelledAtUtc = contract.CancelledAtUtc,
+                    EstimatedCost = contract.EstimatedCost,
+                    Status = contract.Status switch
+                    {
+                        SC.EReservationStatus.Active => EReservationStatus.Active,
+                        SC.EReservationStatus.Cancelled => EReservationStatus.Cancelled,
+                        SC.EReservationStatus.Expired => EReservationStatus.Expired,
+                        SC.EReservationStatus.Started => EReservationStatus.Started,
+                        _ => EReservationStatus.Active
+                    },
+                    PromotionId = contract.PromotionId
+                });
+                context.SaveChanges();
+                return MapReservation(context.Reservations.First(r => r.Id == contract.Id));
+            });
+
+        mock.Setup(x => x.UpdateReservationStatusAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<SC.EReservationStatus>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<SC.EStationStatus?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid reservationId, SC.EReservationStatus status, DateTime? expiresAtUtc, DateTime? cancelledAtUtc, SC.EStationStatus? stationStatus, CancellationToken _) =>
+            {
+                var reservation = context.Reservations.FirstOrDefault(r => r.Id == reservationId);
+                if (reservation == null) return false;
+
+                reservation.Status = status switch
+                {
+                    SC.EReservationStatus.Active => EReservationStatus.Active,
+                    SC.EReservationStatus.Cancelled => EReservationStatus.Cancelled,
+                    SC.EReservationStatus.Expired => EReservationStatus.Expired,
+                    SC.EReservationStatus.Started => EReservationStatus.Started,
+                    _ => EReservationStatus.Active
+                };
+                if (expiresAtUtc.HasValue) reservation.ExpiresAtUtc = expiresAtUtc.Value;
+                reservation.CancelledAtUtc = cancelledAtUtc;
+
+                if (stationStatus.HasValue)
+                {
+                    var station = context.ChargingStations.FirstOrDefault(s => s.Id == reservation.ChargingStationId);
+                    if (station != null)
+                    {
+                        station.Status = stationStatus.Value switch
+                        {
+                            SC.EStationStatus.Available => EStationStatus.Available,
+                            SC.EStationStatus.InUse => EStationStatus.InUse,
+                            SC.EStationStatus.Maintenance => EStationStatus.Maintenance,
+                            _ => EStationStatus.Available
+                        };
+                    }
+                }
+
+                context.SaveChanges();
+                return true;
+            });
+
+        return mock;
     }
 }

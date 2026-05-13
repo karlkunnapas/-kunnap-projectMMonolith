@@ -1,17 +1,17 @@
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
+using Shared.Contracts.Charging;
 
 namespace App.BLL.Services;
 
 public class PricingService : IPricingService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
-    public PricingService(IUnitOfWork unitOfWork)
+    public PricingService(IChargingModuleApi chargingModuleApi)
     {
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     public async Task<ServiceResult<CostEstimateDto>> CalculateReservationEstimateAsync(Guid stationId, int durationMinutes, decimal? estimatedEnergyKwh = null)
@@ -21,7 +21,7 @@ public class PricingService : IPricingService
             return ServiceResult<CostEstimateDto>.Fail("VALIDATION", "Duration must be greater than zero.");
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdWithDetailsAsync(stationId);
+        var station = await _chargingModuleApi.GetStationByIdAsync(stationId);
         if (station == null)
         {
             return ServiceResult<CostEstimateDto>.Fail("NOT_FOUND", "Charging station not found.");
@@ -52,4 +52,3 @@ public class PricingService : IPricingService
         return ServiceResult<decimal>.Ok(estimateResult.Data.EstimatedCost);
     }
 }
-

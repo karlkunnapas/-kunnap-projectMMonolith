@@ -1,12 +1,11 @@
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
 using App.DTO.v1.Station;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Charging;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -23,20 +22,20 @@ public class StationController : ControllerBase
     private readonly IReservationService _reservationService;
     private readonly IAvailabilityService _availabilityService;
     private readonly IMaintenanceService _maintenanceService;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
     public StationController(
         IHomePageService homePageService,
         IReservationService reservationService,
         IAvailabilityService availabilityService,
         IMaintenanceService maintenanceService,
-        IUnitOfWork unitOfWork)
+        IChargingModuleApi chargingModuleApi)
     {
         _homePageService = homePageService;
         _reservationService = reservationService;
         _availabilityService = availabilityService;
         _maintenanceService = maintenanceService;
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     /// <summary>
@@ -160,12 +159,9 @@ public class StationController : ControllerBase
     [ProducesResponseType(typeof(List<ConnectorOption>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ConnectorOption>>> GetConnectors()
     {
-        var connectors = await _unitOfWork.Connectors
-            .GetQueryable()
-            .Where(c => c.IsActive)
-            .ToListAsync();
+        var connectorsFromModule = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
 
-        var response = connectors
+        var response = connectorsFromModule
             .Select(ApiDtoFactory.CreateDtoForStationOption)
             .OrderBy(c => c.Name)
             .ToList();

@@ -2,16 +2,20 @@ using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.DAL.EF.Repositories.Interfaces;
-using App.Domain;
+using Shared.Contracts.Charging;
+using DomainMaintenanceStatus = App.Domain.EMaintenanceStatus;
+using DomainMaintenance = App.Domain.Maintenance;
 
 namespace App.BLL.Services;
 
 public class MaintenanceService : IMaintenanceService
 {
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly IUnitOfWork _unitOfWork;
 
-    public MaintenanceService(IUnitOfWork unitOfWork)
+    public MaintenanceService(IChargingModuleApi chargingModuleApi, IUnitOfWork unitOfWork)
     {
+        _chargingModuleApi = chargingModuleApi;
         _unitOfWork = unitOfWork;
     }
 
@@ -22,7 +26,7 @@ public class MaintenanceService : IMaintenanceService
             return ServiceResult<List<MaintenanceIssueDto>>.Fail("VALIDATION", "Company id is required.");
         }
 
-        var issues = await _unitOfWork.Maintenances.GetByCompanyAsync(companyId, includeResolved);
+        var issues = await _chargingModuleApi.GetMaintenancesByCompanyAsync(companyId, includeResolved);
         return ServiceResult<List<MaintenanceIssueDto>>.Ok(issues.Select(MapIssue).ToList());
     }
 
@@ -33,7 +37,7 @@ public class MaintenanceService : IMaintenanceService
             return ServiceResult<MaintenanceIssueDto>.Fail("VALIDATION", "Issue id and company id are required.");
         }
 
-        var issue = await _unitOfWork.Maintenances.GetByIdForCompanyAsync(id, companyId);
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
         if (issue == null)
         {
             return ServiceResult<MaintenanceIssueDto>.Fail("FORBIDDEN", "Maintenance issue not found or access denied.");
@@ -54,36 +58,33 @@ public class MaintenanceService : IMaintenanceService
             return ServiceResult<MaintenanceIssueDto>.Fail("VALIDATION", "Issue description is required.");
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
-        if (station == null)
+        var station = await _chargingModuleApi.GetStationByIdAsync(stationId);
+        if (station == null || station.CompanyId != companyId)
         {
             return ServiceResult<MaintenanceIssueDto>.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        var issue = new Maintenance
+        var issue = new MaintenanceContract
         {
             Id = Guid.NewGuid(),
+            CompanyId = companyId,
             ChargingStationId = stationId,
+            StationName = station.Name,
             ReportedByUserId = userId,
             IssueDescription = issueDescription.Trim(),
-            Status = EMaintenanceStatus.Reported,
-            ReportedAt = DateTime.UtcNow
+            Status = Shared.Contracts.Charging.EMaintenanceStatus.Reported,
+            ReportedAtUtc = DateTime.UtcNow
         };
 
-        await _unitOfWork.Maintenances.AddAsync(issue);
-        await _unitOfWork.SaveAsync();
-
-        var created = await _unitOfWork.Maintenances.GetByIdForCompanyAsync(issue.Id, companyId);
-        return created == null
-            ? ServiceResult<MaintenanceIssueDto>.Fail("NOT_FOUND", "Maintenance issue could not be loaded after creation.")
-            : ServiceResult<MaintenanceIssueDto>.Ok(MapIssue(created));
+        var created = await _chargingModuleApi.CreateMaintenanceAsync(issue);
+        return ServiceResult<MaintenanceIssueDto>.Ok(MapIssue(created));
     }
 
     public async Task<ServiceResult<MaintenanceIssueDto>> UpdateStatusAsync(
         Guid id,
         Guid companyId,
         Guid userId,
-        EMaintenanceStatus newStatus,
+        DomainMaintenanceStatus newStatus,
         string? notes)
     {
         if (id == Guid.Empty || companyId == Guid.Empty || userId == Guid.Empty)
@@ -91,45 +92,44 @@ public class MaintenanceService : IMaintenanceService
             return ServiceResult<MaintenanceIssueDto>.Fail("VALIDATION", "Issue id, company id and user id are required.");
         }
 
-        var issue = await _unitOfWork.Maintenances.GetByIdForCompanyAsync(id, companyId);
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
         if (issue == null)
         {
             return ServiceResult<MaintenanceIssueDto>.Fail("FORBIDDEN", "Maintenance issue not found or access denied.");
         }
 
-        if (!IsValidTransition(issue.Status, newStatus))
+        if (!IsValidTransition(MapMaintenanceStatus(issue.Status), newStatus))
         {
             return ServiceResult<MaintenanceIssueDto>.Fail("VALIDATION", "Invalid maintenance status transition.");
         }
 
-        issue.Status = newStatus;
-        issue.Notes = string.IsNullOrWhiteSpace(notes) ? issue.Notes : notes.Trim();
+        var resolvedAtUtc = newStatus == DomainMaintenanceStatus.Resolved ? DateTime.UtcNow : (DateTime?)null;
 
-        if (newStatus == EMaintenanceStatus.Resolved)
+        var maintenanceUpdated = await _chargingModuleApi.UpdateMaintenanceStatusAsync(
+            id,
+            MapMaintenanceStatus(newStatus),
+            string.IsNullOrWhiteSpace(notes) ? issue.Notes : notes.Trim(),
+            resolvedAtUtc);
+
+        if (!maintenanceUpdated)
         {
-            issue.ResolvedAt = DateTime.UtcNow;
-        }
-        else
-        {
-            issue.ResolvedAt = null;
+            return ServiceResult<MaintenanceIssueDto>.Fail("NOT_FOUND", "Maintenance issue was not found.");
         }
 
-        var station = issue.ChargingStation;
-        if (station == null || station.CompanyId != companyId)
+        var targetStationStatus = newStatus == DomainMaintenanceStatus.Resolved
+            ? Shared.Contracts.Charging.EStationStatus.Available
+            : Shared.Contracts.Charging.EStationStatus.Maintenance;
+
+        var stationUpdated = await _chargingModuleApi.UpdateStationStatusAsync(issue.ChargingStationId, targetStationStatus);
+        if (!stationUpdated)
         {
             return ServiceResult<MaintenanceIssueDto>.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        var targetStationStatus = newStatus == EMaintenanceStatus.Resolved
-            ? EStationStatus.Available
-            : EStationStatus.Maintenance;
-        var stationUpdate = BuildStationStatusUpdate(station, targetStationStatus);
-        _unitOfWork.ChargingStations.UpdateForCompany(stationUpdate);
-
-        _unitOfWork.Maintenances.Update(issue);
-        await _unitOfWork.SaveAsync();
-
-        return ServiceResult<MaintenanceIssueDto>.Ok(MapIssue(issue));
+        var updated = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
+        return updated == null
+            ? ServiceResult<MaintenanceIssueDto>.Fail("NOT_FOUND", "Maintenance issue could not be loaded after update.")
+            : ServiceResult<MaintenanceIssueDto>.Ok(MapIssue(updated));
     }
 
     public async Task<ServiceResult<MaintenanceIssueDto>> AssignAsync(Guid id, Guid companyId, Guid userId, Guid? assignedToUserId)
@@ -139,17 +139,19 @@ public class MaintenanceService : IMaintenanceService
             return ServiceResult<MaintenanceIssueDto>.Fail("VALIDATION", "Issue id, company id and user id are required.");
         }
 
-        var issue = await _unitOfWork.Maintenances.GetByIdForCompanyAsync(id, companyId);
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
         if (issue == null)
         {
             return ServiceResult<MaintenanceIssueDto>.Fail("FORBIDDEN", "Maintenance issue not found or access denied.");
         }
 
-        issue.AssignedToUserId = assignedToUserId;
-        _unitOfWork.Maintenances.Update(issue);
-        await _unitOfWork.SaveAsync();
+        var assigned = await _chargingModuleApi.AssignMaintenanceAsync(id, assignedToUserId);
+        if (!assigned)
+        {
+            return ServiceResult<MaintenanceIssueDto>.Fail("NOT_FOUND", "Maintenance issue could not be loaded after assignment.");
+        }
 
-        var updated = await _unitOfWork.Maintenances.GetByIdForCompanyAsync(id, companyId);
+        var updated = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
         return updated == null
             ? ServiceResult<MaintenanceIssueDto>.Fail("NOT_FOUND", "Maintenance issue could not be loaded after assignment.")
             : ServiceResult<MaintenanceIssueDto>.Ok(MapIssue(updated));
@@ -162,13 +164,13 @@ public class MaintenanceService : IMaintenanceService
             return ServiceResult<List<MaintenanceStatusHistoryDto>>.Fail("VALIDATION", "Maintenance id and company id are required.");
         }
 
-        var issue = await _unitOfWork.Maintenances.GetByIdForCompanyAsync(maintenanceId, companyId);
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(maintenanceId, companyId);
         if (issue == null)
         {
             return ServiceResult<List<MaintenanceStatusHistoryDto>>.Fail("FORBIDDEN", "Maintenance issue not found or access denied.");
         }
 
-        var entries = await _unitOfWork.AuditLogQueries.GetByEntityAsync(nameof(Maintenance), maintenanceId, companyId);
+        var entries = await _unitOfWork.AuditLogQueries.GetByEntityAsync(nameof(DomainMaintenance), maintenanceId, companyId);
 
         var history = entries
             .OrderBy(entry => entry.AtUtc)
@@ -178,7 +180,7 @@ public class MaintenanceService : IMaintenanceService
         return ServiceResult<List<MaintenanceStatusHistoryDto>>.Ok(history);
     }
 
-    private static bool IsValidTransition(EMaintenanceStatus from, EMaintenanceStatus to)
+    private static bool IsValidTransition(DomainMaintenanceStatus from, DomainMaintenanceStatus to)
     {
         if (from == to)
         {
@@ -187,30 +189,50 @@ public class MaintenanceService : IMaintenanceService
 
         return (from, to) switch
         {
-            (EMaintenanceStatus.Reported, EMaintenanceStatus.InProgress) => true,
-            (EMaintenanceStatus.Reported, EMaintenanceStatus.Resolved) => true,
-            (EMaintenanceStatus.InProgress, EMaintenanceStatus.Resolved) => true,
+            (DomainMaintenanceStatus.Reported, DomainMaintenanceStatus.InProgress) => true,
+            (DomainMaintenanceStatus.Reported, DomainMaintenanceStatus.Resolved) => true,
+            (DomainMaintenanceStatus.InProgress, DomainMaintenanceStatus.Resolved) => true,
             _ => false
         };
     }
 
-    private static MaintenanceIssueDto MapIssue(Maintenance issue)
+    private static MaintenanceIssueDto MapIssue(MaintenanceContract issue)
     {
-        return BllDtoFactory.CreateMaintenanceIssueDto(issue);
+        return new MaintenanceIssueDto
+        {
+            Id = issue.Id,
+            StationId = issue.ChargingStationId,
+            StationName = issue.StationName,
+            IssueDescription = issue.IssueDescription,
+            Status = MapMaintenanceStatus(issue.Status),
+            ReportedAtUtc = issue.ReportedAtUtc,
+            ResolvedAtUtc = issue.ResolvedAtUtc,
+            AssignedToUserId = issue.AssignedToUserId,
+            AssignedToUserName = string.Empty,
+            ReporterUserName = string.Empty,
+            Notes = issue.Notes
+        };
     }
 
-    private static ChargingStation BuildStationStatusUpdate(ChargingStation source, EStationStatus status)
+    private static DomainMaintenanceStatus MapMaintenanceStatus(Shared.Contracts.Charging.EMaintenanceStatus status)
     {
-        return new ChargingStation
+        return status switch
         {
-            Id = source.Id,
-            Name = source.Name,
-            Location = source.Location,
-            Status = status,
-            PricePerKwh = source.PricePerKwh,
-            MaxPower = source.MaxPower,
-            IsActive = source.IsActive,
-            CompanyId = source.CompanyId
+            Shared.Contracts.Charging.EMaintenanceStatus.Reported => DomainMaintenanceStatus.Reported,
+            Shared.Contracts.Charging.EMaintenanceStatus.InProgress => DomainMaintenanceStatus.InProgress,
+            Shared.Contracts.Charging.EMaintenanceStatus.Resolved => DomainMaintenanceStatus.Resolved,
+            _ => DomainMaintenanceStatus.Reported
+        };
+    }
+
+    private static Shared.Contracts.Charging.EMaintenanceStatus MapMaintenanceStatus(DomainMaintenanceStatus status)
+    {
+        return status switch
+        {
+            DomainMaintenanceStatus.Reported => Shared.Contracts.Charging.EMaintenanceStatus.Reported,
+            DomainMaintenanceStatus.InProgress => Shared.Contracts.Charging.EMaintenanceStatus.InProgress,
+            DomainMaintenanceStatus.Resolved => Shared.Contracts.Charging.EMaintenanceStatus.Resolved,
+            _ => Shared.Contracts.Charging.EMaintenanceStatus.Reported
         };
     }
 }

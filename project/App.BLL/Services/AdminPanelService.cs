@@ -6,6 +6,7 @@ using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
 
 namespace App.BLL.Services;
@@ -16,17 +17,20 @@ public class AdminPanelService : IAdminPanelService
     private readonly UserManager<AppUser> _userManager;
     private readonly IAuditService _auditService;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
     public AdminPanelService(
         IUnitOfWork unitOfWork,
         UserManager<AppUser> userManager,
         IAuditService auditService,
-        ICompaniesModuleApi companiesModuleApi)
+        ICompaniesModuleApi companiesModuleApi,
+        IChargingModuleApi chargingModuleApi)
     {
         _unitOfWork = unitOfWork;
         _userManager = userManager;
         _auditService = auditService;
         _companiesModuleApi = companiesModuleApi;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     public async Task<ServiceResult<AdminDashboardDto>> GetDashboardAsync(DateTime fromUtc, DateTime toUtc)
@@ -36,7 +40,7 @@ public class AdminPanelService : IAdminPanelService
             return ServiceResult<AdminDashboardDto>.Fail("VALIDATION", "Invalid date range.");
         }
 
-        var reservationsInPeriod = await _unitOfWork.Reservations.GetCountByRangeAsync(fromUtc, toUtc);
+        var reservationsInPeriod = await _chargingModuleApi.GetReservationCountByRangeAsync(fromUtc, toUtc);
         var companies = (await _unitOfWork.Companies.GetAllIgnoringFiltersAsync()).ToList();
         var totalCompanies = companies.Count;
 
@@ -79,28 +83,39 @@ public class AdminPanelService : IAdminPanelService
 
     public async Task<ServiceResult<AdminStationListDto>> GetStationsAsync(string? search = null)
     {
-        var stations = await _unitOfWork.ChargingStations.GetStationsWithConnectors()
-            .Include(station => station.Company)
-            .AsNoTracking()
-            .ToListAsync();
-
+        var stations = await _chargingModuleApi.GetStationsForAdminAsync();
+        var companies = await _companiesModuleApi.GetCompaniesForAdminAsync();
+        var companyNames = companies.ToDictionary(c => c.CompanyId, c => c.CompanyName);
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
         if (!string.IsNullOrWhiteSpace(normalizedSearch))
         {
             stations = stations
                 .Where(station =>
-                    (station.Name?.Translate() ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
-                    (station.Name?.Translate("et") ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                    station.NameEn.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                    station.NameEt.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
                     station.Location.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
-                    (station.Company?.Name?.Translate() ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
-                    (station.Company?.Name?.Translate("et") ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+                    (station.CompanyId.HasValue
+                     && companyNames.TryGetValue(station.CompanyId.Value, out var companyName)
+                     && companyName.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
         }
 
         var mapped = stations
-            .OrderBy(station => station.Name?.Translate() ?? string.Empty)
+            .OrderBy(station => station.NameEn)
             .ThenBy(station => station.Location)
-            .Select(BllDtoFactory.CreateAdminStationListItemDto)
+            .Select(station => new AdminStationListItemDto
+            {
+                StationId = station.StationId,
+                Name = station.NameEn,
+                Location = station.Location,
+                CompanyName = station.CompanyId.HasValue && companyNames.TryGetValue(station.CompanyId.Value, out var companyName)
+                    ? companyName
+                    : "-",
+                Status = station.Status.ToString(),
+                IsActive = station.IsActive,
+                PricePerKwh = station.PricePerKwh,
+                MaxPower = station.MaxPower
+            })
             .ToList();
 
         return ServiceResult<AdminStationListDto>.Ok(BllDtoFactory.CreateAdminStationListDto(normalizedSearch, mapped));
@@ -333,21 +348,25 @@ public class AdminPanelService : IAdminPanelService
 
     public async Task<ServiceResult<AdminConnectorTypeListDto>> GetConnectorTypesAsync(string? search = null)
     {
-        var connectors = (await _unitOfWork.Connectors.GetAllAsync()).ToList();
+        var connectors = (await _chargingModuleApi.GetConnectorsAsync(includeInactive: true)).ToList();
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
         if (!string.IsNullOrWhiteSpace(normalizedSearch))
         {
             connectors = connectors
                 .Where(connector =>
-                    (connector.Name?.Translate() ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
-                    (connector.Name?.Translate("et") ?? string.Empty).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+                    connector.Name.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
         var mapped = connectors
-            .OrderBy(connector => connector.Name?.Translate() ?? string.Empty)
-            .Select(BllDtoFactory.CreateAdminConnectorTypeListItemDto)
+            .OrderBy(connector => connector.Name)
+            .Select(connector => new AdminConnectorTypeListItemDto
+            {
+                ConnectorTypeId = connector.Id,
+                Name = connector.Name,
+                IsActive = connector.IsActive
+            })
             .ToList();
 
         return ServiceResult<AdminConnectorTypeListDto>.Ok(
@@ -361,13 +380,19 @@ public class AdminPanelService : IAdminPanelService
             return ServiceResult<AdminConnectorTypeFormDto>.Fail("VALIDATION", "Connector type id is required.");
         }
 
-        var connector = await _unitOfWork.Connectors.GetByIdAsync(connectorTypeId);
+        var connector = await _chargingModuleApi.GetConnectorTypeByIdAsync(connectorTypeId);
         if (connector == null)
         {
             return ServiceResult<AdminConnectorTypeFormDto>.Fail("NOT_FOUND", "Connector type not found.");
         }
 
-        return ServiceResult<AdminConnectorTypeFormDto>.Ok(BllDtoFactory.CreateAdminConnectorTypeFormDto(connector));
+        return ServiceResult<AdminConnectorTypeFormDto>.Ok(new AdminConnectorTypeFormDto
+        {
+            ConnectorTypeId = connector.ConnectorTypeId,
+            NameEn = connector.NameEn,
+            NameEt = connector.NameEt,
+            IsActive = connector.IsActive
+        });
     }
 
     public async Task<ServiceResult<AdminConnectorTypeFormDto>> CreateConnectorTypeAsync(AdminConnectorTypeFormDto dto, string actorUserName)
@@ -377,25 +402,23 @@ public class AdminPanelService : IAdminPanelService
             return ServiceResult<AdminConnectorTypeFormDto>.Fail("VALIDATION", "English name is required.");
         }
 
-        var connector = new Connector
-        {
-            Id = Guid.NewGuid(),
-            Name = new LangStr(dto.NameEn.Trim()) { ["et"] = dto.NameEt.Trim() },
-            IsActive = dto.IsActive
-        };
-
-        await _unitOfWork.Connectors.AddAsync(connector);
-        await _unitOfWork.SaveAsync();
+        var connector = await _chargingModuleApi.CreateConnectorTypeAsync(dto.NameEn.Trim(), dto.NameEt.Trim(), dto.IsActive);
 
         await _auditService.LogMutationAsync(
             Guid.Empty,
             actorUserName,
             nameof(Connector),
-            connector.Id,
+            connector.ConnectorTypeId,
             "Create",
-            $"{{\"nameEn\":\"{connector.Name.Translate("en")}\",\"nameEt\":\"{connector.Name.Translate("et")}\",\"isActive\":{connector.IsActive.ToString().ToLowerInvariant()}}}");
+            $"{{\"nameEn\":\"{connector.NameEn}\",\"nameEt\":\"{connector.NameEt}\",\"isActive\":{connector.IsActive.ToString().ToLowerInvariant()}}}");
 
-        return ServiceResult<AdminConnectorTypeFormDto>.Ok(BllDtoFactory.CreateAdminConnectorTypeFormDto(connector));
+        return ServiceResult<AdminConnectorTypeFormDto>.Ok(new AdminConnectorTypeFormDto
+        {
+            ConnectorTypeId = connector.ConnectorTypeId,
+            NameEn = connector.NameEn,
+            NameEt = connector.NameEt,
+            IsActive = connector.IsActive
+        });
     }
 
     public async Task<ServiceResult<AdminConnectorTypeFormDto>> UpdateConnectorTypeAsync(Guid connectorTypeId, AdminConnectorTypeFormDto dto, string actorUserName)
@@ -410,27 +433,27 @@ public class AdminPanelService : IAdminPanelService
             return ServiceResult<AdminConnectorTypeFormDto>.Fail("VALIDATION", "English name is required.");
         }
 
-        var connector = await _unitOfWork.Connectors.GetByIdAsync(connectorTypeId);
+        var connector = await _chargingModuleApi.UpdateConnectorTypeAsync(connectorTypeId, dto.NameEn.Trim(), dto.NameEt.Trim(), dto.IsActive);
         if (connector == null)
         {
             return ServiceResult<AdminConnectorTypeFormDto>.Fail("NOT_FOUND", "Connector type not found.");
         }
 
-        connector.Name = new LangStr(dto.NameEn.Trim()) { ["et"] = dto.NameEt.Trim() };
-        connector.IsActive = dto.IsActive;
-
-        _unitOfWork.Connectors.Update(connector);
-        await _unitOfWork.SaveAsync();
-
         await _auditService.LogMutationAsync(
             Guid.Empty,
             actorUserName,
             nameof(Connector),
-            connector.Id,
+            connector.ConnectorTypeId,
             "Update",
-            $"{{\"nameEn\":\"{connector.Name.Translate("en")}\",\"nameEt\":\"{connector.Name.Translate("et")}\",\"isActive\":{connector.IsActive.ToString().ToLowerInvariant()}}}");
+            $"{{\"nameEn\":\"{connector.NameEn}\",\"nameEt\":\"{connector.NameEt}\",\"isActive\":{connector.IsActive.ToString().ToLowerInvariant()}}}");
 
-        return ServiceResult<AdminConnectorTypeFormDto>.Ok(BllDtoFactory.CreateAdminConnectorTypeFormDto(connector));
+        return ServiceResult<AdminConnectorTypeFormDto>.Ok(new AdminConnectorTypeFormDto
+        {
+            ConnectorTypeId = connector.ConnectorTypeId,
+            NameEn = connector.NameEn,
+            NameEt = connector.NameEt,
+            IsActive = connector.IsActive
+        });
     }
 
     public async Task<ServiceResult> DeleteConnectorTypeAsync(Guid connectorTypeId, string actorUserName)
@@ -440,20 +463,19 @@ public class AdminPanelService : IAdminPanelService
             return ServiceResult.Fail("VALIDATION", "Connector type id is required.");
         }
 
-        var connector = await _unitOfWork.Connectors.GetByIdAsync(connectorTypeId);
-        if (connector == null)
+        var connector = await _chargingModuleApi.GetConnectorTypeByIdAsync(connectorTypeId);
+        if (connector is null)
         {
             return ServiceResult.Fail("NOT_FOUND", "Connector type not found.");
         }
 
-        _unitOfWork.Connectors.Remove(connector);
-        await _unitOfWork.SaveAsync();
+        await _chargingModuleApi.DeleteConnectorTypeAsync(connectorTypeId);
 
         await _auditService.LogMutationAsync(
             Guid.Empty,
             actorUserName,
             nameof(Connector),
-            connector.Id,
+            connector.ConnectorTypeId,
             "Delete",
             null);
 

@@ -10,6 +10,7 @@ public class HomePageFilterDto
     public string? Connector { get; set; }
     public string? Location { get; set; }
     public Guid? VehicleId { get; set; }
+    public Guid? UserId { get; set; }
 }
 
 public class HomePageDto

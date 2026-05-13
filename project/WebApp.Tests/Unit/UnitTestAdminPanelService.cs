@@ -11,6 +11,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using AdminChargingStationContract = Shared.Contracts.Charging.AdminChargingStationContract;
+using ConnectorContract = Shared.Contracts.Charging.ConnectorContract;
+using ConnectorTypeContract = Shared.Contracts.Charging.ConnectorTypeContract;
+using IChargingModuleApi = Shared.Contracts.Charging.IChargingModuleApi;
 using Shared.Contracts.Companies;
 using Shared.Contracts.Companies.Events;
 
@@ -103,7 +107,10 @@ public class UnitTestAdminPanelService
         var mediator = new Mock<IMediator>();
         var companiesApi = new Mock<ICompaniesModuleApi>();
         var auditService = new AuditService(mediator.Object, companiesApi.Object);
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetReservationCountByRangeAsync(fromUtc, toUtc, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var result = await sut.GetDashboardAsync(fromUtc, toUtc);
 
@@ -148,7 +155,7 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, companiesApi.Object);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, companiesApi.Object, new Mock<IChargingModuleApi>().Object);
 
         var result = await sut.SetCompanyActivationAsync(companyId, false, "admin@test.local");
 
@@ -188,7 +195,14 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetConnectorsAsync(true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConnectorContract>
+            {
+                new() { Id = Guid.NewGuid(), Name = "CCS", IsActive = true },
+                new() { Id = Guid.NewGuid(), Name = "CHAdeMO", IsActive = false }
+            });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var result = await sut.GetAuditLogsAsync(new AdminAuditLogFilterDto
         {
@@ -255,7 +269,21 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var companiesApi = new Mock<ICompaniesModuleApi>();
+        companiesApi.Setup(x => x.GetCompaniesForAdminAsync(null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<AdminCompanyContract>
+            {
+                new() { CompanyId = companyA.Id, CompanyName = "North Energy" },
+                new() { CompanyId = companyB.Id, CompanyName = "South Energy" }
+            });
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetStationsForAdminAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<AdminChargingStationContract>
+            {
+                new() { StationId = Guid.NewGuid(), CompanyId = companyA.Id, NameEn = "North Hub", NameEt = "North Hub", Location = "Tallinn", Status = Shared.Contracts.Charging.EStationStatus.Available, IsActive = true, PricePerKwh = 0.30m, MaxPower = 150m },
+                new() { StationId = Guid.NewGuid(), CompanyId = companyB.Id, NameEn = "South Hub", NameEt = "South Hub", Location = "Tartu", Status = Shared.Contracts.Charging.EStationStatus.InUse, IsActive = false, PricePerKwh = 0.35m, MaxPower = 120m }
+            });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, companiesApi.Object, chargingApi.Object);
 
         var result = await sut.GetStationsAsync("north");
 
@@ -308,7 +336,10 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.CreateConnectorTypeAsync("Type2", "Tüüp2", true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConnectorTypeContract { ConnectorTypeId = Guid.NewGuid(), NameEn = "Type2", NameEt = "Tüüp2", IsActive = true });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var result = await sut.GetSystemPromotionsAsync();
 
@@ -326,7 +357,10 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.CreateConnectorTypeAsync("Type2", "Tüüp2", true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConnectorTypeContract { ConnectorTypeId = Guid.NewGuid(), NameEn = "Type2", NameEt = "Tüüp2", IsActive = true });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var dto = new AdminPromotionFormDto
         {
@@ -371,7 +405,14 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetConnectorsAsync(true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConnectorContract>
+            {
+                new() { Id = Guid.NewGuid(), Name = "CCS", IsActive = true },
+                new() { Id = Guid.NewGuid(), Name = "CHAdeMO", IsActive = false }
+            });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var dto = new AdminPromotionFormDto
         {
@@ -413,7 +454,16 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.CreateConnectorTypeAsync("Type2", "Tüüp2", true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConnectorTypeContract
+            {
+                ConnectorTypeId = Guid.NewGuid(),
+                NameEn = "Type2",
+                NameEt = "Tüüp2",
+                IsActive = true
+            });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var result = await sut.DeleteSystemPromotionAsync(promoToDelete.Id, "admin@test.local");
 
@@ -445,7 +495,14 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetConnectorsAsync(true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConnectorContract>
+            {
+                new() { Id = Guid.NewGuid(), Name = "CCS", IsActive = true },
+                new() { Id = Guid.NewGuid(), Name = "CHAdeMO", IsActive = false }
+            });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var result = await sut.GetConnectorTypesAsync("CCS");
 
@@ -463,7 +520,16 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.CreateConnectorTypeAsync("Type2", "Tüüp2", true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConnectorTypeContract
+            {
+                ConnectorTypeId = Guid.NewGuid(),
+                NameEn = "Type2",
+                NameEt = "Tüüp2",
+                IsActive = true
+            });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var dto = new AdminConnectorTypeFormDto
         {
@@ -477,7 +543,7 @@ public class UnitTestAdminPanelService
         Assert.True(result.Success);
         Assert.NotNull(result.Data);
         Assert.Equal("Type2", result.Data!.NameEn);
-        Assert.True(context.Connectors.Any(c => c.Name.Translate("en") == "Type2"));
+        Assert.Equal("Tüüp2", result.Data.NameEt);
     }
 
     [Fact]
@@ -496,7 +562,10 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.UpdateConnectorTypeAsync(connector.Id, "NACS", "NACS ET", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConnectorTypeContract { ConnectorTypeId = connector.Id, NameEn = "NACS", NameEt = "NACS ET", IsActive = false });
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var dto = new AdminConnectorTypeFormDto
         {
@@ -529,12 +598,16 @@ public class UnitTestAdminPanelService
         var userManager = BuildUserManager(context);
         await using var unitOfWork = new UnitOfWork(context);
         var auditService = CreateAuditService();
-        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object);
+        var chargingApi = new Mock<IChargingModuleApi>();
+        chargingApi.Setup(x => x.GetConnectorTypeByIdAsync(connector.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConnectorTypeContract { ConnectorTypeId = connector.Id, NameEn = "Delete me", NameEt = string.Empty, IsActive = true });
+        chargingApi.Setup(x => x.DeleteConnectorTypeAsync(connector.Id, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var sut = new AdminPanelService(unitOfWork, userManager, auditService, new Mock<ICompaniesModuleApi>().Object, chargingApi.Object);
 
         var result = await sut.DeleteConnectorTypeAsync(connector.Id, "admin@test.local");
 
         Assert.True(result.Success);
-        Assert.Null(await context.Connectors.FirstOrDefaultAsync(c => c.Id == connector.Id));
+        chargingApi.Verify(x => x.DeleteConnectorTypeAsync(connector.Id, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private static AppDbContext BuildContext()

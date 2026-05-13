@@ -1,25 +1,23 @@
 using App.BLL.DTOs;
-using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
-using App.Domain;
+using Shared.Contracts.Charging;
 
 namespace App.BLL.Services;
 
 public class ChargingSessionService : IChargingSessionService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly IReservationService _reservationService;
     private readonly IPricingService _pricingService;
     private readonly IPromotionService _promotionService;
 
     public ChargingSessionService(
-        IUnitOfWork unitOfWork,
+        IChargingModuleApi chargingModuleApi,
         IReservationService reservationService,
         IPricingService pricingService,
         IPromotionService promotionService)
     {
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
         _reservationService = reservationService;
         _pricingService = pricingService;
         _promotionService = promotionService;
@@ -32,19 +30,19 @@ public class ChargingSessionService : IChargingSessionService
             return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Reservation is required to start a charging session.");
         }
 
-        var reservation = await _unitOfWork.Reservations.GetByIdForUserAsync(dto.ReservationId.Value, userId);
+        var reservation = await _chargingModuleApi.GetReservationByIdForUserAsync(dto.ReservationId.Value, userId);
         if (reservation == null)
         {
             return ServiceResult<ChargingSessionDto>.Fail("FORBIDDEN", "Reservation not found or access denied.");
         }
 
-        var existingSession = await _unitOfWork.ChargingSessions.GetByReservationIdAsync(reservation.Id);
+        var existingSession = await _chargingModuleApi.GetChargingSessionByReservationIdAsync(reservation.Id);
         if (existingSession != null)
         {
             return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Charging session has already been started for this reservation.");
         }
 
-        if (reservation.Status != EReservationStatus.Started)
+        if (reservation.Status != Shared.Contracts.Charging.EReservationStatus.Started)
         {
             var startReservationResult = await _reservationService.StartReservationAsync(reservation.Id, userId);
             if (!startReservationResult.Success)
@@ -52,54 +50,46 @@ public class ChargingSessionService : IChargingSessionService
                 return ServiceResult<ChargingSessionDto>.Fail(startReservationResult.Errors);
             }
 
-            reservation = await _unitOfWork.Reservations.GetByIdForUserAsync(reservation.Id, userId);
-            if (reservation == null || reservation.Status != EReservationStatus.Started)
+            reservation = await _chargingModuleApi.GetReservationByIdForUserAsync(reservation.Id, userId);
+            if (reservation == null || reservation.Status != Shared.Contracts.Charging.EReservationStatus.Started)
             {
                 return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Reservation is not in a started state.");
             }
         }
 
-        var session = new ChargingSession
+        var sessionContract = new ChargingSessionContract
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             ChargingStationId = reservation.ChargingStationId,
             ReservationId = reservation.Id,
             PromotionId = reservation.PromotionId,
-            StartTime = DateTime.UtcNow,
-            EndTime = null,
+            StartTimeUtc = DateTime.UtcNow,
+            EndTimeUtc = null,
             EnergyConsumed = 0m,
             Cost = 0m
         };
 
-        await _unitOfWork.ChargingSessions.AddAsync(session);
-        await _unitOfWork.SaveAsync();
-
-        var persisted = await _unitOfWork.ChargingSessions.GetByIdForUserAsync(session.Id, userId);
-        if (persisted == null)
-        {
-            return ServiceResult<ChargingSessionDto>.Fail("NOT_FOUND", "Charging session could not be loaded after creation.");
-        }
-
+        var persisted = await _chargingModuleApi.CreateChargingSessionAsync(sessionContract);
         return ServiceResult<ChargingSessionDto>.Ok(MapSession(persisted));
     }
 
     public async Task<ServiceResult<ChargingSessionDto>> StopSessionAsync(Guid userId, Guid sessionId, ChargingSessionStopRequestDto dto)
     {
-        var session = await _unitOfWork.ChargingSessions.GetByIdForUserAsync(sessionId, userId);
+        var session = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(sessionId, userId);
         if (session == null)
         {
             return ServiceResult<ChargingSessionDto>.Fail("FORBIDDEN", "Charging session not found or access denied.");
         }
 
-        if (session.EndTime.HasValue)
+        if (session.EndTimeUtc.HasValue)
         {
             return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Charging session is already completed.");
         }
 
         var nowUtc = DateTime.UtcNow;
-        var durationMinutes = Math.Max(1, (int)Math.Ceiling((nowUtc - session.StartTime).TotalMinutes));
-        var energyConsumedKwh = CalculateEnergyEstimateKwh(durationMinutes, session.ChargingStation?.MaxPower);
+        var durationMinutes = Math.Max(1, (int)Math.Ceiling((nowUtc - session.StartTimeUtc).TotalMinutes));
+        var energyConsumedKwh = CalculateEnergyEstimateKwh(durationMinutes, session.StationMaxPower);
 
         var costResult = await _pricingService.CalculateSessionFinalCostAsync(session.ChargingStationId, energyConsumedKwh, durationMinutes);
         if (!costResult.Success)
@@ -107,35 +97,38 @@ public class ChargingSessionService : IChargingSessionService
             return ServiceResult<ChargingSessionDto>.Fail(costResult.Errors);
         }
 
-        session.EndTime = nowUtc;
-        session.EnergyConsumed = energyConsumedKwh;
-        session.Cost = costResult.Data;
-
+        var finalCost = costResult.Data;
+        Guid? finalPromotionId = session.PromotionId;
         AppliedPromotionDto? appliedPromotion = null;
+
         if (session.PromotionId.HasValue)
         {
-            var userPromotion = await _unitOfWork.UserPromotions.GetByUserAndPromotionAsync(userId, session.PromotionId.Value);
-            if (userPromotion == null || userPromotion.IsUsed)
+            var userPromotionsResult = await _promotionService.GetUserPromotionsAsync(userId);
+            if (!userPromotionsResult.Success || userPromotionsResult.Data == null)
             {
-                return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Promotion code is not available in your wallet.");
+                return ServiceResult<ChargingSessionDto>.Fail(userPromotionsResult.Errors);
             }
 
-            var lockedPromotion = session.Promotion ?? session.Reservation?.Promotion;
+            var lockedPromotion = userPromotionsResult.Data
+                .FirstOrDefault(p => p.PromotionId == session.PromotionId.Value && !p.IsUsed);
             if (lockedPromotion == null)
             {
                 return ServiceResult<ChargingSessionDto>.Fail("VALIDATION", "Promotion code is not available in your wallet.");
             }
 
-            appliedPromotion = BllDtoFactory.CreateAppliedPromotionDto(
-                lockedPromotion.Id,
-                lockedPromotion.Code,
-                lockedPromotion.DiscountValue);
+            appliedPromotion = new AppliedPromotionDto
+            {
+                PromotionId = lockedPromotion.PromotionId,
+                Code = lockedPromotion.Code,
+                DiscountValue = lockedPromotion.DiscountValue
+            };
         }
         else if (!string.IsNullOrWhiteSpace(dto.PromotionCode))
         {
+            var station = await _chargingModuleApi.GetStationByIdAsync(session.ChargingStationId);
             var promotionResult = await _promotionService.ValidateUserPromotionForCompanyAsync(
                 userId,
-                session.ChargingStation?.CompanyId,
+                station?.CompanyId,
                 dto.PromotionCode);
             if (!promotionResult.Success || promotionResult.Data == null)
             {
@@ -147,8 +140,8 @@ public class ChargingSessionService : IChargingSessionService
 
         if (appliedPromotion != null)
         {
-            session.Cost = ApplyDiscount(session.Cost, appliedPromotion.DiscountValue);
-            session.PromotionId = appliedPromotion.PromotionId;
+            finalCost = ApplyDiscount(finalCost, appliedPromotion.DiscountValue);
+            finalPromotionId = appliedPromotion.PromotionId;
 
             var consumeResult = await ConsumeUserPromotionAsync(userId, appliedPromotion.PromotionId);
             if (!consumeResult.Success)
@@ -157,20 +150,28 @@ public class ChargingSessionService : IChargingSessionService
             }
         }
 
-        if (session.ChargingStation != null)
+        var completed = await _chargingModuleApi.CompleteChargingSessionAsync(
+            session.Id,
+            endTimeUtc: nowUtc,
+            energyConsumed: energyConsumedKwh,
+            cost: finalCost,
+            promotionId: finalPromotionId,
+            stationStatus: Shared.Contracts.Charging.EStationStatus.Available);
+
+        if (!completed)
         {
-            session.ChargingStation.Status = EStationStatus.Available;
+            return ServiceResult<ChargingSessionDto>.Fail("NOT_FOUND", "Charging session not found.");
         }
 
-        _unitOfWork.ChargingSessions.Update(session);
-        await _unitOfWork.SaveAsync();
-
-        return ServiceResult<ChargingSessionDto>.Ok(MapSession(session));
+        var updated = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(session.Id, userId);
+        return updated == null
+            ? ServiceResult<ChargingSessionDto>.Fail("NOT_FOUND", "Charging session not found.")
+            : ServiceResult<ChargingSessionDto>.Ok(MapSession(updated));
     }
 
     public async Task<ServiceResult<ChargingSessionDetailsDto>> GetSessionDetailsAsync(Guid sessionId, Guid userId)
     {
-        var session = await _unitOfWork.ChargingSessions.GetByIdForUserAsync(sessionId, userId);
+        var session = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(sessionId, userId);
         if (session == null)
         {
             return ServiceResult<ChargingSessionDetailsDto>.Fail("FORBIDDEN", "Charging session not found or access denied.");
@@ -181,20 +182,19 @@ public class ChargingSessionService : IChargingSessionService
 
     public async Task<ServiceResult<List<ChargingSessionDto>>> GetUserSessionsAsync(Guid userId)
     {
-        var sessions = await _unitOfWork.ChargingSessions.GetByUserIdAsync(userId);
-        var dto = sessions.Select(MapSession).ToList();
-        return ServiceResult<List<ChargingSessionDto>>.Ok(dto);
+        var sessions = await _chargingModuleApi.GetUserChargingSessionsAsync(userId);
+        return ServiceResult<List<ChargingSessionDto>>.Ok(sessions.Select(MapSession).ToList());
     }
 
     public async Task<ServiceResult<decimal>> CalculateFinalCostAsync(Guid sessionId)
     {
-        var session = await _unitOfWork.ChargingSessions.GetByIdAsync(sessionId);
+        var session = await _chargingModuleApi.GetChargingSessionByIdAsync(sessionId);
         if (session == null)
         {
             return ServiceResult<decimal>.Fail("NOT_FOUND", "Charging session not found.");
         }
 
-        if (session.EndTime == null)
+        if (session.EndTimeUtc == null)
         {
             return ServiceResult<decimal>.Fail("VALIDATION", "Charging session is still active.");
         }
@@ -202,32 +202,46 @@ public class ChargingSessionService : IChargingSessionService
         return ServiceResult<decimal>.Ok(session.Cost);
     }
 
-    private static ChargingSessionDto MapSession(ChargingSession session)
+    private static ChargingSessionDto MapSession(ChargingSessionContract session)
     {
-        var promotionCode = session.Promotion?.Code ?? session.Reservation?.Promotion?.Code;
-        var discountPercent = session.Promotion?.DiscountValue ?? session.Reservation?.Promotion?.DiscountValue ?? 0m;
+        var discountPercent = session.PromotionDiscountValue ?? 0m;
         var baseCost = discountPercent > 0m ? RecoverBaseCost(session.Cost, discountPercent) : session.Cost;
         var discountAmount = Math.Max(0m, baseCost - session.Cost);
 
-        return BllDtoFactory.CreateChargingSessionDto(session, baseCost, discountPercent, discountAmount, promotionCode);
+        return new ChargingSessionDto
+        {
+            Id = session.Id,
+            StationId = session.ChargingStationId,
+            StationName = session.StationName,
+            ReservationId = session.ReservationId,
+            StartTimeUtc = session.StartTimeUtc,
+            EndTimeUtc = session.EndTimeUtc,
+            EnergyConsumedKwh = session.EnergyConsumed,
+            Cost = session.Cost,
+            BaseCostBeforeDiscount = baseCost,
+            DiscountPercent = discountPercent,
+            DiscountAmount = discountAmount,
+            PromotionCode = session.PromotionCode,
+            IsActive = session.EndTimeUtc == null
+        };
     }
 
-    private static ChargingSessionDetailsDto MapSessionDetails(ChargingSession session)
+    private static ChargingSessionDetailsDto MapSessionDetails(ChargingSessionContract session)
     {
-        var durationMinutes = session.EndTime.HasValue
-            ? Math.Max(1, (int)Math.Ceiling((session.EndTime.Value - session.StartTime).TotalMinutes))
-            : Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - session.StartTime).TotalMinutes));
+        var durationMinutes = session.EndTimeUtc.HasValue
+            ? Math.Max(1, (int)Math.Ceiling((session.EndTimeUtc.Value - session.StartTimeUtc).TotalMinutes))
+            : Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - session.StartTimeUtc).TotalMinutes));
 
-        var energyConsumedKwh = session.EndTime.HasValue
+        var energyConsumedKwh = session.EndTimeUtc.HasValue
             ? session.EnergyConsumed
-            : CalculateEnergyEstimateKwh(durationMinutes, session.ChargingStation?.MaxPower);
+            : CalculateEnergyEstimateKwh(durationMinutes, session.StationMaxPower);
 
-        var calculatedCost = session.EndTime.HasValue
+        var calculatedCost = session.EndTimeUtc.HasValue
             ? session.Cost
-            : Math.Round((session.ChargingStation?.PricePerKwh ?? 0m) * energyConsumedKwh, 2, MidpointRounding.AwayFromZero);
-        var promotionCode = session.Promotion?.Code ?? session.Reservation?.Promotion?.Code;
-        var discountPercent = session.Promotion?.DiscountValue ?? session.Reservation?.Promotion?.DiscountValue ?? 0m;
-        var baseCost = session.EndTime.HasValue && discountPercent > 0m
+            : Math.Round(session.StationPricePerKwh * energyConsumedKwh, 2, MidpointRounding.AwayFromZero);
+
+        var discountPercent = session.PromotionDiscountValue ?? 0m;
+        var baseCost = session.EndTimeUtc.HasValue && discountPercent > 0m
             ? RecoverBaseCost(calculatedCost, discountPercent)
             : calculatedCost;
         var discountedCost = discountPercent > 0m
@@ -235,15 +249,23 @@ public class ChargingSessionService : IChargingSessionService
             : calculatedCost;
         var discountAmount = Math.Max(0m, baseCost - discountedCost);
 
-        return BllDtoFactory.CreateChargingSessionDetailsDto(
-            session,
-            durationMinutes,
-            energyConsumedKwh,
-            discountedCost,
-            baseCost,
-            discountPercent,
-            discountAmount,
-            promotionCode);
+        return new ChargingSessionDetailsDto
+        {
+            Id = session.Id,
+            StationId = session.ChargingStationId,
+            StationName = session.StationName,
+            ReservationId = session.ReservationId,
+            StartTimeUtc = session.StartTimeUtc,
+            EndTimeUtc = session.EndTimeUtc,
+            DurationMinutes = durationMinutes,
+            EnergyConsumedKwh = energyConsumedKwh,
+            Cost = discountedCost,
+            BaseCostBeforeDiscount = baseCost,
+            DiscountPercent = discountPercent,
+            DiscountAmount = discountAmount,
+            PromotionCode = session.PromotionCode,
+            IsActive = session.EndTimeUtc == null
+        };
     }
 
     private static decimal CalculateEnergyEstimateKwh(int durationMinutes, decimal? stationMaxPower)
@@ -260,37 +282,34 @@ public class ChargingSessionService : IChargingSessionService
         return Math.Round(Math.Max(0m, discounted), 2, MidpointRounding.AwayFromZero);
     }
 
-    private Task<ServiceResult> ConsumeUserPromotionAsync(Guid userId, Guid promotionId)
+    private async Task<ServiceResult> ConsumeUserPromotionAsync(Guid userId, Guid promotionId)
     {
-        return ConsumeUserPromotionInternalAsync(userId, promotionId);
-    }
+        var userPromotionsResult = await _promotionService.GetUserPromotionsAsync(userId);
+        if (!userPromotionsResult.Success || userPromotionsResult.Data == null)
+        {
+            return ServiceResult.Fail(userPromotionsResult.Errors.FirstOrDefault()?.Code ?? "ERROR", userPromotionsResult.Errors.FirstOrDefault()?.Message ?? "Unable to load user promotions.");
+        }
 
-    private async Task<ServiceResult> ConsumeUserPromotionInternalAsync(Guid userId, Guid promotionId)
-    {
-        var userPromotion = await _unitOfWork.UserPromotions.GetByUserAndPromotionAsync(userId, promotionId);
+        var userPromotion = userPromotionsResult.Data
+            .FirstOrDefault(x => x.PromotionId == promotionId && !x.IsUsed);
         if (userPromotion == null)
         {
             return ServiceResult.Fail("VALIDATION", "Promotion code is not available in your wallet.");
         }
 
-        if (userPromotion.IsUsed)
+        var removeResult = await _promotionService.RemoveUserPromotionAsync(userId, userPromotion.Id);
+        if (!removeResult.Success)
         {
-            return ServiceResult.Fail("VALIDATION", "Promotion code is not available in your wallet.");
+            return ServiceResult.Fail(removeResult.Errors);
         }
 
-        userPromotion.IsUsed = true;
         return ServiceResult.Ok();
     }
 
     private static decimal RecoverBaseCost(decimal discountedCost, decimal discountPercent)
     {
         var safeDiscount = Math.Min(100m, Math.Max(0m, discountPercent));
-        if (safeDiscount <= 0m)
-        {
-            return discountedCost;
-        }
-
-        if (safeDiscount >= 100m)
+        if (safeDiscount <= 0m || safeDiscount >= 100m)
         {
             return discountedCost;
         }

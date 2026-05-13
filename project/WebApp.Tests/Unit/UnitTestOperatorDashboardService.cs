@@ -1,8 +1,7 @@
 using App.BLL.Services;
-using App.DAL.EF;
-using App.DAL.EF.Repositories.Implementations;
 using App.Domain;
-using Microsoft.EntityFrameworkCore;
+using Moq;
+using SC = Shared.Contracts.Charging;
 
 namespace WebApp.Tests.Unit;
 
@@ -11,61 +10,69 @@ public class UnitTestOperatorDashboardService
     [Fact]
     public async Task GetStationStatusAsync_ReturnsOnlyCompanyStations_AndHealthStates()
     {
-        await using var context = BuildContext();
         var companyA = Guid.NewGuid();
         var companyB = Guid.NewGuid();
 
-        var stationGood = new ChargingStation
+        var stationGood = new SC.ChargingStationContract
         {
             Id = Guid.NewGuid(),
-            Name = new LangStr("Good station"),
+            Name = "Good station",
             Location = "A",
-            Status = EStationStatus.Available,
+            Status = SC.EStationStatus.Available,
             PricePerKwh = 0.4m,
             MaxPower = 100m,
             CompanyId = companyA,
-            IsActive = true
+            IsActive = true,
+            Connectors = new List<SC.ConnectorContract> { new() { Id = Guid.NewGuid(), Name = "CCS", IsActive = true } }
         };
-        var stationCritical = new ChargingStation
+        var stationCritical = new SC.ChargingStationContract
         {
             Id = Guid.NewGuid(),
-            Name = new LangStr("Critical station"),
+            Name = "Critical station",
             Location = "B",
-            Status = EStationStatus.Maintenance,
+            Status = SC.EStationStatus.Maintenance,
             PricePerKwh = 0.4m,
             MaxPower = 100m,
             CompanyId = companyA,
-            IsActive = true
+            IsActive = true,
+            Connectors = new List<SC.ConnectorContract> { new() { Id = Guid.NewGuid(), Name = "CCS", IsActive = true } }
         };
-        var stationForeign = new ChargingStation
+        var stationForeign = new SC.ChargingStationContract
         {
             Id = Guid.NewGuid(),
-            Name = new LangStr("Foreign station"),
+            Name = "Foreign station",
             Location = "C",
-            Status = EStationStatus.Available,
+            Status = SC.EStationStatus.Available,
             PricePerKwh = 0.4m,
             MaxPower = 100m,
             CompanyId = companyB,
-            IsActive = true
+            IsActive = true,
+            Connectors = new List<SC.ConnectorContract> { new() { Id = Guid.NewGuid(), Name = "CCS", IsActive = true } }
         };
 
-        context.Companies.AddRange(
-            new Company { Id = companyA, Name = "A", ContactEmail = "a@test.local", ContactPhone = "+3721", Slug = "company-a", IsActive = true },
-            new Company { Id = companyB, Name = "B", ContactEmail = "b@test.local", ContactPhone = "+3722", Slug = "company-b", IsActive = true }
-        );
-        context.ChargingStations.AddRange(stationGood, stationCritical, stationForeign);
-        context.Maintenances.Add(new Maintenance
-        {
-            Id = Guid.NewGuid(),
-            ChargingStationId = stationCritical.Id,
-            IssueDescription = "Critical issue",
-            Status = EMaintenanceStatus.InProgress,
-            ReportedAt = DateTime.UtcNow.AddHours(-3)
-        });
-        await context.SaveChangesAsync();
+        var mock = new Mock<SC.IChargingModuleApi>();
+        mock.Setup(x => x.GetCompanyStationsAsync(companyA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SC.ChargingStationContract> { stationGood, stationCritical });
+        mock.Setup(x => x.GetCompanyChargingSessionsAsync(companyA, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SC.ChargingSessionContract>());
+        mock.Setup(x => x.GetCompanyReservationsAsync(companyA, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SC.ReservationContract>());
+        mock.Setup(x => x.GetMaintenancesByCompanyAsync(companyA, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SC.MaintenanceContract>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    CompanyId = companyA,
+                    ChargingStationId = stationCritical.Id,
+                    StationName = stationCritical.Name,
+                    IssueDescription = "Critical issue",
+                    Status = SC.EMaintenanceStatus.InProgress,
+                    ReportedAtUtc = DateTime.UtcNow.AddHours(-3)
+                }
+            });
 
-        await using var uow = new UnitOfWork(context);
-        var service = new OperatorDashboardService(uow);
+        var service = new OperatorDashboardService(mock.Object);
 
         var result = await service.GetStationStatusAsync(companyA, DateTime.UtcNow.AddDays(-7), DateTime.UtcNow);
 
@@ -75,14 +82,5 @@ public class UnitTestOperatorDashboardService
         Assert.DoesNotContain(result.Data, item => item.Name.Contains("Foreign", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(result.Data, item => item.Name.Contains("Critical", StringComparison.OrdinalIgnoreCase) && item.HealthStatus == "Critical");
         Assert.Contains(result.Data, item => item.Name.Contains("Good", StringComparison.OrdinalIgnoreCase) && item.HealthStatus == "Good");
-    }
-
-    private static AppDbContext BuildContext()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new AppDbContext(options);
     }
 }

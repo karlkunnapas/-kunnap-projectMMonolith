@@ -3,48 +3,58 @@ using System.Linq;
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
 using App.Domain;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Charging;
 
 namespace App.BLL.Services;
 
 public class HomePageService : IHomePageService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
-    public HomePageService(IUnitOfWork unitOfWork)
+    public HomePageService(IChargingModuleApi chargingModuleApi)
     {
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     public async Task<ServiceResult<HomePageDto>> GetCustomerHomePageAsync()
     {
-        var stations = await _unitOfWork.ChargingStations
-            .GetStationsWithConnectors()
-            .Where(station => station.IsActive && station.Company != null && station.Company.IsActive)
-            .ToListAsync();
+        var stations = (await _chargingModuleApi.GetStationsForHomeAsync())
+            .Where(s => s.IsActive)
+            .ToList();
 
         var connectorFilters = stations
-            .SelectMany(station => station.ChargingStationConnectors ?? Array.Empty<ChargingStationConnector>())
-            .Where(link => link.Connector != null && link.Connector.IsActive)
-            .Select(link => link.Connector?.Name?.Translate() ?? link.Connector?.Name?.ToString() ?? string.Empty)
+            .SelectMany(station => station.Connectors)
+            .Where(link => link.IsActive)
+            .Select(link => link.Name)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct()
             .OrderBy(name => name)
             .ToList();
 
         var stationDtos = stations
-            .Select(station => BllDtoFactory.CreateHomeStationDto(
-                station,
-                station.ChargingStationConnectors
-                    ?.Where(link => link.Connector != null && link.Connector.IsActive)
-                    .Select(link => link.Connector?.Name?.Translate() ?? link.Connector?.Name?.ToString() ?? string.Empty)
+            .Select(station => new HomeStationDto
+            {
+                Id = station.Id,
+                Name = station.Name,
+                Location = station.Location,
+                Status = station.Status switch
+                {
+                    Shared.Contracts.Charging.EStationStatus.Available => App.Domain.EStationStatus.Available,
+                    Shared.Contracts.Charging.EStationStatus.InUse => App.Domain.EStationStatus.InUse,
+                    Shared.Contracts.Charging.EStationStatus.Maintenance => App.Domain.EStationStatus.Maintenance,
+                    _ => App.Domain.EStationStatus.Available
+                },
+                PricePerKwh = station.PricePerKwh,
+                MaxPower = station.MaxPower,
+                ConnectorNames = station.Connectors
+                    .Where(link => link.IsActive)
+                    .Select(link => link.Name)
                     .Where(name => !string.IsNullOrWhiteSpace(name))
                     .Distinct()
-                    .ToList() ?? new List<string>(),
-                isCompatibleWithSelectedVehicle: null,
-                includeNameTranslations: true))
+                    .ToList(),
+                IsCompatibleWithSelectedVehicle = null
+            })
             .ToList();
 
         var dto = BllDtoFactory.CreateHomePageDto(stationDtos, connectorFilters);

@@ -6,14 +6,15 @@ namespace App.BLL.Mappers;
 
 public static class BllDtoFactory
 {
-    public static HomePageFilterDto CreateHomePageFilterDto(string? status, string? connector, string? location, Guid? vehicleId)
+    public static HomePageFilterDto CreateHomePageFilterDto(string? status, string? connector, string? location, Guid? vehicleId, Guid? userId)
     {
         return new HomePageFilterDto
         {
             Status = status,
             Connector = connector,
             Location = location,
-            VehicleId = vehicleId
+            VehicleId = vehicleId,
+            UserId = userId
         };
     }
 

@@ -2,10 +2,9 @@ using System.Security.Claims;
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Charging;
 using WebApp.Areas.Root.ViewModels;
 
 namespace WebApp.Areas.Root.Controllers;
@@ -15,12 +14,12 @@ namespace WebApp.Areas.Root.Controllers;
 public class VehicleController : Controller
 {
     private readonly IVehicleService _vehicleService;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
-    public VehicleController(IVehicleService vehicleService, IUnitOfWork unitOfWork)
+    public VehicleController(IVehicleService vehicleService, IChargingModuleApi chargingModuleApi)
     {
         _vehicleService = vehicleService;
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     public async Task<IActionResult> Index()
@@ -189,16 +188,13 @@ public class VehicleController : Controller
     {
         var selected = selectedConnectorIds?.ToHashSet() ?? new HashSet<Guid>();
 
-        var connectors = await _unitOfWork.Connectors
-            .GetQueryable()
-            .Where(c => c.IsActive)
-            .ToListAsync();
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
 
         vm.AllConnectors = connectors
             .Select(c => new ConnectorOptionViewModel
             {
                 Id = c.Id,
-                Name = c.Name.Translate() ?? c.Name.ToString() ?? string.Empty,
+                Name = c.Name,
                 IsSelected = selected.Contains(c.Id)
             })
             .OrderBy(c => c.Name)

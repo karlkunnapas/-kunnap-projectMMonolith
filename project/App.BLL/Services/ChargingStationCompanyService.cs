@@ -1,19 +1,27 @@
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
-using App.Domain;
+using Shared.Contracts.Charging;
+using Shared.Contracts.Companies;
+using DomainStationStatus = App.Domain.EStationStatus;
+using DomainChargingStation = App.Domain.ChargingStation;
+using DomainChargingStationConnector = App.Domain.ChargingStationConnector;
 
 namespace App.BLL.Services;
 
 public class ChargingStationCompanyService : IChargingStationCompanyService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly IAuditService _auditService;
 
-    public ChargingStationCompanyService(IUnitOfWork unitOfWork, IAuditService auditService)
+    public ChargingStationCompanyService(
+        IChargingModuleApi chargingModuleApi,
+        ICompaniesModuleApi companiesModuleApi,
+        IAuditService auditService)
     {
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
+        _companiesModuleApi = companiesModuleApi;
         _auditService = auditService;
     }
 
@@ -24,8 +32,16 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return ServiceResult<List<CompanyStationDto>>.Fail("VALIDATION", "Company id is required.");
         }
 
-        var stations = await _unitOfWork.ChargingStations.GetByCompanyAsync(companyId);
-        return ServiceResult<List<CompanyStationDto>>.Ok(stations.Select(MapStation).ToList());
+        var stations = await _chargingModuleApi.GetCompanyStationsAsync(companyId);
+        var issues = await _chargingModuleApi.GetMaintenancesByCompanyAsync(companyId, includeResolved: false);
+        var issueCountByStation = issues.GroupBy(x => x.ChargingStationId).ToDictionary(g => g.Key, g => g.Count());
+
+        return ServiceResult<List<CompanyStationDto>>.Ok(stations.Select(station =>
+        {
+            var dto = MapStation(station);
+            dto.MaintenanceIssueCount = issueCountByStation.TryGetValue(station.Id, out var count) ? count : 0;
+            return dto;
+        }).ToList());
     }
 
     public async Task<ServiceResult<CompanyStationDto>> GetStationDetailsAsync(Guid stationId, Guid companyId)
@@ -35,13 +51,16 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return ServiceResult<CompanyStationDto>.Fail("VALIDATION", "Station id and company id are required.");
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
         if (station == null)
         {
             return ServiceResult<CompanyStationDto>.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        return ServiceResult<CompanyStationDto>.Ok(MapStation(station));
+        var dto = MapStation(station);
+        dto.MaintenanceIssueCount = (await _chargingModuleApi.GetMaintenancesByCompanyAsync(companyId, includeResolved: false))
+            .Count(x => x.ChargingStationId == stationId);
+        return ServiceResult<CompanyStationDto>.Ok(dto);
     }
 
     public async Task<ServiceResult<CompanyStationFormDto>> GetCreateFormAsync(Guid companyId)
@@ -51,8 +70,8 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return ServiceResult<CompanyStationFormDto>.Fail("VALIDATION", "Company id is required.");
         }
 
-        var company = await _unitOfWork.Companies.GetByIdAsync(companyId);
-        if (company == null)
+        var companyExists = await _companiesModuleApi.CompanyExistsAsync(companyId);
+        if (!companyExists)
         {
             return ServiceResult<CompanyStationFormDto>.Fail("FORBIDDEN", "Company not found or access denied.");
         }
@@ -67,7 +86,7 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             location: string.Empty,
             pricePerKwh: 0m,
             maxPower: 0m,
-            status: EStationStatus.Available,
+            status: DomainStationStatus.Available,
             isActive: true,
             selectedConnectorIds: new List<Guid>(),
             availableConnectors: connectors));
@@ -80,26 +99,23 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return ServiceResult<CompanyStationFormDto>.Fail("VALIDATION", "Station id and company id are required.");
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
         if (station == null)
         {
             return ServiceResult<CompanyStationFormDto>.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        var selectedConnectorIds = station.ChargingStationConnectors?
-            .Select(link => link.ConnectorId)
-            .Distinct()
-            .ToList() ?? new List<Guid>();
+        var selectedConnectorIds = (await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(stationId)).Distinct().ToList();
 
         return ServiceResult<CompanyStationFormDto>.Ok(BllDtoFactory.CreateCompanyStationFormDto(
             id: station.Id,
             companyId: companyId,
-            nameEn: station.Name.Translate("en") ?? string.Empty,
-            nameEt: station.Name.Translate("et") ?? string.Empty,
+            nameEn: station.Name,
+            nameEt: station.Name,
             location: station.Location,
             pricePerKwh: station.PricePerKwh,
             maxPower: station.MaxPower,
-            status: NormalizeStationStatus(station.Status),
+            status: NormalizeStationStatus(MapStationStatus(station.Status)),
             isActive: station.IsActive,
             selectedConnectorIds: selectedConnectorIds,
             availableConnectors: await GetConnectorOptionsAsync(selectedConnectorIds)));
@@ -113,39 +129,38 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return identityValidation;
         }
 
-        var validationErrors = ValidateUpsertDto(dto);
+        var validationErrors = await ValidateUpsertDtoAsync(dto);
         if (validationErrors.Count > 0)
         {
             return ServiceResult<CompanyStationDto>.Fail(validationErrors);
         }
 
-        var station = new ChargingStation
+        var created = await _chargingModuleApi.CreateCompanyStationAsync(new UpsertCompanyStationContract
         {
-            Id = Guid.NewGuid(),
+            StationId = Guid.NewGuid(),
             CompanyId = companyId,
-            Name = BuildStationName(dto.NameEn, dto.NameEt),
+            NameEn = dto.NameEn,
+            NameEt = dto.NameEt,
             Location = dto.Location.Trim(),
             PricePerKwh = dto.PricePerKwh,
             MaxPower = dto.MaxPower,
-            Status = NormalizeStationStatus(dto.Status),
+            Status = MapStationStatus(NormalizeStationStatus(dto.Status)),
             IsActive = dto.IsActive
-        };
+        });
 
-        await _unitOfWork.ChargingStations.CreateForCompanyAsync(station, companyId);
-        await SyncConnectorAssignmentsAsync(station.Id, dto.SelectedConnectorIds);
-        await _unitOfWork.SaveAsync();
+        await _chargingModuleApi.SetStationConnectorsAsync(created.Id, dto.SelectedConnectorIds);
 
         await _auditService.LogMutationAsync(
             companyId,
             userName,
-            nameof(ChargingStation),
-            station.Id,
+            nameof(App.Domain.ChargingStation),
+            created.Id,
             "Create");
 
-        var created = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(station.Id, companyId);
-        return created == null
+        var persisted = await _chargingModuleApi.GetCompanyStationByIdAsync(created.Id, companyId);
+        return persisted == null
             ? ServiceResult<CompanyStationDto>.Fail("NOT_FOUND", "Charging station could not be loaded after creation.")
-            : ServiceResult<CompanyStationDto>.Ok(MapStation(created));
+            : ServiceResult<CompanyStationDto>.Ok(MapStation(persisted));
     }
 
     public async Task<ServiceResult<CompanyStationDto>> UpdateStationAsync(
@@ -166,40 +181,43 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return ServiceResult<CompanyStationDto>.Fail("VALIDATION", "Station id is required.");
         }
 
-        var validationErrors = ValidateUpsertDto(dto);
+        var validationErrors = await ValidateUpsertDtoAsync(dto);
         if (validationErrors.Count > 0)
         {
             return ServiceResult<CompanyStationDto>.Fail(validationErrors);
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
-        if (station == null)
+        var updated = await _chargingModuleApi.UpdateCompanyStationAsync(new UpsertCompanyStationContract
+        {
+            StationId = stationId,
+            CompanyId = companyId,
+            NameEn = dto.NameEn,
+            NameEt = dto.NameEt,
+            Location = dto.Location.Trim(),
+            PricePerKwh = dto.PricePerKwh,
+            MaxPower = dto.MaxPower,
+            Status = MapStationStatus(NormalizeStationStatus(dto.Status)),
+            IsActive = dto.IsActive
+        });
+
+        if (updated == null)
         {
             return ServiceResult<CompanyStationDto>.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        station.Name = BuildStationName(dto.NameEn, dto.NameEt);
-        station.Location = dto.Location.Trim();
-        station.PricePerKwh = dto.PricePerKwh;
-        station.MaxPower = dto.MaxPower;
-        station.Status = NormalizeStationStatus(dto.Status);
-        station.IsActive = dto.IsActive;
-
-        _unitOfWork.ChargingStations.UpdateForCompany(station);
-        await SyncConnectorAssignmentsAsync(station.Id, dto.SelectedConnectorIds);
-        await _unitOfWork.SaveAsync();
+        await _chargingModuleApi.SetStationConnectorsAsync(stationId, dto.SelectedConnectorIds);
 
         await _auditService.LogMutationAsync(
             companyId,
             userName,
-            nameof(ChargingStation),
-            station.Id,
+            nameof(App.Domain.ChargingStation),
+            stationId,
             "Update");
 
-        var updated = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
-        return updated == null
+        var persisted = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
+        return persisted == null
             ? ServiceResult<CompanyStationDto>.Fail("NOT_FOUND", "Charging station could not be loaded after update.")
-            : ServiceResult<CompanyStationDto>.Ok(MapStation(updated));
+            : ServiceResult<CompanyStationDto>.Ok(MapStation(persisted));
     }
 
     public async Task<ServiceResult> DeleteStationAsync(Guid stationId, Guid companyId, Guid userId, string userName)
@@ -215,38 +233,23 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return ServiceResult.Fail("VALIDATION", "Station id is required.");
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
         if (station == null)
         {
             return ServiceResult.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        var hasReservations = station.Reservations?.Any() == true;
-        var hasSessions = station.ChargingSessions?.Any() == true;
-        var hasMaintenance = station.MaintenanceIssues?.Any() == true;
-
-        if (hasReservations || hasSessions || hasMaintenance)
+        var deleted = await _chargingModuleApi.DeleteCompanyStationAsync(stationId, companyId);
+        if (!deleted)
         {
             return ServiceResult.Fail("VALIDATION", "Station cannot be deleted because it has dependent records.");
         }
 
-        var links = _unitOfWork.ChargingStationConnectors.GetQueryable()
-            .Where(link => link.ChargingStationId == stationId)
-            .ToList();
-
-        foreach (var link in links)
-        {
-            _unitOfWork.ChargingStationConnectors.Remove(link);
-        }
-
-        _unitOfWork.ChargingStations.DeleteForCompany(station);
-        await _unitOfWork.SaveAsync();
-
         await _auditService.LogMutationAsync(
             companyId,
             userName,
-            nameof(ChargingStation),
-            station.Id,
+            nameof(App.Domain.ChargingStation),
+            stationId,
             "Delete");
 
         return ServiceResult.Ok();
@@ -257,7 +260,7 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
         Guid companyId,
         Guid userId,
         string userName,
-        EStationStatus status)
+        DomainStationStatus status)
     {
         var identityValidation = ValidateActorContextForDto(companyId, userId);
         if (identityValidation != null)
@@ -275,25 +278,30 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return ServiceResult<CompanyStationDto>.Fail("VALIDATION", "Invalid station status.");
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
         if (station == null)
         {
             return ServiceResult<CompanyStationDto>.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        station.Status = NormalizeStationStatus(status);
-        _unitOfWork.ChargingStations.UpdateForCompany(station);
-        await _unitOfWork.SaveAsync();
+        var updated = await _chargingModuleApi.UpdateStationStatusAsync(stationId, MapStationStatus(NormalizeStationStatus(status)));
+        if (!updated)
+        {
+            return ServiceResult<CompanyStationDto>.Fail("NOT_FOUND", "Charging station not found.");
+        }
 
         await _auditService.LogMutationAsync(
             companyId,
             userName,
-            nameof(ChargingStation),
-            station.Id,
+            nameof(App.Domain.ChargingStation),
+            stationId,
             "StatusTransition",
-            $"{{\"status\":\"{station.Status}\"}}");
+            $"{{\"status\":\"{NormalizeStationStatus(status)}\"}}");
 
-        return ServiceResult<CompanyStationDto>.Ok(MapStation(station));
+        var persisted = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
+        return persisted == null
+            ? ServiceResult<CompanyStationDto>.Fail("NOT_FOUND", "Charging station not found.")
+            : ServiceResult<CompanyStationDto>.Ok(MapStation(persisted));
     }
 
     public async Task<ServiceResult> AssignConnectorAsync(
@@ -315,38 +323,31 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return scopeValidation;
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
         if (station == null)
         {
             return ServiceResult.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        var connector = await _unitOfWork.Connectors.GetByIdAsync(connectorId);
-        if (connector == null || !connector.IsActive)
+        var connector = (await _chargingModuleApi.GetConnectorsAsync()).FirstOrDefault(c => c.Id == connectorId && c.IsActive);
+        if (connector == null)
         {
             return ServiceResult.Fail("NOT_FOUND", "Connector was not found.");
         }
 
-        var existingLink = _unitOfWork.ChargingStationConnectors.GetQueryable()
-            .FirstOrDefault(link => link.ChargingStationId == stationId && link.ConnectorId == connectorId);
-
-        if (existingLink != null)
+        var assigned = (await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(stationId)).ToHashSet();
+        if (assigned.Contains(connectorId))
         {
             return ServiceResult.Fail("VALIDATION", "Connector is already assigned.");
         }
 
-        await _unitOfWork.ChargingStationConnectors.AddAsync(new ChargingStationConnector
-        {
-            Id = Guid.NewGuid(),
-            ChargingStationId = stationId,
-            ConnectorId = connectorId
-        });
+        assigned.Add(connectorId);
+        await _chargingModuleApi.SetStationConnectorsAsync(stationId, assigned.ToList());
 
-        await _unitOfWork.SaveAsync();
         await _auditService.LogMutationAsync(
             companyId,
             userName,
-            nameof(ChargingStationConnector),
+            nameof(App.Domain.ChargingStationConnector),
             stationId,
             "AssignConnector",
             $"{{\"connectorId\":\"{connectorId}\"}}");
@@ -373,26 +374,25 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             return scopeValidation;
         }
 
-        var station = await _unitOfWork.ChargingStations.GetByIdForCompanyAsync(stationId, companyId);
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, companyId);
         if (station == null)
         {
             return ServiceResult.Fail("FORBIDDEN", "Charging station not found or access denied.");
         }
 
-        var existingLink = _unitOfWork.ChargingStationConnectors.GetQueryable()
-            .FirstOrDefault(link => link.ChargingStationId == stationId && link.ConnectorId == connectorId);
-
-        if (existingLink == null)
+        var assigned = (await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(stationId)).ToHashSet();
+        if (!assigned.Contains(connectorId))
         {
             return ServiceResult.Fail("NOT_FOUND", "Connector assignment not found.");
         }
 
-        _unitOfWork.ChargingStationConnectors.Remove(existingLink);
-        await _unitOfWork.SaveAsync();
+        assigned.Remove(connectorId);
+        await _chargingModuleApi.SetStationConnectorsAsync(stationId, assigned.ToList());
+
         await _auditService.LogMutationAsync(
             companyId,
             userName,
-            nameof(ChargingStationConnector),
+            nameof(App.Domain.ChargingStationConnector),
             stationId,
             "RemoveConnector",
             $"{{\"connectorId\":\"{connectorId}\"}}");
@@ -400,21 +400,21 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
         return ServiceResult.Ok();
     }
 
-    private Task<List<CompanyStationConnectorOptionDto>> GetConnectorOptionsAsync(IReadOnlyCollection<Guid> selectedConnectorIds)
+    private async Task<List<CompanyStationConnectorOptionDto>> GetConnectorOptionsAsync(IReadOnlyCollection<Guid> selectedConnectorIds)
     {
-        var connectors = _unitOfWork.Connectors.GetQueryable()
-            .Where(connector => connector.IsActive)
-            .ToList()
-            .Select(connector => BllDtoFactory.CreateCompanyStationConnectorOptionDto(
-                connector,
-                selectedConnectorIds.Contains(connector.Id)))
-            .OrderBy(connector => connector.ConnectorName)
+        var connectors = await _chargingModuleApi.GetConnectorsAsync();
+        return connectors
+            .Select(connector => new CompanyStationConnectorOptionDto
+            {
+                ConnectorId = connector.Id,
+                ConnectorName = connector.Name,
+                IsAssigned = selectedConnectorIds.Contains(connector.Id)
+            })
+            .OrderBy(x => x.ConnectorName)
             .ToList();
-
-        return Task.FromResult(connectors);
     }
 
-    private List<ServiceError> ValidateUpsertDto(CompanyStationUpsertDto dto)
+    private async Task<List<ServiceError>> ValidateUpsertDtoAsync(CompanyStationUpsertDto dto)
     {
         var errors = new List<ServiceError>();
         var normalizedEn = (dto.NameEn ?? string.Empty).Trim();
@@ -450,45 +450,17 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
             .Distinct()
             .ToList();
 
-        var existingConnectors = _unitOfWork.Connectors.GetQueryable()
-            .Where(connector => connector.IsActive && selectedConnectorIds.Contains(connector.Id))
-            .Select(connector => connector.Id)
-            .ToList();
+        var activeConnectorIds = (await _chargingModuleApi.GetConnectorsAsync())
+            .Where(c => c.IsActive)
+            .Select(c => c.Id)
+            .ToHashSet();
 
-        if (existingConnectors.Count != selectedConnectorIds.Count)
+        if (selectedConnectorIds.Any(id => !activeConnectorIds.Contains(id)))
         {
             errors.Add(new ServiceError { Code = "VALIDATION", Message = "One or more selected connectors are invalid." });
         }
 
         return errors;
-    }
-
-    private async Task SyncConnectorAssignmentsAsync(Guid stationId, IReadOnlyCollection<Guid> selectedConnectorIds)
-    {
-        var normalizedSelectedIds = selectedConnectorIds
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
-
-        var currentLinks = _unitOfWork.ChargingStationConnectors.GetQueryable()
-            .Where(link => link.ChargingStationId == stationId)
-            .ToList();
-
-        foreach (var staleLink in currentLinks.Where(link => !normalizedSelectedIds.Contains(link.ConnectorId)))
-        {
-            _unitOfWork.ChargingStationConnectors.Remove(staleLink);
-        }
-
-        var currentConnectorIds = currentLinks.Select(link => link.ConnectorId).ToHashSet();
-        foreach (var connectorId in normalizedSelectedIds.Where(id => !currentConnectorIds.Contains(id)))
-        {
-            await _unitOfWork.ChargingStationConnectors.AddAsync(new ChargingStationConnector
-            {
-                Id = Guid.NewGuid(),
-                ChargingStationId = stationId,
-                ConnectorId = connectorId
-            });
-        }
     }
 
     private static ServiceResult<CompanyStationDto>? ValidateActorContextForDto(Guid companyId, Guid userId)
@@ -521,48 +493,66 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
         return null;
     }
 
-    private static LangStr BuildStationName(string nameEn, string nameEt)
+    private static CompanyStationDto MapStation(ChargingStationContract station)
     {
-        var normalizedEn = (nameEn ?? string.Empty).Trim();
-        var normalizedEt = (nameEt ?? string.Empty).Trim();
-
-        if (string.IsNullOrWhiteSpace(normalizedEn))
+        return new CompanyStationDto
         {
-            normalizedEn = normalizedEt;
-        }
-
-        if (string.IsNullOrWhiteSpace(normalizedEt))
-        {
-            normalizedEt = normalizedEn;
-        }
-
-        var langStr = new LangStr();
-        langStr.SetTranslation(normalizedEn, "en");
-        langStr.SetTranslation(normalizedEt, "et");
-        return langStr;
+            Id = station.Id,
+            Name = station.Name,
+            Location = station.Location,
+            Status = MapStationStatus(station.Status),
+            PricePerKwh = station.PricePerKwh,
+            MaxPower = station.MaxPower,
+            IsActive = station.IsActive,
+            Connectors = station.Connectors
+                .Where(c => c.IsActive)
+                .Select(c => c.Name)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList(),
+            MaintenanceIssueCount = 0
+        };
     }
 
-    private static CompanyStationDto MapStation(ChargingStation station)
-    {
-        return BllDtoFactory.CreateCompanyStationDto(station);
-    }
-
-    private static EStationStatus NormalizeStationStatus(EStationStatus status)
+    private static DomainStationStatus NormalizeStationStatus(DomainStationStatus status)
     {
         var rawValue = (int)status;
         if (rawValue == 1)
         {
-            return EStationStatus.InUse;
+            return DomainStationStatus.InUse;
         }
 
-        return Enum.IsDefined(typeof(EStationStatus), status)
+        return Enum.IsDefined(typeof(DomainStationStatus), status)
             ? status
-            : EStationStatus.Available;
+            : DomainStationStatus.Available;
     }
 
-    private static bool IsValidStationStatus(EStationStatus status)
+    private static bool IsValidStationStatus(DomainStationStatus status)
     {
         var rawValue = (int)status;
-        return rawValue == 1 || Enum.IsDefined(typeof(EStationStatus), status);
+        return rawValue == 1 || Enum.IsDefined(typeof(DomainStationStatus), status);
+    }
+
+    private static DomainStationStatus MapStationStatus(Shared.Contracts.Charging.EStationStatus status)
+    {
+        return status switch
+        {
+            Shared.Contracts.Charging.EStationStatus.Available => DomainStationStatus.Available,
+            Shared.Contracts.Charging.EStationStatus.InUse => DomainStationStatus.InUse,
+            Shared.Contracts.Charging.EStationStatus.Maintenance => DomainStationStatus.Maintenance,
+            _ => DomainStationStatus.Available
+        };
+    }
+
+    private static Shared.Contracts.Charging.EStationStatus MapStationStatus(DomainStationStatus status)
+    {
+        return status switch
+        {
+            DomainStationStatus.Available => Shared.Contracts.Charging.EStationStatus.Available,
+            DomainStationStatus.InUse => Shared.Contracts.Charging.EStationStatus.InUse,
+            DomainStationStatus.Maintenance => Shared.Contracts.Charging.EStationStatus.Maintenance,
+            _ => Shared.Contracts.Charging.EStationStatus.Available
+        };
     }
 }

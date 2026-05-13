@@ -1,17 +1,17 @@
 using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
+using Shared.Contracts.Charging;
 
 namespace App.BLL.Services;
 
 public class AvailabilityService : IAvailabilityService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
-    public AvailabilityService(IUnitOfWork unitOfWork)
+    public AvailabilityService(IChargingModuleApi chargingModuleApi)
     {
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     public async Task<ServiceResult<List<AvailabilitySlotDto>>> GetAvailableSlotsAsync(Guid stationId, DateTime dateUtc, int durationMinutes)
@@ -31,8 +31,8 @@ public class AvailabilityService : IAvailabilityService
             {
                 var start = dayStart.AddDays(dayOffset).AddHours(hour);
                 var end = start.AddMinutes(durationMinutes);
-                var overlap = await _unitOfWork.Reservations.GetOverlappingReservationsAsync(stationId, start, end);
-                slots.Add(BllDtoFactory.CreateAvailabilitySlotDto(start, end, overlap.Count == 0));
+                var overlapCount = await GetOverlappingCountAsync(stationId, start, end);
+                slots.Add(BllDtoFactory.CreateAvailabilitySlotDto(start, end, overlapCount == 0));
             }
         }
 
@@ -51,10 +51,19 @@ public class AvailabilityService : IAvailabilityService
             return ServiceResult.Fail("VALIDATION", "Start time must be before end time.");
         }
 
-        var overlaps = await _unitOfWork.Reservations.GetOverlappingReservationsAsync(stationId, startTimeUtc, endTimeUtc, excludeReservationId);
-        return overlaps.Count > 0
+        var overlaps = await GetOverlappingCountAsync(stationId, startTimeUtc, endTimeUtc, excludeReservationId);
+        return overlaps > 0
             ? ServiceResult.Fail("OVERLAP", "The selected time window overlaps with an existing reservation.")
             : ServiceResult.Ok();
     }
-}
 
+    private async Task<int> GetOverlappingCountAsync(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, Guid? excludeReservationId = null)
+    {
+        var overlaps = await _chargingModuleApi.GetOverlappingReservationsAsync(
+            stationId,
+            startTimeUtc,
+            endTimeUtc,
+            excludeReservationId);
+        return overlaps.Count;
+    }
+}

@@ -1,13 +1,12 @@
 using App.BLL.DTOs;
 using App.BLL.Services.Interfaces;
-using App.DAL.EF.Repositories.Interfaces;
 using App.DTO.v1.Vehicle;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Charging;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -22,12 +21,12 @@ namespace WebApp.ApiControllers.v1;
 public class VehicleController : ControllerBase
 {
     private readonly IVehicleService _vehicleService;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IChargingModuleApi _chargingModuleApi;
 
-    public VehicleController(IVehicleService vehicleService, IUnitOfWork unitOfWork)
+    public VehicleController(IVehicleService vehicleService, IChargingModuleApi chargingModuleApi)
     {
         _vehicleService = vehicleService;
-        _unitOfWork = unitOfWork;
+        _chargingModuleApi = chargingModuleApi;
     }
 
     /// <summary>
@@ -166,10 +165,7 @@ public class VehicleController : ControllerBase
     [ProducesResponseType(typeof(List<VehicleConnectorResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<VehicleConnectorResponse>>> GetConnectors()
     {
-        var connectors = await _unitOfWork.Connectors
-            .GetQueryable()
-            .Where(c => c.IsActive)
-            .ToListAsync();
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
 
         var response = connectors
             .Select(ApiDtoFactory.CreateDto)
