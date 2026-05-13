@@ -6,6 +6,7 @@ using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
 
@@ -86,6 +87,7 @@ public class AdminPanelService : IAdminPanelService
         var stations = await _chargingModuleApi.GetStationsForAdminAsync();
         var companies = await _companiesModuleApi.GetCompaniesForAdminAsync();
         var companyNames = companies.ToDictionary(c => c.CompanyId, c => c.CompanyName);
+        var currentLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
         if (!string.IsNullOrWhiteSpace(normalizedSearch))
         {
@@ -101,12 +103,12 @@ public class AdminPanelService : IAdminPanelService
         }
 
         var mapped = stations
-            .OrderBy(station => station.NameEn)
+            .OrderBy(station => GetLocalizedStationName(station, currentLanguage))
             .ThenBy(station => station.Location)
             .Select(station => new AdminStationListItemDto
             {
                 StationId = station.StationId,
-                Name = station.NameEn,
+                Name = GetLocalizedStationName(station, currentLanguage),
                 Location = station.Location,
                 CompanyName = station.CompanyId.HasValue && companyNames.TryGetValue(station.CompanyId.Value, out var companyName)
                     ? companyName
@@ -119,6 +121,21 @@ public class AdminPanelService : IAdminPanelService
             .ToList();
 
         return ServiceResult<AdminStationListDto>.Ok(BllDtoFactory.CreateAdminStationListDto(normalizedSearch, mapped));
+    }
+
+    private static string GetLocalizedStationName(AdminChargingStationContract station, string currentLanguage)
+    {
+        if (currentLanguage == "et" && !string.IsNullOrWhiteSpace(station.NameEt))
+        {
+            return station.NameEt;
+        }
+
+        if (!string.IsNullOrWhiteSpace(station.NameEn))
+        {
+            return station.NameEn;
+        }
+
+        return station.NameEt;
     }
 
     public async Task<ServiceResult<AdminCompanyListItemDto>> SetCompanyActivationAsync(Guid companyId, bool isActive, string actorUserName)

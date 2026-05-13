@@ -106,12 +106,18 @@ public class ChargingStationCompanyService : IChargingStationCompanyService
         }
 
         var selectedConnectorIds = (await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(stationId)).Distinct().ToList();
+        var nameEn = station.NameTranslations.TryGetValue("en", out var en) && !string.IsNullOrWhiteSpace(en)
+            ? en
+            : station.Name;
+        var nameEt = station.NameTranslations.TryGetValue("et", out var et) && !string.IsNullOrWhiteSpace(et)
+            ? et
+            : station.Name;
 
         return ServiceResult<CompanyStationFormDto>.Ok(BllDtoFactory.CreateCompanyStationFormDto(
             id: station.Id,
             companyId: companyId,
-            nameEn: station.Name,
-            nameEt: station.Name,
+            nameEn: nameEn,
+            nameEt: nameEt,
             location: station.Location,
             pricePerKwh: station.PricePerKwh,
             maxPower: station.MaxPower,

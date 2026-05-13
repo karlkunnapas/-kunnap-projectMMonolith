@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Modules.Companies.Application;
+using Modules.Companies.Application.Services;
 using Modules.Companies.Infrastructure;
 using Shared.Contracts.Companies;
 
@@ -12,6 +13,8 @@ public static class CompaniesModuleExtensions
     {
         services.AddDbContext<CompaniesDbContext>(options =>
             options.UseNpgsql(connectionString));
+        services.AddScoped<ICompaniesRepository, CompaniesRepository>();
+        services.AddScoped<ICompaniesApplicationService, CompaniesApplicationService>();
         services.AddScoped<ICompaniesModuleApi, CompaniesModuleApi>();
         return services;
     }

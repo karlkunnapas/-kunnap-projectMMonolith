@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Modules.Users.Application;
+using Modules.Users.Application.Services;
 using Modules.Users.Infrastructure;
 using Shared.Contracts.Users;
 
@@ -22,6 +23,8 @@ public static class UsersModuleExtensions
             .AddEntityFrameworkStores<UsersDbContext>();
 
         services.AddScoped<IPasswordHasher<Domain.AppUser>, PasswordHasher<Domain.AppUser>>();
+        services.AddScoped<IUsersRepository, UsersRepository>();
+        services.AddScoped<IUsersApplicationService, UsersApplicationService>();
         services.AddScoped<IUsersModuleApi, UsersModuleApi>();
         return services;
     }

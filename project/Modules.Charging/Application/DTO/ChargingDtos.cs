@@ -1,6 +1,8 @@
-namespace Shared.Contracts.Charging;
+using Shared.Contracts.Charging;
 
-public sealed class ChargingStationContract
+namespace Modules.Charging.Application.DTO;
+
+internal sealed class ChargingStationDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -11,17 +13,10 @@ public sealed class ChargingStationContract
     public decimal MaxPower { get; set; }
     public bool IsActive { get; set; }
     public Guid? CompanyId { get; set; }
-    public IReadOnlyCollection<ConnectorContract> Connectors { get; set; } = Array.Empty<ConnectorContract>();
+    public IReadOnlyCollection<ConnectorDto> Connectors { get; set; } = Array.Empty<ConnectorDto>();
 }
 
-public sealed class ConnectorContract
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public bool IsActive { get; set; }
-}
-
-public sealed class AdminChargingStationContract
+internal sealed class AdminChargingStationDto
 {
     public Guid StationId { get; set; }
     public Guid? CompanyId { get; set; }
@@ -34,7 +29,14 @@ public sealed class AdminChargingStationContract
     public decimal MaxPower { get; set; }
 }
 
-public sealed class ConnectorTypeContract
+internal sealed class ConnectorDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+}
+
+internal sealed class ConnectorTypeDto
 {
     public Guid ConnectorTypeId { get; set; }
     public string NameEn { get; set; } = string.Empty;
@@ -42,7 +44,7 @@ public sealed class ConnectorTypeContract
     public bool IsActive { get; set; }
 }
 
-public sealed class ReservationContract
+internal sealed class ReservationDto
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
@@ -54,10 +56,10 @@ public sealed class ReservationContract
     public decimal EstimatedCost { get; set; }
     public EReservationStatus Status { get; set; }
     public Guid? PromotionId { get; set; }
-    public string StationName { get; set; } = string.Empty;
+    public string? StationName { get; set; }
 }
 
-public sealed class ChargingSessionContract
+internal sealed class ChargingSessionDto
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
@@ -68,19 +70,19 @@ public sealed class ChargingSessionContract
     public DateTime? EndTimeUtc { get; set; }
     public decimal EnergyConsumed { get; set; }
     public decimal Cost { get; set; }
-    public string StationName { get; set; } = string.Empty;
+    public string? StationName { get; set; }
     public decimal StationPricePerKwh { get; set; }
     public decimal? StationMaxPower { get; set; }
     public string? PromotionCode { get; set; }
     public decimal? PromotionDiscountValue { get; set; }
 }
 
-public sealed class MaintenanceContract
+internal sealed class MaintenanceDto
 {
     public Guid Id { get; set; }
     public Guid? CompanyId { get; set; }
     public Guid ChargingStationId { get; set; }
-    public string StationName { get; set; } = string.Empty;
+    public string? StationName { get; set; }
     public Guid? ReportedByUserId { get; set; }
     public string IssueDescription { get; set; } = string.Empty;
     public EMaintenanceStatus Status { get; set; }
@@ -90,7 +92,7 @@ public sealed class MaintenanceContract
     public string? Notes { get; set; }
 }
 
-public sealed class CompanyDashboardStatsContract
+internal sealed class CompanyDashboardStatsDto
 {
     public int TotalStations { get; set; }
     public int AvailableStations { get; set; }
@@ -101,7 +103,7 @@ public sealed class CompanyDashboardStatsContract
     public decimal RevenueTotal { get; set; }
 }
 
-public sealed class UpsertCompanyStationContract
+internal sealed class UpsertCompanyStationDto
 {
     public Guid? StationId { get; set; }
     public Guid CompanyId { get; set; }

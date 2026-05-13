@@ -4,7 +4,7 @@ using Modules.Companies.Domain;
 using Modules.Companies.Infrastructure;
 using Shared.Contracts.Companies.Events;
 
-namespace Modules.Companies.Application.Notifications;
+namespace Modules.Companies.Infrastructure.Notifications;
 
 internal sealed class AuditLogMutationRequestedNotificationHandler
     : INotificationHandler<AuditLogMutationRequestedNotification>

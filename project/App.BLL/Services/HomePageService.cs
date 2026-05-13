@@ -22,6 +22,7 @@ public class HomePageService : IHomePageService
         var stations = (await _chargingModuleApi.GetStationsForHomeAsync())
             .Where(s => s.IsActive)
             .ToList();
+        var stationNamesByLanguage = stations.ToDictionary(station => station.Id, GetNameTranslations);
 
         var connectorFilters = stations
             .SelectMany(station => station.Connectors)
@@ -37,6 +38,7 @@ public class HomePageService : IHomePageService
             {
                 Id = station.Id,
                 Name = station.Name,
+                NameTranslations = stationNamesByLanguage[station.Id],
                 Location = station.Location,
                 Status = station.Status switch
                 {
@@ -60,5 +62,17 @@ public class HomePageService : IHomePageService
         var dto = BllDtoFactory.CreateHomePageDto(stationDtos, connectorFilters);
 
         return ServiceResult<HomePageDto>.Ok(dto);
+    }
+
+    private static Dictionary<string, string> GetNameTranslations(ChargingStationContract station)
+    {
+        if (station.NameTranslations.Count == 0)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        return station.NameTranslations
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
+            .ToDictionary(pair => pair.Key.Trim().ToLowerInvariant(), pair => pair.Value.Trim());
     }
 }

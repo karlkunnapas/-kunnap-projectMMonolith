@@ -2,6 +2,7 @@ using App.BLL.DTOs;
 using App.BLL.Mappers;
 using App.BLL.Services.Interfaces;
 using App.Domain;
+using System.Globalization;
 using Shared.Contracts.Charging;
 using Shared.Contracts.Users;
 
@@ -23,6 +24,7 @@ public class ChargingStationService : IChargingStationService
     public async Task<ServiceResult<HomePageDto>> GetHomePageAsync(HomePageFilterDto? filters = null)
     {
         var stations = await _chargingModuleApi.GetStationsForHomeAsync(ParseStatus(filters?.Status));
+        var stationNamesByLanguage = stations.ToDictionary(station => station.Id, GetNameTranslations);
 
         HashSet<Guid>? vehicleConnectorIds = null;
         if (filters?.VehicleId is Guid vehicleId && filters.UserId is Guid userId)
@@ -49,8 +51,7 @@ public class ChargingStationService : IChargingStationService
             stations = stations
                 .Where(station =>
                     station.Location.Contains(locationOrNameFilter, StringComparison.OrdinalIgnoreCase) ||
-                    station.Name
-                    .Contains(locationOrNameFilter, StringComparison.OrdinalIgnoreCase))
+                    MatchesStationNameFilter(station, stationNamesByLanguage, locationOrNameFilter))
                 .ToList();
         }
 
@@ -77,7 +78,8 @@ public class ChargingStationService : IChargingStationService
             .Select(station => new HomeStationDto
             {
                 Id = station.Id,
-                Name = station.Name,
+                Name = GetLocalizedDisplayName(station, stationNamesByLanguage),
+                NameTranslations = stationNamesByLanguage[station.Id],
                 Location = station.Location,
                 Status = MapStatus(station.Status),
                 PricePerKwh = station.PricePerKwh,
@@ -97,6 +99,56 @@ public class ChargingStationService : IChargingStationService
         var dto = BllDtoFactory.CreateHomePageDto(stationDtos, connectorFilters);
 
         return ServiceResult<HomePageDto>.Ok(dto);
+    }
+
+    private static bool MatchesStationNameFilter(
+        ChargingStationContract station,
+        IReadOnlyDictionary<Guid, Dictionary<string, string>> stationNamesByLanguage,
+        string filter)
+    {
+        if (station.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return stationNamesByLanguage.TryGetValue(station.Id, out var translations)
+               && translations.Values.Any(name => !string.IsNullOrWhiteSpace(name)
+                                                  && name.Contains(filter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string GetLocalizedDisplayName(
+        ChargingStationContract station,
+        IReadOnlyDictionary<Guid, Dictionary<string, string>> stationNamesByLanguage)
+    {
+        if (!stationNamesByLanguage.TryGetValue(station.Id, out var translations) || translations.Count == 0)
+        {
+            return station.Name;
+        }
+
+        var culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        if (translations.TryGetValue(culture, out var value) && !string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        if (translations.TryGetValue("en", out var english) && !string.IsNullOrWhiteSpace(english))
+        {
+            return english;
+        }
+
+        return translations.Values.FirstOrDefault(name => !string.IsNullOrWhiteSpace(name)) ?? station.Name;
+    }
+
+    private static Dictionary<string, string> GetNameTranslations(ChargingStationContract station)
+    {
+        if (station.NameTranslations.Count == 0)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        return station.NameTranslations
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
+            .ToDictionary(pair => pair.Key.Trim().ToLowerInvariant(), pair => pair.Value.Trim());
     }
 
     private static Shared.Contracts.Charging.EStationStatus? ParseStatus(string? status)
