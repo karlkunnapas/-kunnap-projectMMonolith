@@ -1,10 +1,7 @@
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
 using WebApp.Areas.Company.ViewModels;
 
@@ -14,17 +11,14 @@ namespace WebApp.Areas.Company.Controllers;
 [Authorize]
 public class StationController : Controller
 {
-    private readonly IChargingStationCompanyService _stationService;
-    private readonly IMaintenanceService _maintenanceService;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
 
     public StationController(
-        IChargingStationCompanyService stationService,
-        IMaintenanceService maintenanceService,
+        IChargingModuleApi chargingModuleApi,
         ICompaniesModuleApi companiesModuleApi)
     {
-        _stationService = stationService;
-        _maintenanceService = maintenanceService;
+        _chargingModuleApi = chargingModuleApi;
         _companiesModuleApi = companiesModuleApi;
     }
 
@@ -37,16 +31,16 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var result = await _stationService.GetCompanyStationsAsync(resolvedCompany.Value);
-        if (!result.Success)
-        {
-            return Forbid();
-        }
+        var stations = await _chargingModuleApi.GetCompanyStationsAsync(resolvedCompany.Value);
+        var maintenance = await _chargingModuleApi.GetMaintenancesByCompanyAsync(resolvedCompany.Value, includeResolved: true);
+        var issueCounts = maintenance
+            .GroupBy(m => m.ChargingStationId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         var model = new CompanyStationListViewModel
         {
             CompanyId = resolvedCompany.Value,
-            Stations = result.Data?.Select(station => new CompanyStationItemViewModel
+            Stations = stations.Select(station => new CompanyStationItemViewModel
             {
                 Id = station.Id,
                 Name = station.Name,
@@ -55,9 +49,9 @@ public class StationController : Controller
                 PricePerKwh = station.PricePerKwh,
                 MaxPower = station.MaxPower,
                 IsActive = station.IsActive,
-                Connectors = station.Connectors,
-                MaintenanceIssueCount = station.MaintenanceIssueCount
-            }).ToList() ?? new List<CompanyStationItemViewModel>()
+                Connectors = station.Connectors.Select(c => c.Name).ToList(),
+                MaintenanceIssueCount = issueCounts.TryGetValue(station.Id, out var count) ? count : 0
+            }).ToList()
         };
 
         return View(model);
@@ -72,13 +66,19 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var result = await _stationService.GetCreateFormAsync(resolvedCompany.Value);
-        if (!result.Success || result.Data == null)
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        return View(new CompanyStationFormViewModel
         {
-            return Forbid();
-        }
-
-        return View(MapForm(result.Data));
+            CompanyId = resolvedCompany.Value,
+            Status = EStationStatus.Available,
+            IsActive = true,
+            AvailableConnectors = connectors.Select(connector => new StationConnectorViewModel
+            {
+                ConnectorId = connector.Id,
+                ConnectorName = connector.Name,
+                IsAssigned = false
+            }).ToList()
+        });
     }
 
     [HttpPost]
@@ -103,19 +103,24 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var result = await _stationService.CreateStationAsync(
-            resolvedCompany.Value,
-            userId.Value,
-            User.Identity?.Name ?? userId.Value.ToString(),
-            MapUpsert(model));
-
-        if (!result.Success)
+        try
         {
-            foreach (var error in result.Errors)
+            var created = await _chargingModuleApi.CreateCompanyStationAsync(new UpsertCompanyStationContract
             {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
-
+                CompanyId = resolvedCompany.Value,
+                NameEn = model.NameEn,
+                NameEt = model.NameEt,
+                Location = model.Location,
+                Status = model.Status,
+                PricePerKwh = model.PricePerKwh,
+                MaxPower = model.MaxPower,
+                IsActive = model.IsActive
+            });
+            await _chargingModuleApi.SetStationConnectorsAsync(created.Id, CleanConnectorIds(model.SelectedConnectorIds));
+        }
+        catch (Exception)
+        {
+            ModelState.AddModelError(string.Empty, "Unable to create station.");
             await PopulateConnectorOptionsAsync(model, resolvedCompany.Value);
             return View(model);
         }
@@ -132,13 +137,33 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var result = await _stationService.GetEditFormAsync(id, resolvedCompany.Value);
-        if (!result.Success || result.Data == null)
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(id, resolvedCompany.Value);
+        if (station == null)
         {
             return Forbid();
         }
 
-        return View(MapForm(result.Data));
+        var assignedConnectorIds = await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(id);
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        return View(new CompanyStationFormViewModel
+        {
+            Id = station.Id,
+            CompanyId = resolvedCompany.Value,
+            NameEn = station.NameTranslations.TryGetValue("en", out var enName) ? enName : station.Name,
+            NameEt = station.NameTranslations.TryGetValue("et", out var etName) ? etName : station.Name,
+            Location = station.Location,
+            PricePerKwh = station.PricePerKwh,
+            MaxPower = station.MaxPower,
+            Status = station.Status,
+            IsActive = station.IsActive,
+            SelectedConnectorIds = assignedConnectorIds.ToList(),
+            AvailableConnectors = connectors.Select(connector => new StationConnectorViewModel
+            {
+                ConnectorId = connector.Id,
+                ConnectorName = connector.Name,
+                IsAssigned = assignedConnectorIds.Contains(connector.Id)
+            }).ToList()
+        });
     }
 
     [HttpPost]
@@ -168,28 +193,23 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var result = await _stationService.UpdateStationAsync(
-            id,
-            resolvedCompany.Value,
-            userId.Value,
-            User.Identity?.Name ?? userId.Value.ToString(),
-            MapUpsert(model));
-
-        if (!result.Success)
+        var updated = await _chargingModuleApi.UpdateCompanyStationAsync(new UpsertCompanyStationContract
         {
-            if (result.Errors.Any(error => error.Code == "FORBIDDEN"))
-            {
-                return Forbid();
-            }
-
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
-
-            await PopulateConnectorOptionsAsync(model, resolvedCompany.Value);
-            return View(model);
+            StationId = id,
+            CompanyId = resolvedCompany.Value,
+            NameEn = model.NameEn,
+            NameEt = model.NameEt,
+            Location = model.Location,
+            Status = model.Status,
+            PricePerKwh = model.PricePerKwh,
+            MaxPower = model.MaxPower,
+            IsActive = model.IsActive
+        });
+        if (updated == null)
+        {
+            return Forbid();
         }
+        await _chargingModuleApi.SetStationConnectorsAsync(id, CleanConnectorIds(model.SelectedConnectorIds));
 
         return RedirectToAction(nameof(Details), new { id, companyId = resolvedCompany.Value });
     }
@@ -210,13 +230,8 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var result = await _stationService.DeleteStationAsync(
-            id,
-            resolvedCompany.Value,
-            userId.Value,
-            User.Identity?.Name ?? userId.Value.ToString());
-
-        if (!result.Success && result.Errors.Any(error => error.Code == "FORBIDDEN"))
+        var deleted = await _chargingModuleApi.DeleteCompanyStationAsync(id, resolvedCompany.Value);
+        if (!deleted)
         {
             return Forbid();
         }
@@ -240,14 +255,8 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var result = await _stationService.UpdateStatusAsync(
-            id,
-            resolvedCompany.Value,
-            userId.Value,
-            User.Identity?.Name ?? userId.Value.ToString(),
-            status);
-
-        if (!result.Success && result.Errors.Any(error => error.Code == "FORBIDDEN"))
+        var updated = await _chargingModuleApi.UpdateStationStatusAsync(id, status);
+        if (!updated)
         {
             return Forbid();
         }
@@ -264,49 +273,45 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var stationResult = await _stationService.GetStationDetailsAsync(id, resolvedCompany.Value);
-        if (!stationResult.Success || stationResult.Data == null)
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(id, resolvedCompany.Value);
+        if (station == null)
         {
             return Forbid();
         }
 
-        var maintenanceResult = await _maintenanceService.GetIssuesAsync(resolvedCompany.Value, includeResolved: true);
-        if (!maintenanceResult.Success)
-        {
-            return Forbid();
-        }
+        var maintenanceResult = await _chargingModuleApi.GetMaintenancesByCompanyAsync(resolvedCompany.Value, includeResolved: true);
 
-        var recentMaintenance = maintenanceResult.Data?
-            .Where(issue => issue.StationId == id)
+        var recentMaintenance = maintenanceResult
+            .Where(issue => issue.ChargingStationId == id)
             .OrderByDescending(issue => issue.ReportedAtUtc)
             .Take(5)
             .Select(issue => new MaintenanceQueueItemViewModel
             {
                 Id = issue.Id,
-                StationId = issue.StationId,
+                StationId = issue.ChargingStationId,
                 StationName = issue.StationName,
                 IssueDescription = issue.IssueDescription,
                 Status = issue.Status,
                 ReportedAtUtc = issue.ReportedAtUtc,
                 ResolvedAtUtc = issue.ResolvedAtUtc,
                 AssignedToUserId = issue.AssignedToUserId,
-                AssignedToUserName = issue.AssignedToUserName,
-                ReporterUserName = issue.ReporterUserName,
+                AssignedToUserName = issue.AssignedToUserId?.ToString() ?? string.Empty,
+                ReporterUserName = issue.ReportedByUserId?.ToString() ?? string.Empty,
                 Notes = issue.Notes
             })
-            .ToList() ?? new List<MaintenanceQueueItemViewModel>();
+            .ToList();
 
         var model = new CompanyStationDetailsViewModel
         {
-            Id = stationResult.Data.Id,
-            Name = stationResult.Data.Name,
-            Location = stationResult.Data.Location,
-            Status = stationResult.Data.Status,
-            PricePerKwh = stationResult.Data.PricePerKwh,
-            MaxPower = stationResult.Data.MaxPower,
-            IsActive = stationResult.Data.IsActive,
-            Connectors = stationResult.Data.Connectors,
-            MaintenanceIssueCount = stationResult.Data.MaintenanceIssueCount,
+            Id = station.Id,
+            Name = station.Name,
+            Location = station.Location,
+            Status = station.Status,
+            PricePerKwh = station.PricePerKwh,
+            MaxPower = station.MaxPower,
+            IsActive = station.IsActive,
+            Connectors = station.Connectors.Select(c => c.Name).ToList(),
+            MaintenanceIssueCount = maintenanceResult.Count(issue => issue.ChargingStationId == id),
             RecentMaintenance = recentMaintenance
         };
 
@@ -327,57 +332,15 @@ public class StationController : Controller
             .Distinct()
             .ToList();
 
-        var formResult = model.Id.HasValue
-            ? await _stationService.GetEditFormAsync(model.Id.Value, companyId)
-            : await _stationService.GetCreateFormAsync(companyId);
-
-        model.AvailableConnectors = formResult.Data?.AvailableConnectors
+        var availableConnectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        model.AvailableConnectors = availableConnectors
             .Select(connector => new StationConnectorViewModel
             {
-                ConnectorId = connector.ConnectorId,
-                ConnectorName = connector.ConnectorName,
-                IsAssigned = selectedIds.Contains(connector.ConnectorId)
+                ConnectorId = connector.Id,
+                ConnectorName = connector.Name,
+                IsAssigned = selectedIds.Contains(connector.Id)
             })
-            .ToList() ?? new List<StationConnectorViewModel>();
-    }
-
-    private static CompanyStationFormViewModel MapForm(CompanyStationFormDto dto)
-    {
-        return new CompanyStationFormViewModel
-        {
-            Id = dto.Id,
-            CompanyId = dto.CompanyId,
-            NameEn = dto.NameEn,
-            NameEt = dto.NameEt,
-            Location = dto.Location,
-            PricePerKwh = dto.PricePerKwh,
-            MaxPower = dto.MaxPower,
-            Status = dto.Status,
-            IsActive = dto.IsActive,
-            SelectedConnectorIds = dto.SelectedConnectorIds,
-            AvailableConnectors = dto.AvailableConnectors.Select(connector => new StationConnectorViewModel
-            {
-                ConnectorId = connector.ConnectorId,
-                ConnectorName = connector.ConnectorName,
-                IsAssigned = connector.IsAssigned
-            }).ToList()
-        };
-    }
-
-    private static CompanyStationUpsertDto MapUpsert(CompanyStationFormViewModel model)
-    {
-        return BllDtoFactory.CreateCompanyStationUpsertDto(
-            model.NameEn,
-            model.NameEt,
-            model.Location,
-            model.PricePerKwh,
-            model.MaxPower,
-            model.Status,
-            model.IsActive,
-            model.SelectedConnectorIds
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToList());
+            .ToList();
     }
 
     private async Task<Guid?> ResolveCompanyAsync(Guid? requestedCompanyId)
@@ -402,7 +365,7 @@ public class StationController : Controller
 
         var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
         return memberships
-            .Where(m => Enum.TryParse<ECompanyRole>(m.Role, true, out var role) && role >= ECompanyRole.Manager)
+            .Where(m => HasManagerOrOwnerAccess(m.Role))
             .Select(m => m.CompanyId)
             .ToList();
     }
@@ -411,5 +374,18 @@ public class StationController : Controller
     {
         var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+    }
+
+    private static List<Guid> CleanConnectorIds(IEnumerable<Guid> connectorIds)
+    {
+        return connectorIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+    }
+
+    private static bool HasManagerOrOwnerAccess(string? role)
+    {
+        return role != null && (role.Equals("Owner", StringComparison.OrdinalIgnoreCase) || role.Equals("Manager", StringComparison.OrdinalIgnoreCase));
     }
 }

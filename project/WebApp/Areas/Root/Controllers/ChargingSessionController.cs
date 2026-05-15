@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Charging;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Root.ViewModels;
 
 namespace WebApp.Areas.Root.Controllers;
@@ -13,21 +11,15 @@ namespace WebApp.Areas.Root.Controllers;
 [Authorize(Roles = "Customer")]
 public class ChargingSessionController : Controller
 {
-    private readonly IChargingSessionService _chargingSessionService;
-    private readonly IReservationService _reservationService;
-    private readonly IPromotionService _promotionService;
     private readonly IChargingModuleApi _chargingModuleApi;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
     public ChargingSessionController(
-        IChargingSessionService chargingSessionService,
-        IReservationService reservationService,
-        IPromotionService promotionService,
-        IChargingModuleApi chargingModuleApi)
+        IChargingModuleApi chargingModuleApi,
+        ICompaniesModuleApi companiesModuleApi)
     {
-        _chargingSessionService = chargingSessionService;
-        _reservationService = reservationService;
-        _promotionService = promotionService;
         _chargingModuleApi = chargingModuleApi;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     [HttpGet]
@@ -45,10 +37,10 @@ public class ChargingSessionController : Controller
             return Forbid();
         }
 
-        var result = await _chargingSessionService.GetUserSessionsAsync(userId.Value);
+        var result = await _chargingModuleApi.GetUserChargingSessionsAsync(userId.Value);
         var model = new ChargingSessionListViewModel
         {
-            Sessions = result.Data?.Select(MapToDetail).ToList() ?? new List<ChargingSessionDetailViewModel>()
+            Sessions = result.Select(MapToDetail).ToList()
         };
 
         return View(model);
@@ -63,30 +55,29 @@ public class ChargingSessionController : Controller
             return Forbid();
         }
 
-        var reservationResult = await _reservationService.GetReservationDetailsAsync(reservationId, userId.Value);
-        if (!reservationResult.Success || reservationResult.Data == null)
+        var reservation = await _chargingModuleApi.GetReservationByIdForUserAsync(reservationId, userId.Value);
+        if (reservation == null)
         {
             return Forbid();
         }
 
-        var duration = Math.Max(1, (int)Math.Ceiling((reservationResult.Data.EndTimeUtc - reservationResult.Data.StartTimeUtc).TotalMinutes));
+        var duration = Math.Max(1, (int)Math.Ceiling((reservation.EndTimeUtc - reservation.StartTimeUtc).TotalMinutes));
 
         var model = new ChargingSessionStartViewModel
         {
-            ReservationId = reservationResult.Data.Id,
-            StationId = reservationResult.Data.StationId,
-            StationName = reservationResult.Data.StationName,
-            EstimatedCost = reservationResult.Data.EstimatedCost,
+            ReservationId = reservation.Id,
+            StationId = reservation.ChargingStationId,
+            StationName = reservation.StationName,
+            EstimatedCost = reservation.EstimatedCost,
             EstimatedDurationMinutes = duration
         };
 
-        var reservationContract = await _chargingModuleApi.GetReservationByIdForUserAsync(reservationId, userId.Value);
-        if (reservationContract?.PromotionId is Guid reservationPromotionId)
+        if (reservation.PromotionId is Guid reservationPromotionId)
         {
-            var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
-            var lockedPromotion = promotionsResult.Data?
+            var promotions = await _companiesModuleApi.GetUserPromotionsAsync(userId.Value);
+            var lockedPromotion = promotions
                 .FirstOrDefault(p => p.PromotionId == reservationPromotionId && !p.IsUsed);
-            model.PromotionCode = lockedPromotion?.Code;
+            model.PromotionCode = lockedPromotion?.Promotion?.Code;
         }
 
         return View(model);
@@ -107,26 +98,55 @@ public class ChargingSessionController : Controller
             return View(model);
         }
 
-        var result = await _chargingSessionService.StartSessionAsync(
-            userId.Value,
-            BllDtoFactory.CreateChargingSessionStartRequestDto(model.StationId, model.ReservationId));
-
-        if (!result.Success)
+        var reservationId = model.ReservationId ?? Guid.Empty;
+        var reservation = await _chargingModuleApi.GetReservationByIdForUserAsync(reservationId, userId.Value);
+        if (reservation == null)
         {
-            if (result.Errors.Any(e => e.Code == "FORBIDDEN"))
-            {
-                return Forbid();
-            }
+            return Forbid();
+        }
+        if (reservation.Status != EReservationStatus.Active)
+        {
+            ModelState.AddModelError(string.Empty, "Reservation is not active.");
+            return View(model);
+        }
+        if (reservation.StartTimeUtc > DateTime.UtcNow || DateTime.UtcNow >= reservation.EndTimeUtc)
+        {
+            ModelState.AddModelError(string.Empty, "Reservation cannot be started at this time.");
+            return View(model);
+        }
+        var existingSession = await _chargingModuleApi.GetChargingSessionByReservationIdAsync(reservation.Id);
+        if (existingSession != null)
+        {
+            return RedirectToAction(nameof(Details), new { id = existingSession.Id });
+        }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
+        var created = await _chargingModuleApi.CreateChargingSessionAsync(new ChargingSessionContract
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId.Value,
+            ChargingStationId = reservation.ChargingStationId,
+            ReservationId = reservation.Id,
+            PromotionId = reservation.PromotionId,
+            StartTimeUtc = DateTime.UtcNow,
+            EndTimeUtc = null,
+            EnergyConsumed = 0m,
+            Cost = 0m,
+            StationName = reservation.StationName
+        });
+        await _chargingModuleApi.UpdateReservationStatusAsync(
+            reservation.Id,
+            EReservationStatus.Started,
+            reservation.ExpiresAtUtc,
+            reservation.CancelledAtUtc,
+            EStationStatus.InUse);
 
+        if (created == null)
+        {
+            ModelState.AddModelError(string.Empty, "Unable to start charging session.");
             return View(model);
         }
 
-        return RedirectToAction(nameof(Details), new { id = result.Data!.Id });
+        return RedirectToAction(nameof(Details), new { id = created.Id });
     }
 
     [HttpGet]
@@ -138,70 +158,62 @@ public class ChargingSessionController : Controller
             return Forbid();
         }
 
-        var result = await _chargingSessionService.GetSessionDetailsAsync(id, userId.Value);
-        if (!result.Success || result.Data == null)
+        var sessionContract = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(id, userId.Value);
+        if (sessionContract == null)
         {
             return Forbid();
         }
 
-        var model = MapToDetail(result.Data);
+        var model = MapToDetail(sessionContract);
         if (model.IsActive)
         {
-            var sessionContract = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(id, userId.Value);
-            if (sessionContract != null)
+            var durationMinutes = Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - sessionContract.StartTimeUtc).TotalMinutes));
+            var estimatedEnergyKwh = CalculateEnergyEstimateKwh(durationMinutes, sessionContract.StationMaxPower);
+
+            if (model.EnergyConsumedKwh <= 0)
             {
-                var durationMinutes = Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - sessionContract.StartTimeUtc).TotalMinutes));
-                var estimatedEnergyKwh = CalculateEnergyEstimateKwh(durationMinutes, sessionContract.StationMaxPower);
+                model.DurationMinutes = durationMinutes;
+                model.EnergyConsumedKwh = estimatedEnergyKwh;
+            }
 
-                if (model.EnergyConsumedKwh <= 0)
+            if (model.Cost <= 0)
+            {
+                var estimatedCost = Math.Round(sessionContract.StationPricePerKwh * estimatedEnergyKwh, 2, MidpointRounding.AwayFromZero);
+                model.BaseCostBeforeDiscount = estimatedCost;
+                model.Cost = estimatedCost;
+            }
+
+            Guid? lockedPromotionId = sessionContract.PromotionId;
+            if (!lockedPromotionId.HasValue && sessionContract.ReservationId.HasValue)
+            {
+                var reservationContract = await _chargingModuleApi.GetReservationByIdForUserAsync(sessionContract.ReservationId.Value, userId.Value);
+                lockedPromotionId = reservationContract?.PromotionId;
+            }
+
+            var userPromotions = await _companiesModuleApi.GetUserPromotionsAsync(userId.Value);
+            if (lockedPromotionId.HasValue)
+            {
+                var lockedPromotion = userPromotions.FirstOrDefault(p => p.PromotionId == lockedPromotionId.Value && !p.IsUsed && p.Promotion != null);
+                if (lockedPromotion?.Promotion != null)
                 {
-                    model.DurationMinutes = durationMinutes;
-                    model.EnergyConsumedKwh = estimatedEnergyKwh;
+                    model.PromotionCode = lockedPromotion.Promotion.Code;
+                    model.DiscountPercent = lockedPromotion.Promotion.DiscountValue;
+                    model.DiscountAmount = Math.Round(model.BaseCostBeforeDiscount * model.DiscountPercent / 100m, 2, MidpointRounding.AwayFromZero);
+                    model.Cost = Math.Max(0m, model.BaseCostBeforeDiscount - model.DiscountAmount);
                 }
+            }
 
-                if (model.Cost <= 0)
-                {
-                    var estimatedCost = Math.Round(sessionContract.StationPricePerKwh * estimatedEnergyKwh, 2, MidpointRounding.AwayFromZero);
-                    model.BaseCostBeforeDiscount = estimatedCost;
-                    model.Cost = estimatedCost;
-                }
-
-                if (string.IsNullOrWhiteSpace(model.PromotionCode))
-                {
-                    Guid? lockedPromotionId = sessionContract.PromotionId;
-                    if (!lockedPromotionId.HasValue && sessionContract.ReservationId.HasValue)
+            if (string.IsNullOrWhiteSpace(model.PromotionCode))
+            {
+                model.AvailablePromotions = userPromotions
+                    .Where(p => !p.IsUsed && p.Promotion != null)
+                    .OrderBy(p => p.Promotion!.Code)
+                    .Select(p => new PromotionSelectOptionViewModel
                     {
-                        var reservationContract = await _chargingModuleApi.GetReservationByIdForUserAsync(sessionContract.ReservationId.Value, userId.Value);
-                        lockedPromotionId = reservationContract?.PromotionId;
-                    }
-
-                    var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
-                    var userPromotions = promotionsResult.Data ?? new List<UserPromotionDto>();
-
-                    if (lockedPromotionId.HasValue)
-                    {
-                        var lockedPromotion = userPromotions.FirstOrDefault(p => p.PromotionId == lockedPromotionId.Value && !p.IsUsed);
-                        if (lockedPromotion != null)
-                        {
-                            model.PromotionCode = lockedPromotion.Code;
-                            model.DiscountPercent = lockedPromotion.DiscountValue;
-                            model.DiscountAmount = Math.Round(model.BaseCostBeforeDiscount * model.DiscountPercent / 100m, 2, MidpointRounding.AwayFromZero);
-                            model.Cost = Math.Max(0m, model.BaseCostBeforeDiscount - model.DiscountAmount);
-                        }
-                    }
-
-                    if (string.IsNullOrWhiteSpace(model.PromotionCode))
-                    {
-                        model.AvailablePromotions = userPromotions
-                            .OrderBy(p => p.Code)
-                            .Select(p => new PromotionSelectOptionViewModel
-                            {
-                                Code = p.Code,
-                                DisplayText = $"{p.Code} (-{p.DiscountValue:0.##}%)"
-                            })
-                            .ToList();
-                    }
-                }
+                        Code = p.Promotion!.Code,
+                        DisplayText = $"{p.Promotion.Code} (-{p.Promotion.DiscountValue:0.##}%)"
+                    })
+                    .ToList();
             }
         }
 
@@ -223,28 +235,107 @@ public class ChargingSessionController : Controller
             return BadRequest();
         }
 
-        var result = await _chargingSessionService.StopSessionAsync(
-            userId.Value,
-            model.Id,
-            BllDtoFactory.CreateChargingSessionStopRequestDto(model.PromotionCode));
-        if (!result.Success)
+        var session = await _chargingModuleApi.GetChargingSessionByIdForUserAsync(model.Id, userId.Value);
+        if (session == null)
         {
-            if (result.Errors.Any(e => e.Code == "FORBIDDEN"))
+            return StatusCode(StatusCodes.Status403Forbidden);
+        }
+        if (session.EndTimeUtc.HasValue)
+        {
+            return RedirectToAction(nameof(Details), new { id = model.Id });
+        }
+
+        var reservationPromotionId = session.PromotionId;
+        if (!reservationPromotionId.HasValue && session.ReservationId.HasValue)
+        {
+            var reservation = await _chargingModuleApi.GetReservationByIdForUserAsync(session.ReservationId.Value, userId.Value);
+            reservationPromotionId = reservation?.PromotionId;
+        }
+
+        if (reservationPromotionId.HasValue && !string.IsNullOrWhiteSpace(model.PromotionCode))
+        {
+            var lockedPromotion = await _companiesModuleApi.GetUserPromotionsAsync(userId.Value);
+            var lockCode = lockedPromotion.FirstOrDefault(x => x.PromotionId == reservationPromotionId && !x.IsUsed)?.Promotion?.Code;
+            if (!string.Equals(lockCode, model.PromotionCode, StringComparison.OrdinalIgnoreCase))
             {
-                return StatusCode(StatusCodes.Status403Forbidden);
+                TempData["SessionError"] = "Promotion code is locked by reservation and cannot be changed.";
+                return RedirectToAction(nameof(Details), new { id = model.Id });
+            }
+        }
+
+        Guid? selectedPromotionId = reservationPromotionId;
+        decimal discountPercent = 0m;
+
+        if (!selectedPromotionId.HasValue && !string.IsNullOrWhiteSpace(model.PromotionCode))
+        {
+            var selectedPromotion = await _companiesModuleApi.GetValidUserPromotionByCodeAsync(userId.Value, model.PromotionCode);
+            if (selectedPromotion?.Promotion == null || selectedPromotion.IsUsed)
+            {
+                TempData["SessionError"] = "Invalid promotion code.";
+                return RedirectToAction(nameof(Details), new { id = model.Id });
             }
 
-            TempData["SessionError"] = string.Join("; ", result.Errors.Select(e => e.Message));
+            var stationCompanyId = await _chargingModuleApi.GetStationCompanyIdAsync(session.ChargingStationId);
+            var promotionCompanyId = selectedPromotion.Promotion.CompanyId;
+            if (promotionCompanyId.HasValue && stationCompanyId != promotionCompanyId)
+            {
+                TempData["SessionError"] = "Promotion is not valid for this charging station company.";
+                return RedirectToAction(nameof(Details), new { id = model.Id });
+            }
+
+            selectedPromotionId = selectedPromotion.PromotionId;
+            discountPercent = selectedPromotion.Promotion.DiscountValue;
+        }
+        else if (selectedPromotionId.HasValue)
+        {
+            var userPromotions = await _companiesModuleApi.GetUserPromotionsAsync(userId.Value);
+            discountPercent = userPromotions.FirstOrDefault(x => x.PromotionId == selectedPromotionId && x.Promotion != null)?.Promotion?.DiscountValue ?? 0m;
+        }
+
+        var endTimeUtc = DateTime.UtcNow;
+        var durationMinutes = Math.Max(1, (int)Math.Ceiling((endTimeUtc - session.StartTimeUtc).TotalMinutes));
+        var energyConsumed = CalculateEnergyEstimateKwh(durationMinutes, session.StationMaxPower);
+        var baseCost = Math.Round(energyConsumed * session.StationPricePerKwh, 2, MidpointRounding.AwayFromZero);
+        var discountAmount = Math.Round(baseCost * discountPercent / 100m, 2, MidpointRounding.AwayFromZero);
+        var totalCost = Math.Max(0m, baseCost - discountAmount);
+
+        var completed = await _chargingModuleApi.CompleteChargingSessionAsync(
+            session.Id,
+            endTimeUtc,
+            energyConsumed,
+            totalCost,
+            selectedPromotionId,
+            EStationStatus.Available);
+        if (!completed)
+        {
+            TempData["SessionError"] = "Unable to stop charging session.";
+            return RedirectToAction(nameof(Details), new { id = model.Id });
+        }
+
+        if (selectedPromotionId.HasValue)
+        {
+            var promotions = await _companiesModuleApi.GetUserPromotionsAsync(userId.Value);
+            var selectedUserPromotion = promotions.FirstOrDefault(p => p.PromotionId == selectedPromotionId.Value && !p.IsUsed);
+            if (selectedUserPromotion != null)
+            {
+                await _companiesModuleApi.RemoveUserPromotionAsync(userId.Value, selectedUserPromotion.Id);
+            }
         }
 
         return RedirectToAction(nameof(Details), new { id = model.Id });
     }
 
-    private static ChargingSessionDetailViewModel MapToDetail(ChargingSessionDto session)
+    private static ChargingSessionDetailViewModel MapToDetail(ChargingSessionContract session)
     {
         var duration = session.EndTimeUtc.HasValue
             ? Math.Max(1, (int)Math.Ceiling((session.EndTimeUtc.Value - session.StartTimeUtc).TotalMinutes))
             : Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - session.StartTimeUtc).TotalMinutes));
+        var baseCost = session.Cost;
+        var discountPercent = session.PromotionDiscountValue ?? 0m;
+        if (discountPercent > 0m)
+        {
+            baseCost = Math.Round(session.Cost / (1m - (discountPercent / 100m)), 2, MidpointRounding.AwayFromZero);
+        }
 
         return new ChargingSessionDetailViewModel
         {
@@ -254,33 +345,13 @@ public class ChargingSessionController : Controller
             StartTimeUtc = session.StartTimeUtc,
             EndTimeUtc = session.EndTimeUtc,
             DurationMinutes = duration,
-            EnergyConsumedKwh = session.EnergyConsumedKwh,
+            EnergyConsumedKwh = session.EnergyConsumed,
             Cost = session.Cost,
-            BaseCostBeforeDiscount = session.BaseCostBeforeDiscount,
-            DiscountPercent = session.DiscountPercent,
-            DiscountAmount = session.DiscountAmount,
+            BaseCostBeforeDiscount = baseCost,
+            DiscountPercent = discountPercent,
+            DiscountAmount = Math.Max(0m, baseCost - session.Cost),
             PromotionCode = session.PromotionCode,
-            IsActive = session.IsActive
-        };
-    }
-
-    private static ChargingSessionDetailViewModel MapToDetail(ChargingSessionDetailsDto session)
-    {
-        return new ChargingSessionDetailViewModel
-        {
-            Id = session.Id,
-            StationName = session.StationName,
-            ReservationId = session.ReservationId,
-            StartTimeUtc = session.StartTimeUtc,
-            EndTimeUtc = session.EndTimeUtc,
-            DurationMinutes = session.DurationMinutes,
-            EnergyConsumedKwh = session.EnergyConsumedKwh,
-            Cost = session.Cost,
-            BaseCostBeforeDiscount = session.BaseCostBeforeDiscount,
-            DiscountPercent = session.DiscountPercent,
-            DiscountAmount = session.DiscountAmount,
-            PromotionCode = session.PromotionCode,
-            IsActive = session.IsActive
+            IsActive = !session.EndTimeUtc.HasValue
         };
     }
 

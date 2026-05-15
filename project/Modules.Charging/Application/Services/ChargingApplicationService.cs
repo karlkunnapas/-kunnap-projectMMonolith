@@ -1,20 +1,43 @@
 using Modules.Charging.Application.Mappers;
 using Modules.Charging.Infrastructure;
 using Shared.Contracts.Charging;
+using Shared.Contracts.Companies;
 
 namespace Modules.Charging.Application.Services;
 
 internal sealed class ChargingApplicationService : IChargingApplicationService
 {
     private readonly IChargingRepository _chargingRepository;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public ChargingApplicationService(IChargingRepository chargingRepository)
+    public ChargingApplicationService(
+        IChargingRepository chargingRepository,
+        ICompaniesModuleApi companiesModuleApi)
     {
         _chargingRepository = chargingRepository;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     public async Task<IReadOnlyCollection<ChargingStationContract>> GetStationsForHomeAsync(EStationStatus? status = null, CancellationToken ct = default)
-        => (await _chargingRepository.GetStationsForHomeAsync(status, ct)).Select(ChargingContractMapper.ToContract).ToList();
+    {
+        var stations = await _chargingRepository.GetStationsForHomeAsync(status, ct);
+        var companyIds = stations
+            .Where(x => x.CompanyId.HasValue)
+            .Select(x => x.CompanyId!.Value)
+            .Distinct()
+            .ToList();
+
+        var companyActiveMap = new Dictionary<Guid, bool>(companyIds.Count);
+        foreach (var companyId in companyIds)
+        {
+            companyActiveMap[companyId] = await _companiesModuleApi.IsCompanyActiveAsync(companyId, ct);
+        }
+
+        return stations
+            .Where(station => !station.CompanyId.HasValue || companyActiveMap.GetValueOrDefault(station.CompanyId.Value))
+            .Select(ChargingContractMapper.ToContract)
+            .ToList();
+    }
 
     public async Task<IReadOnlyCollection<AdminChargingStationContract>> GetStationsForAdminAsync(CancellationToken ct = default)
         => (await _chargingRepository.GetStationsForAdminAsync(ct)).Select(ChargingContractMapper.ToContract).ToList();
@@ -114,14 +137,14 @@ internal sealed class ChargingApplicationService : IChargingApplicationService
     public async Task<MaintenanceContract?> GetMaintenanceByIdForCompanyAsync(Guid maintenanceId, Guid companyId, CancellationToken ct = default)
         => (await _chargingRepository.GetMaintenanceByIdForCompanyAsync(maintenanceId, companyId, ct)) is { } dto ? ChargingContractMapper.ToContract(dto) : null;
 
-    public async Task<MaintenanceContract> CreateMaintenanceAsync(MaintenanceContract maintenance, CancellationToken ct = default)
+    public async Task<MaintenanceContract> CreateMaintenanceAsync(MaintenanceContract maintenance, CancellationToken ct = default, string? actorUserName = null)
         => ChargingContractMapper.ToContract(await _chargingRepository.CreateMaintenanceAsync(ChargingContractMapper.ToDto(maintenance), ct));
 
-    public Task<bool> UpdateMaintenanceStatusAsync(Guid maintenanceId, EMaintenanceStatus status, string? notes, DateTime? resolvedAtUtc, CancellationToken ct = default)
-        => _chargingRepository.UpdateMaintenanceStatusAsync(maintenanceId, status, notes, resolvedAtUtc, ct);
+    public async Task<bool> UpdateMaintenanceStatusAsync(Guid maintenanceId, EMaintenanceStatus status, string? notes, DateTime? resolvedAtUtc, CancellationToken ct = default, string? actorUserName = null)
+        => await _chargingRepository.UpdateMaintenanceStatusAsync(maintenanceId, status, notes, resolvedAtUtc, ct);
 
-    public Task<bool> AssignMaintenanceAsync(Guid maintenanceId, Guid? assignedToUserId, CancellationToken ct = default)
-        => _chargingRepository.AssignMaintenanceAsync(maintenanceId, assignedToUserId, ct);
+    public async Task<bool> AssignMaintenanceAsync(Guid maintenanceId, Guid? assignedToUserId, CancellationToken ct = default, string? actorUserName = null)
+        => await _chargingRepository.AssignMaintenanceAsync(maintenanceId, assignedToUserId, ct);
 
     public Task<bool> UpdateStationStatusAsync(Guid stationId, EStationStatus status, CancellationToken ct = default)
         => _chargingRepository.UpdateStationStatusAsync(stationId, status, ct);

@@ -40,6 +40,7 @@ internal interface IChargingRepository
     Task<ChargingSessionDto> CreateChargingSessionAsync(ChargingSessionDto session, CancellationToken ct = default);
     Task<bool> CompleteChargingSessionAsync(Guid sessionId, DateTime endTimeUtc, decimal energyConsumed, decimal cost, Guid? promotionId, EStationStatus stationStatus, CancellationToken ct = default);
     Task<IReadOnlyCollection<MaintenanceDto>> GetMaintenancesByCompanyAsync(Guid companyId, bool includeResolved, CancellationToken ct = default);
+    Task<MaintenanceDto?> GetMaintenanceByIdAsync(Guid maintenanceId, CancellationToken ct = default);
     Task<MaintenanceDto?> GetMaintenanceByIdForCompanyAsync(Guid maintenanceId, Guid companyId, CancellationToken ct = default);
     Task<MaintenanceDto> CreateMaintenanceAsync(MaintenanceDto maintenance, CancellationToken ct = default);
     Task<bool> UpdateMaintenanceStatusAsync(Guid maintenanceId, EMaintenanceStatus status, string? notes, DateTime? resolvedAtUtc, CancellationToken ct = default);

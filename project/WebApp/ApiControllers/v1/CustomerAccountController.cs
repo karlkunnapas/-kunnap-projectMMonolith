@@ -1,5 +1,3 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.DTO.v1.Identity;
 using App.Dto.v1;
 using Asp.Versioning;
@@ -28,18 +26,15 @@ public class CustomerAccountController : ControllerBase
     private const string SettingsJWTExpiresInSeconds = SettingsJWTPrefix + ":ExpiresInSeconds";
     private const string SettingsJWTRefreshTokenExpiresInSeconds = SettingsJWTPrefix + ":RefreshTokenExpiresInSeconds";
 
-    private readonly IIdentityService _identityService;
     private readonly IConfiguration _configuration;
     private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly IUsersModuleApi _usersModuleApi;
 
     public CustomerAccountController(
-        IIdentityService identityService,
         IConfiguration configuration,
         ICompaniesModuleApi companiesModuleApi,
         IUsersModuleApi usersModuleApi)
     {
-        _identityService = identityService;
         _configuration = configuration;
         _companiesModuleApi = companiesModuleApi;
         _usersModuleApi = usersModuleApi;
@@ -57,20 +52,20 @@ public class CustomerAccountController : ControllerBase
         [FromQuery] int? jwtExpiresInSeconds,
         [FromQuery] int? refreshTokenExpiresInSeconds)
     {
-        var result = await _identityService.RegisterCustomerAsync(ApiDtoFactory.CreateDto(request));
-
-        if (!result.Success)
+        var registration = await _usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            PhoneNumber = request.PhoneNumber,
+            Password = request.Password
+        });
+        if (!registration.Success)
+        {
+            return BadRequest(new Message(registration.ErrorMessage ?? "Registration failed."));
         }
 
-        var userId = await _usersModuleApi.GetUserIdByEmailAsync(request.Email);
-        if (userId == null)
-        {
-            return BadRequest(new Message("User was not found after registration."));
-        }
-
-        var token = await GenerateJwtResponseAsync(userId.Value, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
+        var token = await GenerateJwtResponseAsync(registration.UserId, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
         return Ok(token);
     }
 
@@ -86,20 +81,33 @@ public class CustomerAccountController : ControllerBase
         [FromQuery] int? jwtExpiresInSeconds,
         [FromQuery] int? refreshTokenExpiresInSeconds)
     {
-        var result = await _identityService.RegisterCompanyOwnerAsync(ApiDtoFactory.CreateDto(request));
-
-        if (!result.Success)
+        var registration = await _usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            PhoneNumber = request.PhoneNumber,
+            Password = request.Password
+        });
+        if (!registration.Success)
+        {
+            return BadRequest(new Message(registration.ErrorMessage ?? "Registration failed."));
         }
 
-        var userId = await _usersModuleApi.GetUserIdByEmailAsync(request.Email);
-        if (userId == null)
+        var companyCreation = await _companiesModuleApi.CreateCompanyWithOwnerMembershipAsync(new CreateCompanyWithOwnerMembershipContract
         {
-            return BadRequest(new Message("User was not found after registration."));
+            OwnerUserId = registration.UserId,
+            ContactEmail = request.Email,
+            ContactPhone = request.PhoneNumber ?? string.Empty,
+            CompanyName = request.CompanyName,
+            CompanySlug = request.CompanySlug
+        });
+        if (!companyCreation.Success)
+        {
+            return BadRequest(new Message(companyCreation.ErrorMessage ?? "Unable to create company."));
         }
 
-        var token = await GenerateJwtResponseAsync(userId.Value, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
+        var token = await GenerateJwtResponseAsync(registration.UserId, jwtExpiresInSeconds, refreshTokenExpiresInSeconds);
         return Ok(token);
     }
 
@@ -113,13 +121,21 @@ public class CustomerAccountController : ControllerBase
     public async Task<ActionResult<UserCompaniesResponse>> GetCompanies()
     {
         var userId = User.UserId();
-        var result = await _identityService.GetUserCompaniesAsync(userId);
-        if (!result.Success || result.Data == null)
+        var profile = await _usersModuleApi.GetUserProfileAsync(userId);
+        var companies = await _companiesModuleApi.GetUserCompaniesAsync(userId);
+        return Ok(new UserCompaniesResponse
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+            UserId = userId,
+            Email = profile?.Email ?? string.Empty,
+            Companies = companies.Select(c => new UserCompanyItem
+            {
+                MembershipId = c.MembershipId,
+                CompanyId = c.CompanyId,
+                CompanyName = c.CompanyName,
+                CompanySlug = c.Slug,
+                Role = c.Role
+            }).ToList()
+        });
     }
 
     /// <summary>

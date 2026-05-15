@@ -1,4 +1,3 @@
-using App.Domain;
 using App.DTO.v1.Company;
 using App.Dto.v1;
 using Asp.Versioning;
@@ -36,7 +35,7 @@ public class PromotionController : ControllerBase
     public async Task<ActionResult<List<PromotionResponse>>> GetPromotions(Guid companyId)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -56,7 +55,7 @@ public class PromotionController : ControllerBase
     public async Task<ActionResult<PromotionResponse>> GetPromotion(Guid companyId, Guid id)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -80,7 +79,7 @@ public class PromotionController : ControllerBase
     public async Task<ActionResult<PromotionResponse>> CreatePromotion(Guid companyId, [FromBody] PromotionUpsert request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -112,7 +111,7 @@ public class PromotionController : ControllerBase
     public async Task<ActionResult<PromotionResponse>> UpdatePromotion(Guid companyId, Guid id, [FromBody] PromotionUpsert request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -144,7 +143,7 @@ public class PromotionController : ControllerBase
     public async Task<IActionResult> DeletePromotion(Guid companyId, Guid id)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -157,17 +156,4 @@ public class PromotionController : ControllerBase
 
         return Ok();
     }
-
-    private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole = ECompanyRole.Manager)
-    {
-        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(companyId);
-        var membership = memberships.FirstOrDefault(m => m.UserId == userId && m.IsActive);
-        if (membership == null)
-        {
-            return false;
-        }
-
-        return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= minRole;
-    }
-
 }

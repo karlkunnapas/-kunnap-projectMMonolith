@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using App.DAL.EF;
-using App.Domain;
+using Shared.Contracts;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Tenancy;
 
 namespace WebApp;
 
@@ -133,14 +133,10 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
             }
         }
 
-        tenantContext.SetCompany(new Company
-        {
-            Id = company.CompanyId,
-            Slug = company.Slug,
-            IsActive = company.IsActive,
-            Name = string.Empty,
-            ContactEmail = string.Empty
-        });
+        tenantContext.SetCompany(new TenantCompanyContext(
+            company.CompanyId,
+            company.Slug,
+            company.IsActive));
 
         await next(context);
     }

@@ -2,6 +2,7 @@ using System.Text.Json;
 using App.DAL.EF;
 using App.Domain;
 using Microsoft.EntityFrameworkCore;
+using Shared.Contracts.Auditing;
 
 namespace WebApp.Tests.Unit;
 

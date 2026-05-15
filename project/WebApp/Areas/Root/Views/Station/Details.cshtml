@@ -1,19 +1,20 @@
 @model WebApp.Areas.Root.ViewModels.StationDetailsViewModel
-@using App.Domain
+@using StationStatus = Shared.Contracts.Charging.EStationStatus
+@using ReservationStatus = Shared.Contracts.Charging.EReservationStatus
 @{
     ViewData["Title"] = App.Resources.Views.Root.Station.Details.Title;
     var isCompanyUser = User.IsInRole("CompanyOwner");
     var companySlug = ViewContext.RouteData.Values["companySlug"]?.ToString();
     var statusText = Model.Status switch
     {
-        EStationStatus.Available => App.Resources.Views.Root.Station.Details.StatusAvailable,
-        EStationStatus.InUse => App.Resources.Views.Root.Station.Details.StatusInUse,
+        StationStatus.Available => App.Resources.Views.Root.Station.Details.StatusAvailable,
+        StationStatus.InUse => App.Resources.Views.Root.Station.Details.StatusInUse,
         _ => App.Resources.Views.Root.Station.Details.StatusMaintenance
     };
     var statusClass = Model.Status switch
     {
-        EStationStatus.Available => "status-ok",
-        EStationStatus.InUse => "status-warn",
+        StationStatus.Available => "status-ok",
+        StationStatus.InUse => "status-warn",
         _ => "status-bad"
     };
 }
@@ -138,14 +139,14 @@
                                 {
                                     var reservationStatusClass = reservation.Status switch
                                     {
-                                        EReservationStatus.Active => "status-ok",
-                                        EReservationStatus.Started => "status-warn",
+                                        ReservationStatus.Active => "status-ok",
+                                        ReservationStatus.Started => "status-warn",
                                         _ => "status-bad"
                                     };
                                     var localizedReservationStatus = reservation.Status switch
                                     {
-                                        EReservationStatus.Active => App.Resources.Views.Root.Station.Details.StatusActive,
-                                        EReservationStatus.Started => App.Resources.Views.Root.Station.Details.StatusStarted,
+                                        ReservationStatus.Active => App.Resources.Views.Root.Station.Details.StatusActive,
+                                        ReservationStatus.Started => App.Resources.Views.Root.Station.Details.StatusStarted,
                                         _ => reservation.Status.ToString()
                                     };
                                     <div class="station-meta">

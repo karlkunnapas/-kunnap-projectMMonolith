@@ -1,25 +1,26 @@
 using System.Diagnostics;
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
+using Shared.Contracts.Users;
 using WebApp.ViewModels;
+using ContractStationStatus = Shared.Contracts.Charging.EStationStatus;
+using DomainStationStatus = App.Domain.EStationStatus;
 
 namespace WebApp.Controllers;
 
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private readonly IChargingStationService _chargingStationService;
-    private readonly IVehicleService _vehicleService;
+    private readonly IChargingModuleApi _chargingModuleApi;
+    private readonly IUsersModuleApi _usersModuleApi;
 
-    public HomeController(IChargingStationService chargingStationService, IVehicleService vehicleService, ILogger<HomeController> logger)
+    public HomeController(IChargingModuleApi chargingModuleApi, IUsersModuleApi usersModuleApi, ILogger<HomeController> logger)
     {
         _logger = logger;
-        _chargingStationService = chargingStationService;
-        _vehicleService = vehicleService;
+        _chargingModuleApi = chargingModuleApi;
+        _usersModuleApi = usersModuleApi;
     }
 
     public async Task<IActionResult> Index(string? status = null, string? connector = null, string? location = null, Guid? vehicleId = null)
@@ -44,63 +45,89 @@ public class HomeController : Controller
             }
             else
             {
-                var ownedVehicleResult = await _vehicleService.GetVehicleForUserAsync(vehicleId.Value, currentUserId.Value);
-                if (!ownedVehicleResult.Success)
+                var ownedVehicle = await _usersModuleApi.GetVehicleForUserAsync(vehicleId.Value, currentUserId.Value);
+                if (ownedVehicle == null)
                 {
                     return Forbid();
                 }
             }
         }
 
-        var filters = BllDtoFactory.CreateHomePageFilterDto(status, connector, location, vehicleId, currentUserId);
-
-        var result = await _chargingStationService.GetHomePageAsync(filters);
-        if (!result.Success || result.Data == null)
+        ContractStationStatus? parsedStatus = null;
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ContractStationStatus>(status, true, out var parsed))
         {
-            _logger.LogWarning("Home page data load failed: {Errors}",
-                string.Join("; ", result.Errors.Select(error => error.Message)));
-
-            return View(new HomeIndexViewModel
-            {
-                SelectedStatus = status,
-                SelectedConnector = connector,
-                LocationQuery = location,
-                SelectedVehicleId = vehicleId
-            });
+            parsedStatus = parsed;
         }
+
+        var stations = await _chargingModuleApi.GetStationsForHomeAsync(parsedStatus);
+        IReadOnlyCollection<Guid> selectedVehicleConnectorIds = Array.Empty<Guid>();
+        if (showVehicleFilters && currentUserId != null && vehicleId.HasValue)
+        {
+            selectedVehicleConnectorIds = await _usersModuleApi.GetVehicleConnectorIdsAsync(vehicleId.Value, currentUserId.Value);
+        }
+
+        var filteredStations = stations.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(connector))
+        {
+            filteredStations = filteredStations.Where(s =>
+                s.Connectors.Any(c => c.Name.Contains(connector, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            filteredStations = filteredStations.Where(s =>
+                s.Location.Contains(location, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (vehicleId.HasValue && selectedVehicleConnectorIds.Count > 0)
+        {
+            filteredStations = filteredStations.Where(s =>
+                s.Connectors.Any(c => selectedVehicleConnectorIds.Contains(c.Id)));
+        }
+
+        var filteredStationList = filteredStations.ToList();
 
         var vehicleOptions = new List<HomeVehicleOptionViewModel>();
         if (showVehicleFilters && currentUserId != null)
         {
-            var vehiclesResult = await _vehicleService.GetUserVehiclesAsync(currentUserId.Value);
-            vehicleOptions = vehiclesResult.Data?
+            var vehicles = await _usersModuleApi.GetUserVehiclesAsync(currentUserId.Value);
+            vehicleOptions = vehicles
                 .Select(v => new HomeVehicleOptionViewModel
                 {
-                    Id = v.Id,
+                    Id = v.VehicleId,
                     DisplayName = $"{v.Make} {v.Model}"
                 })
-                .ToList() ?? new List<HomeVehicleOptionViewModel>();
+                .ToList();
         }
+
+        var connectorFilters = filteredStationList
+            .SelectMany(s => s.Connectors.Select(c => c.Name))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name)
+            .ToList();
 
         var viewModel = new HomeIndexViewModel
         {
             ShowVehicleFilters = showVehicleFilters,
-            ConnectorFilters = showVehicleFilters ? result.Data.ConnectorFilters.ToList() : new List<string>(),
+            ConnectorFilters = showVehicleFilters ? connectorFilters : new List<string>(),
             SelectedStatus = status,
             SelectedConnector = connector,
             LocationQuery = location,
             SelectedVehicleId = vehicleId,
             VehicleOptions = vehicleOptions,
-            Stations = result.Data.Stations.Select(station => new HomeStationViewModel
+            Stations = filteredStationList.Select(station => new HomeStationViewModel
             {
                 Id = station.Id,
                 Name = station.Name,
                 Location = station.Location,
-                Status = station.Status,
+                Status = (DomainStationStatus)(int)station.Status,
                 PricePerKwh = station.PricePerKwh,
                 MaxPower = station.MaxPower,
-                ConnectorNames = station.ConnectorNames,
-                IsCompatibleWithSelectedVehicle = station.IsCompatibleWithSelectedVehicle
+                ConnectorNames = station.Connectors.Select(c => c.Name).ToList(),
+                IsCompatibleWithSelectedVehicle = vehicleId.HasValue
+                    ? station.Connectors.Any(c => selectedVehicleConnectorIds.Contains(c.Id))
+                    : null
             }).ToList()
         };
 

@@ -1,7 +1,6 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
 using WebApp.Areas.Admin.ViewModels;
 
 namespace WebApp.Areas.Admin.Controllers;
@@ -9,24 +8,26 @@ namespace WebApp.Areas.Admin.Controllers;
 [Area("Admin")]
 [Authorize(Roles = "Admin,root,SystemAdmin")]
 [Route("Admin/[controller]")]
-public class ConnectorTypesController(IAdminPanelService adminPanelService) : Controller
+public class ConnectorTypesController(IChargingModuleApi chargingModuleApi) : Controller
 {
     [HttpGet("")]
     [HttpGet("Index")]
     public async Task<IActionResult> Index(string? search = null)
     {
-        var result = await adminPanelService.GetConnectorTypesAsync(search);
-        if (!result.Success || result.Data == null)
+        var connectorTypes = await chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            return BadRequest();
+            connectorTypes = connectorTypes
+                .Where(x => x.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
         var model = new AdminConnectorTypeListViewModel
         {
-            Search = result.Data.Search,
-            Items = result.Data.Items.Select(item => new AdminConnectorTypeListItemViewModel
+            Search = search,
+            Items = connectorTypes.Select(item => new AdminConnectorTypeListItemViewModel
             {
-                ConnectorTypeId = item.ConnectorTypeId,
+                ConnectorTypeId = item.Id,
                 Name = item.Name,
                 IsActive = item.IsActive
             }).ToList()
@@ -50,21 +51,16 @@ public class ConnectorTypesController(IAdminPanelService adminPanelService) : Co
             return View("Form", model);
         }
 
-        var dto = new AdminConnectorTypeFormDto
+        try
         {
-            NameEn = model.NameEn,
-            NameEt = model.NameEt,
-            IsActive = model.IsActive
-        };
-
-        var userName = User.Identity?.Name ?? "Unknown";
-        var result = await adminPanelService.CreateConnectorTypeAsync(dto, userName);
-        if (!result.Success)
+            await chargingModuleApi.CreateConnectorTypeAsync(model.NameEn, model.NameEt, model.IsActive);
+        }
+        catch
         {
-            ModelState.AddModelError("", result.Errors.FirstOrDefault()?.Message ?? "Failed to create connector type.");
+            ModelState.AddModelError("", "Failed to create connector type.");
             return View("Form", model);
         }
-
+        
         TempData["SuccessMessage"] = App.Resources.Views.Admin.ConnectorTypes.Index.ConnectorTypeCreated;
         return RedirectToAction("Index");
     }
@@ -72,18 +68,18 @@ public class ConnectorTypesController(IAdminPanelService adminPanelService) : Co
     [HttpGet("Edit/{id}")]
     public async Task<IActionResult> Edit(Guid id)
     {
-        var result = await adminPanelService.GetConnectorTypeAsync(id);
-        if (!result.Success || result.Data == null)
+        var connectorType = await chargingModuleApi.GetConnectorTypeByIdAsync(id);
+        if (connectorType == null)
         {
             return NotFound();
         }
 
         var model = new AdminConnectorTypeFormViewModel
         {
-            ConnectorTypeId = result.Data.ConnectorTypeId,
-            NameEn = result.Data.NameEn,
-            NameEt = result.Data.NameEt,
-            IsActive = result.Data.IsActive
+            ConnectorTypeId = connectorType.ConnectorTypeId,
+            NameEn = connectorType.NameEn,
+            NameEt = connectorType.NameEt,
+            IsActive = connectorType.IsActive
         };
 
         return View("Form", model);
@@ -98,19 +94,10 @@ public class ConnectorTypesController(IAdminPanelService adminPanelService) : Co
             return View("Form", model);
         }
 
-        var dto = new AdminConnectorTypeFormDto
+        var updated = await chargingModuleApi.UpdateConnectorTypeAsync(id, model.NameEn, model.NameEt, model.IsActive);
+        if (updated == null)
         {
-            ConnectorTypeId = id,
-            NameEn = model.NameEn,
-            NameEt = model.NameEt,
-            IsActive = model.IsActive
-        };
-
-        var userName = User.Identity?.Name ?? "Unknown";
-        var result = await adminPanelService.UpdateConnectorTypeAsync(id, dto, userName);
-        if (!result.Success)
-        {
-            ModelState.AddModelError("", result.Errors.FirstOrDefault()?.Message ?? "Failed to update connector type.");
+            ModelState.AddModelError("", "Failed to update connector type.");
             return View("Form", model);
         }
 
@@ -122,11 +109,10 @@ public class ConnectorTypesController(IAdminPanelService adminPanelService) : Co
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userName = User.Identity?.Name ?? "Unknown";
-        var result = await adminPanelService.DeleteConnectorTypeAsync(id, userName);
-        if (!result.Success)
+        var deleted = await chargingModuleApi.DeleteConnectorTypeAsync(id);
+        if (!deleted)
         {
-            TempData["ErrorMessage"] = result.Errors.FirstOrDefault()?.Message ?? "Failed to delete connector type.";
+            TempData["ErrorMessage"] = "Failed to delete connector type.";
             return RedirectToAction("Index");
         }
 

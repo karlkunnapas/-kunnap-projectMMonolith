@@ -1,8 +1,9 @@
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
+using App.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Companies;
+using Shared.Contracts.Users;
 using WebApp.ViewModels.Account;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -11,11 +12,18 @@ namespace WebApp.Areas.Company.Controllers;
 [AllowAnonymous]
 public class AccountController : Controller
 {
-    private readonly IIdentityService _identityService;
+    private readonly IUsersModuleApi _usersModuleApi;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
+    private readonly SignInManager<AppUser> _signInManager;
 
-    public AccountController(IIdentityService identityService)
+    public AccountController(
+        IUsersModuleApi usersModuleApi,
+        ICompaniesModuleApi companiesModuleApi,
+        SignInManager<AppUser> signInManager)
     {
-        _identityService = identityService;
+        _usersModuleApi = usersModuleApi;
+        _companiesModuleApi = companiesModuleApi;
+        _signInManager = signInManager;
     }
 
     // GET: /Company/Account/Register
@@ -37,29 +45,42 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var dto = BllDtoFactory.CreateRegisterCompanyOwnerDto(
-            model.FirstName,
-            model.LastName,
-            model.Email,
-            model.PhoneNumber,
-            model.Password,
-            model.ConfirmPassword,
-            model.CompanyName,
-            model.CompanySlug);
-
-        var result = await _identityService.RegisterCompanyOwnerAsync(dto);
-
-        if (!result.Success)
+        var registration = await _usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
         {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            Email = model.Email,
+            PhoneNumber = model.PhoneNumber,
+            Password = model.Password
+        });
 
+        if (!registration.Success)
+        {
+            ModelState.AddModelError(string.Empty, registration.ErrorMessage ?? "Unable to register user.");
             return View(model);
         }
 
-        await _identityService.LoginAsync(model.Email, model.Password, false);
+        var companyCreation = await _companiesModuleApi.CreateCompanyWithOwnerMembershipAsync(new CreateCompanyWithOwnerMembershipContract
+        {
+            OwnerUserId = registration.UserId,
+            ContactEmail = model.Email,
+            ContactPhone = model.PhoneNumber ?? string.Empty,
+            CompanyName = model.CompanyName,
+            CompanySlug = model.CompanySlug
+        });
+
+        if (!companyCreation.Success)
+        {
+            ModelState.AddModelError(string.Empty, companyCreation.ErrorMessage ?? "Unable to create company.");
+            return View(model);
+        }
+
+        var signInResult = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
+        if (!signInResult.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, "Registration completed but automatic login failed. Please log in manually.");
+            return RedirectToAction("Login", "Account", new { area = "" });
+        }
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
         {

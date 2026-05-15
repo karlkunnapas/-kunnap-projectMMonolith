@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using App.Domain;
+using Shared.Contracts.Charging;
 
 namespace WebApp.Areas.Root.ViewModels;
 

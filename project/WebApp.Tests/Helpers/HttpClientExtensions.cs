@@ -36,22 +36,31 @@ public static class HttpClientExtensions
         {
             foreach (var (key, value) in formValues)
             {
-                switch (form[key])
+                var controls = form.QuerySelectorAll($"[name='{key}']");
+                if (controls.Length == 0)
                 {
-                    case IHtmlInputElement:
-                    {
-                        (form[key] as IHtmlInputElement)!.Value = value;
-                        if ((form[key] as IHtmlInputElement)!.Type == "checkbox" && bool.Parse(value))
-                        {
-                            (form[key] as IHtmlInputElement)!.IsChecked = true;
-                        }
+                    continue;
+                }
 
-                        break;
-                    }
-                    case IHtmlSelectElement:
+                foreach (var control in controls)
+                {
+                    switch (control)
                     {
-                        (form[key] as IHtmlSelectElement)!.Value = value;
-                        break;
+                        case IHtmlInputElement input:
+                        {
+                            input.Value = value;
+                            if (input.Type == "checkbox")
+                            {
+                                input.IsChecked = bool.TryParse(value, out var isChecked) && isChecked;
+                            }
+
+                            break;
+                        }
+                        case IHtmlSelectElement select:
+                        {
+                            select.Value = value;
+                            break;
+                        }
                     }
                 }
             }

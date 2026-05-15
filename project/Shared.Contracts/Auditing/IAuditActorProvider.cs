@@ -1,7 +1,6 @@
-namespace App.DAL.EF;
+namespace Shared.Contracts.Auditing;
 
 public interface IAuditActorProvider
 {
     string? UserName { get; }
 }
-

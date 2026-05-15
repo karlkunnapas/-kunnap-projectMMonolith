@@ -1,12 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Shared.Contracts;
 
 namespace Modules.Charging.Domain;
 
 internal sealed class ChargingStation
 {
     public Guid Id { get; set; }
-    public string NameJson { get; set; } = "{}";
+    public LangStr Name { get; set; } = new();
 
     [StringLength(128, MinimumLength = 1)]
     public string Location { get; set; } = string.Empty;

@@ -62,7 +62,7 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         {
             ["CompanyId"] = companyId.ToString(),
             ["Email"] = "existing-user@test.local",
-            ["Role"] = ((int)ECompanyRole.Manager).ToString()
+            ["Role"] = "1"
         });
 
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
@@ -104,7 +104,7 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             ["MembershipId"] = membershipId.ToString(),
             ["UserId"] = targetUserId.ToString(),
             ["Email"] = "member@test.local",
-            ["Role"] = ((int)ECompanyRole.Manager).ToString()
+            ["Role"] = "1"
         });
 
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
@@ -277,6 +277,70 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
     }
 
     [Fact]
+    public async Task Employee_MaintenanceUpdate_ToInProgress_Succeeds_AndSetsStationMaintenance()
+    {
+        var employeeUserId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var issueId = Guid.NewGuid();
+        var stationId = Guid.NewGuid();
+        await using var authFactory = CreateAuthenticatedFactory();
+        await SeedCompanyMembership(authFactory, employeeUserId, companyId, ECompanyRole.Employee, "employee@test.local");
+        await SeedMaintenanceIssue(authFactory, companyId, "Employee update issue", issueId, stationId);
+
+        var client = CreateAuthenticatedClient(authFactory, employeeUserId);
+        var getDetails = await client.GetAsync($"/Company/Maintenance/Details/{issueId}?companyId={companyId}");
+        Assert.Equal(HttpStatusCode.OK, getDetails.StatusCode);
+
+        var detailsDoc = await HtmlHelpers.GetDocumentAsync(getDetails);
+        var updateForms = detailsDoc.QuerySelectorAll("form[action*='Update']").OfType<IHtmlFormElement>().ToList();
+        var inProgressForm = Assert.Single(
+            updateForms,
+            form => (form.QuerySelector("input[name='status']") as IHtmlInputElement)?.Value == EMaintenanceStatus.InProgress.ToString());
+        var submit = Assert.IsAssignableFrom<IHtmlElement>(Assert.Single(inProgressForm.QuerySelectorAll("button[type=submit]")));
+        var post = await client.SendAsync(inProgressForm, submit);
+
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+
+        using var scope = authFactory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(EMaintenanceStatus.InProgress, db.Maintenances.Single(m => m.Id == issueId).Status);
+        Assert.Equal(EStationStatus.Maintenance, db.ChargingStations.Single(s => s.Id == stationId).Status);
+    }
+
+    [Fact]
+    public async Task Employee_MaintenanceUpdate_ToResolved_Succeeds_AndSetsStationAvailable()
+    {
+        var employeeUserId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var issueId = Guid.NewGuid();
+        var stationId = Guid.NewGuid();
+        await using var authFactory = CreateAuthenticatedFactory();
+        await SeedCompanyMembership(authFactory, employeeUserId, companyId, ECompanyRole.Employee, "employee@test.local");
+        await SeedMaintenanceIssue(authFactory, companyId, "Employee resolve issue", issueId, stationId);
+
+        var client = CreateAuthenticatedClient(authFactory, employeeUserId);
+        var getDetails = await client.GetAsync($"/Company/Maintenance/Details/{issueId}?companyId={companyId}");
+        Assert.Equal(HttpStatusCode.OK, getDetails.StatusCode);
+
+        var detailsDoc = await HtmlHelpers.GetDocumentAsync(getDetails);
+        var updateForms = detailsDoc.QuerySelectorAll("form[action*='Update']").OfType<IHtmlFormElement>().ToList();
+        var resolveForm = Assert.Single(
+            updateForms,
+            form => (form.QuerySelector("input[name='status']") as IHtmlInputElement)?.Value == EMaintenanceStatus.Resolved.ToString());
+        var submit = Assert.IsAssignableFrom<IHtmlElement>(Assert.Single(resolveForm.QuerySelectorAll("button[type=submit]")));
+        var post = await client.SendAsync(resolveForm, submit);
+
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+
+        using var scope = authFactory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var issue = db.Maintenances.Single(m => m.Id == issueId);
+        Assert.Equal(EMaintenanceStatus.Resolved, issue.Status);
+        Assert.NotNull(issue.ResolvedAt);
+        Assert.Equal(EStationStatus.Available, db.ChargingStations.Single(s => s.Id == stationId).Status);
+    }
+
+    [Fact]
     public async Task Manager_CanAccessDashboard_ButCannotManageUsers()
     {
         var managerUserId = Guid.NewGuid();
@@ -425,14 +489,19 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         return membership.Id;
     }
 
-    private static async Task SeedMaintenanceIssue(WebApplicationFactory<Program> factory, Guid companyId, string issueDescription)
+    private static async Task SeedMaintenanceIssue(
+        WebApplicationFactory<Program> factory,
+        Guid companyId,
+        string issueDescription,
+        Guid? issueId = null,
+        Guid? stationId = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var station = new ChargingStation
         {
-            Id = Guid.NewGuid(),
+            Id = stationId ?? Guid.NewGuid(),
             Name = "Seed Station",
             Location = "Seed Location",
             Status = EStationStatus.Maintenance,
@@ -445,7 +514,7 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
 
         db.Maintenances.Add(new Maintenance
         {
-            Id = Guid.NewGuid(),
+            Id = issueId ?? Guid.NewGuid(),
             ChargingStationId = station.Id,
             IssueDescription = issueDescription,
             Status = EMaintenanceStatus.Reported,

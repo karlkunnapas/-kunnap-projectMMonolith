@@ -1,12 +1,12 @@
 @model WebApp.Areas.Company.ViewModels.CompanyStationDetailsViewModel
-@using App.Domain
+@using StationStatus = Shared.Contracts.Charging.EStationStatus
 @{
     ViewData["Title"] = App.Resources.Views.Company.Station.Details.Title;
     var companyId = ViewData["CompanyId"] is Guid value ? value : Guid.Empty;
     var statusClass = Model.Status switch
     {
-        EStationStatus.Available => "status-ok",
-        EStationStatus.InUse => "status-warn",
+        StationStatus.Available => "status-ok",
+        StationStatus.InUse => "status-warn",
         _ => "status-bad"
     };
 }

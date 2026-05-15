@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.IO;
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.DAL.EF;
 using App.Domain;
 using App.Domain.Identity;
@@ -11,6 +9,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Tenancy;
+using Shared.Contracts.Users;
 
 namespace WebApp.Tests.Integration;
 
@@ -28,7 +28,7 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
     public async Task CompanyUser_AccessingAnotherCompanyTenant_IsDenied()
     {
         await using var scope = _factory.Services.CreateAsyncScope();
-        var identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
+        var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var companiesModuleApi = scope.ServiceProvider.GetRequiredService<ICompaniesModuleApi>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
@@ -40,20 +40,27 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
         var ownerCompanySlug = $"owner-{suffix}";
         var targetCompanySlug = $"target-{suffix}";
 
-        var registerResult = await identityService.RegisterCompanyOwnerAsync(new RegisterCompanyOwnerDto
+        var userRegistration = await usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
         {
             FirstName = "Owner",
             LastName = "User",
             Email = ownerEmail,
             PhoneNumber = "+37255552222",
-            Password = "Test.123",
-            ConfirmPassword = "Test.123",
+            Password = "Test.123"
+        });
+        Assert.True(userRegistration.Success);
+
+        var registerResult = await companiesModuleApi.CreateCompanyWithOwnerMembershipAsync(new CreateCompanyWithOwnerMembershipContract
+        {
+            OwnerUserId = userRegistration.UserId,
+            ContactEmail = ownerEmail,
+            ContactPhone = "+37255552222",
             CompanyName = $"Owner Company {suffix}",
             CompanySlug = ownerCompanySlug
         });
 
         Assert.True(registerResult.Success);
-        var ownerCompanyId = registerResult.Data;
+        var ownerCompanyId = registerResult.CompanyId;
         Assert.NotEqual(Guid.Empty, ownerCompanyId);
 
         var ownerMembership = await db.AppUserCompanies
@@ -125,6 +132,4 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
         Assert.True(roleResult.Succeeded, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
     }
 }
-
-
 

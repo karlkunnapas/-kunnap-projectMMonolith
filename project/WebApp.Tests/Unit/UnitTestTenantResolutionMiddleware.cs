@@ -1,7 +1,7 @@
-using App.DAL.EF;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Tenancy;
 
 namespace WebApp.Tests.Unit;
 

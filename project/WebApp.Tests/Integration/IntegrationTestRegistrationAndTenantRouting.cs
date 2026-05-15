@@ -1,13 +1,13 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.DAL.EF;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts.Companies;
+using Shared.Contracts.Users;
 using WebApp.Tests.Helpers;
 
 namespace WebApp.Tests.Integration;
@@ -82,7 +82,8 @@ public class IntegrationTestRegistrationAndTenantRouting : IClassFixture<CustomW
 
         await using (var scope = _factory.Services.CreateAsyncScope())
         {
-            var identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
+            var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
+            var companiesModuleApi = scope.ServiceProvider.GetRequiredService<ICompaniesModuleApi>();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
@@ -92,20 +93,27 @@ public class IntegrationTestRegistrationAndTenantRouting : IClassFixture<CustomW
                 Assert.True(roleResult.Succeeded, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
             }
 
-            var registerResult = await identityService.RegisterCompanyOwnerAsync(new RegisterCompanyOwnerDto
+            var userRegistration = await usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
             {
                 FirstName = "Owner",
                 LastName = "User",
                 Email = email,
                 PhoneNumber = "+3725000001",
-                Password = "Test.123",
-                ConfirmPassword = "Test.123",
+                Password = "Test.123"
+            });
+            Assert.True(userRegistration.Success);
+
+            var registerResult = await companiesModuleApi.CreateCompanyWithOwnerMembershipAsync(new CreateCompanyWithOwnerMembershipContract
+            {
+                OwnerUserId = userRegistration.UserId,
+                ContactEmail = email,
+                ContactPhone = "+3725000001",
                 CompanyName = $"Company {suffix}",
                 CompanySlug = slug
             });
 
             Assert.True(registerResult.Success);
-            var company = await db.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == registerResult.Data);
+            var company = await db.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == registerResult.CompanyId);
             company.IsActive = false;
             await db.SaveChangesAsync();
         }

@@ -1,6 +1,3 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
-using App.Domain;
 using App.DTO.v1.Company;
 using App.Dto.v1;
 using Asp.Versioning;
@@ -8,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Users;
 using WebApp.Helpers;
 using WebApp.Mappers;
 
@@ -21,13 +19,15 @@ namespace WebApp.ApiControllers.v1.Company;
 [Consumes("application/json")]
 public class UsersController : ControllerBase
 {
-    private readonly IIdentityService _identityService;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private readonly IUsersModuleApi _usersModuleApi;
 
-    public UsersController(IIdentityService identityService, ICompaniesModuleApi companiesModuleApi)
+    public UsersController(
+        ICompaniesModuleApi companiesModuleApi,
+        IUsersModuleApi usersModuleApi)
     {
-        _identityService = identityService;
         _companiesModuleApi = companiesModuleApi;
+        _usersModuleApi = usersModuleApi;
     }
 
     /// <summary>
@@ -39,23 +39,28 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<List<CompanyUserResponse>>> GetUsers(Guid companyId)
     {
         var userId = User.UserId();
-        if (!await IsCompanyOwnerAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Owner"))
         {
             return Forbid();
         }
 
-        var result = await _identityService.GetCompanyUsersAsync(companyId, userId);
-        if (HasNotOwnerOrForbidden(result.Errors))
+        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(companyId);
+        var response = new List<CompanyUserResponse>(memberships.Count);
+        foreach (var membership in memberships)
         {
-            return Forbid();
+            var displayName = await _usersModuleApi.GetUserDisplayNameAsync(membership.UserId) ?? string.Empty;
+            response.Add(new CompanyUserResponse
+            {
+                MembershipId = membership.MembershipId,
+                UserId = membership.UserId,
+                Email = displayName,
+                Role = membership.Role,
+                IsActive = membership.IsActive,
+                JoinedAtUtc = membership.JoinedAtUtc
+            });
         }
 
-        if (!result.Success)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<CompanyUserResponse>());
+        return Ok(response);
     }
 
     /// <summary>
@@ -68,23 +73,27 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<CompanyUserResponse>> GetUser(Guid companyId, Guid membershipId)
     {
         var userId = User.UserId();
-        if (!await IsCompanyOwnerAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Owner"))
         {
             return Forbid();
         }
 
-        var result = await _identityService.GetCompanyUserMembershipAsync(companyId, userId, membershipId);
-        if (HasNotOwnerOrForbidden(result.Errors))
+        var membership = await _companiesModuleApi.GetCompanyMembershipAsync(companyId, membershipId);
+        if (membership == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Membership not found."));
         }
 
-        if (!result.Success || result.Data == null)
+        var displayName = await _usersModuleApi.GetUserDisplayNameAsync(membership.UserId) ?? string.Empty;
+        return Ok(new CompanyUserResponse
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+            MembershipId = membership.MembershipId,
+            UserId = membership.UserId,
+            Email = displayName,
+            Role = membership.Role,
+            IsActive = membership.IsActive,
+            JoinedAtUtc = membership.JoinedAtUtc
+        });
     }
 
     /// <summary>
@@ -97,34 +106,50 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<AddCompanyUserResponse>> AddUser(Guid companyId, [FromBody] AddCompanyUserRequest request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyOwnerAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Owner"))
         {
             return Forbid();
         }
 
-        if (!Enum.IsDefined(typeof(ECompanyRole), request.Role))
+        if (request.Role < 0 || request.Role > 3)
         {
             return BadRequest(new Message("Invalid company role."));
         }
 
-        var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _identityService.AddUserToCompanyAsync(
-            companyId,
-            userId,
-            userName,
-            ApiDtoFactory.CreateDto(request));
-
-        if (HasNotOwnerOrForbidden(result.Errors))
+        var role = request.Role switch
         {
-            return Forbid();
+            0 => "Customer",
+            1 => "Employee",
+            2 => "Manager",
+            3 => "Owner",
+            _ => string.Empty
+        };
+        var result = await _companiesModuleApi.AddCompanyUserAsync(new AddCompanyUserContract
+        {
+            CompanyId = companyId,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber,
+            Password = request.Password,
+            Role = role
+        });
+
+        if (!result.Success)
+        {
+            return BadRequest(new Message(result.ErrorMessage ?? "Unable to add company user."));
         }
 
-        if (!result.Success || result.Data == null)
+        return Ok(new AddCompanyUserResponse
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+            MembershipId = result.MembershipId,
+            UserId = result.UserId,
+            Email = result.Email,
+            Role = result.Role,
+            IsExistingUser = result.IsExistingUser,
+            AccessStatus = result.AccessStatus,
+            NextAction = result.NextAction
+        });
     }
 
     /// <summary>
@@ -137,32 +162,28 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> UpdateUserRole(Guid companyId, Guid membershipId, [FromBody] UpdateCompanyUserRole request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyOwnerAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Owner"))
         {
             return Forbid();
         }
 
-        if (!Enum.IsDefined(typeof(ECompanyRole), request.Role))
+        if (request.Role < 0 || request.Role > 3)
         {
             return BadRequest(new Message("Invalid company role."));
         }
 
-        var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _identityService.UpdateCompanyUserRoleAsync(
-            companyId,
-            userId,
-            userName,
-            membershipId,
-            ApiDtoFactory.CreateDto(request));
-
-        if (HasNotOwnerOrForbidden(result.Errors))
+        var targetRole = request.Role switch
         {
-            return Forbid();
-        }
-
+            0 => "Customer",
+            1 => "Employee",
+            2 => "Manager",
+            3 => "Owner",
+            _ => string.Empty
+        };
+        var result = await _companiesModuleApi.UpdateCompanyMembershipRoleWithGuardsAsync(companyId, membershipId, targetRole);
         if (!result.Success)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message(result.ErrorMessage ?? "Unable to update company user role."));
         }
 
         return Ok();
@@ -178,33 +199,17 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> RemoveUser(Guid companyId, Guid membershipId)
     {
         var userId = User.UserId();
-        if (!await IsCompanyOwnerAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Owner"))
         {
             return Forbid();
         }
 
-        var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _identityService.RemoveCompanyUserAsync(companyId, userId, userName, membershipId);
-        if (HasNotOwnerOrForbidden(result.Errors))
-        {
-            return Forbid();
-        }
-
+        var result = await _companiesModuleApi.DeactivateCompanyMembershipWithGuardsAsync(companyId, membershipId);
         if (!result.Success)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message(result.ErrorMessage ?? "Unable to remove company user."));
         }
 
         return Ok();
-    }
-
-    private async Task<bool> IsCompanyOwnerAsync(Guid companyId, Guid userId)
-    {
-        return await _companiesModuleApi.HasActiveOwnerMembershipAsync(companyId, userId);
-    }
-
-    private static bool HasNotOwnerOrForbidden(IEnumerable<ServiceError> errors)
-    {
-        return errors.Any(e => e.Code is "NOT_OWNER" or "FORBIDDEN");
     }
 }

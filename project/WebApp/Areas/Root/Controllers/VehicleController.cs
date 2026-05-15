@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Charging;
+using Shared.Contracts.Users;
 using WebApp.Areas.Root.ViewModels;
 
 namespace WebApp.Areas.Root.Controllers;
@@ -13,12 +11,12 @@ namespace WebApp.Areas.Root.Controllers;
 [Authorize(Roles = "Customer")]
 public class VehicleController : Controller
 {
-    private readonly IVehicleService _vehicleService;
+    private readonly IUsersModuleApi _usersModuleApi;
     private readonly IChargingModuleApi _chargingModuleApi;
 
-    public VehicleController(IVehicleService vehicleService, IChargingModuleApi chargingModuleApi)
+    public VehicleController(IUsersModuleApi usersModuleApi, IChargingModuleApi chargingModuleApi)
     {
-        _vehicleService = vehicleService;
+        _usersModuleApi = usersModuleApi;
         _chargingModuleApi = chargingModuleApi;
     }
 
@@ -30,17 +28,17 @@ public class VehicleController : Controller
             return Forbid();
         }
 
-        var result = await _vehicleService.GetUserVehiclesAsync(userId.Value);
+        var vehicles = await _usersModuleApi.GetUserVehiclesAsync(userId.Value);
         var vm = new VehicleListViewModel
         {
-            Vehicles = result.Data?.Select(v => new VehicleListItemViewModel
+            Vehicles = vehicles.Select(v => new VehicleListItemViewModel
             {
-                Id = v.Id,
+                Id = v.VehicleId,
                 Make = v.Make,
                 Model = v.Model,
                 BatteryCapacity = v.BatteryCapacity,
-                CompatibleConnectorCount = v.CompatibleConnectors.Count
-            }).ToList() ?? new List<VehicleListItemViewModel>()
+                CompatibleConnectorCount = v.ConnectorIds.Count
+            }).ToList()
         };
 
         return View(vm);
@@ -69,13 +67,21 @@ public class VehicleController : Controller
             return View(vm);
         }
 
-        var result = await _vehicleService.CreateVehicleAsync(
-            userId.Value,
-            BllDtoFactory.CreateVehicleCreateDto(vm.Make, vm.Model, vm.BatteryCapacity, vm.SelectedConnectorIds));
-
-        if (!result.Success)
+        try
         {
-            AddErrors(result.Errors);
+            await _usersModuleApi.CreateVehicleAsync(
+                userId.Value,
+                new CreateUserVehicleContract
+                {
+                    Make = vm.Make,
+                    Model = vm.Model,
+                    BatteryCapacity = vm.BatteryCapacity,
+                    ConnectorIds = vm.SelectedConnectorIds
+                });
+        }
+        catch
+        {
+            ModelState.AddModelError(string.Empty, "Unable to create vehicle.");
             await LoadConnectorsAsync(vm, vm.SelectedConnectorIds);
             return View(vm);
         }
@@ -91,19 +97,19 @@ public class VehicleController : Controller
             return Forbid();
         }
 
-        var result = await _vehicleService.GetVehicleForUserAsync(id, userId.Value);
-        if (!result.Success || result.Data == null)
+        var vehicle = await _usersModuleApi.GetVehicleForUserAsync(id, userId.Value);
+        if (vehicle == null)
         {
             return Forbid();
         }
 
         var vm = new VehicleEditViewModel
         {
-            Id = result.Data.Id,
-            Make = result.Data.Make,
-            Model = result.Data.Model,
-            BatteryCapacity = result.Data.BatteryCapacity,
-            SelectedConnectorIds = result.Data.CompatibleConnectors.Select(c => c.ConnectorId).ToList()
+            Id = vehicle.VehicleId,
+            Make = vehicle.Make,
+            Model = vehicle.Model,
+            BatteryCapacity = vehicle.BatteryCapacity,
+            SelectedConnectorIds = vehicle.ConnectorIds.ToList()
         };
 
         await LoadConnectorsAsync(vm, vm.SelectedConnectorIds);
@@ -126,19 +132,20 @@ public class VehicleController : Controller
             return View(vm);
         }
 
-        var result = await _vehicleService.UpdateVehicleAsync(
+        var result = await _usersModuleApi.UpdateVehicleAsync(
             id,
             userId.Value,
-            BllDtoFactory.CreateVehicleUpdateDto(vm.Make, vm.Model, vm.BatteryCapacity, vm.SelectedConnectorIds));
-
-        if (!result.Success)
-        {
-            if (result.Errors.Any(e => e.Code == "FORBIDDEN"))
+            new UpdateUserVehicleContract
             {
-                return Forbid();
-            }
+                Make = vm.Make,
+                Model = vm.Model,
+                BatteryCapacity = vm.BatteryCapacity,
+                ConnectorIds = vm.SelectedConnectorIds
+            });
 
-            AddErrors(result.Errors);
+        if (result == null)
+        {
+            ModelState.AddModelError(string.Empty, "Unable to update vehicle.");
             await LoadConnectorsAsync(vm, vm.SelectedConnectorIds);
             return View(vm);
         }
@@ -156,8 +163,8 @@ public class VehicleController : Controller
             return Forbid();
         }
 
-        var result = await _vehicleService.DeleteVehicleAsync(id, userId.Value);
-        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        var deleted = await _usersModuleApi.DeleteVehicleAsync(id, userId.Value);
+        if (!deleted)
         {
             return Forbid();
         }
@@ -175,8 +182,8 @@ public class VehicleController : Controller
             return Forbid();
         }
 
-        var result = await _vehicleService.SetConnectorCompatibilityAsync(id, userId.Value, selectedConnectorIds);
-        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        var updated = await _usersModuleApi.SetConnectorCompatibilityAsync(id, userId.Value, selectedConnectorIds);
+        if (!updated)
         {
             return Forbid();
         }
@@ -199,14 +206,6 @@ public class VehicleController : Controller
             })
             .OrderBy(c => c.Name)
             .ToList();
-    }
-
-    private void AddErrors(IEnumerable<ServiceError> errors)
-    {
-        foreach (var error in errors)
-        {
-            ModelState.AddModelError(string.Empty, error.Message);
-        }
     }
 
     private Guid? GetCurrentUserId()

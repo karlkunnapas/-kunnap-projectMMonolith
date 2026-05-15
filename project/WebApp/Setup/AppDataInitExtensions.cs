@@ -1,6 +1,4 @@
 using System.Threading;
-using App.DAL.EF;
-using App.DAL.EF.Seeding;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -9,6 +7,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Modules.Charging.Infrastructure;
+using Modules.Charging.Infrastructure.Seeding;
+using Modules.Companies.Infrastructure;
+using Modules.Companies.Infrastructure.Seeding;
+using Modules.Users.Infrastructure;
+using Modules.Users.Infrastructure.Seeding;
 
 namespace WebApp.Setup;
 
@@ -21,14 +25,16 @@ public static class AppDataInitExtensions
             .CreateScope();
         var logger = serviceScope.ServiceProvider.GetRequiredService<ILogger<IApplicationBuilder>>();
 
-        using var context = serviceScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var usersDb = serviceScope.ServiceProvider.GetRequiredService<UsersDbContext>();
+        using var companiesDb = serviceScope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        using var chargingDb = serviceScope.ServiceProvider.GetRequiredService<ChargingDbContext>();
 
-        if (context.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL")
+        if (usersDb.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL")
         {
             return;
         }
 
-        WaitDbConnection(context, logger);
+        WaitDbConnection(usersDb, logger);
 
         using var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         using var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
@@ -38,29 +44,50 @@ public static class AppDataInitExtensions
         if (configuration.GetValue<bool>("DataInitialization:DropDatabase"))
         {
             logger.LogWarning("DropDatabase");
-            AppDataInit.DeleteDatabase(context);
+            usersDb.Database.EnsureDeleted();
         }
 
         if (configuration.GetValue<bool>("DataInitialization:MigrateDatabase"))
         {
             logger.LogInformation("MigrateDatabase");
-            AppDataInit.MigrateDatabase(context);
+            usersDb.Database.Migrate();
+            companiesDb.Database.Migrate();
+            chargingDb.Database.Migrate();
         }
 
         if (configuration.GetValue<bool>("DataInitialization:SeedIdentity"))
         {
             logger.LogInformation("SeedIdentity");
-            AppDataInit.SeedIdentity(userManager, roleManager);
+            UsersIdentitySeeder.SeedIdentityAsync(userManager, roleManager)
+                .GetAwaiter()
+                .GetResult();
         }
 
         if (configuration.GetValue<bool>("DataInitialization:SeedData"))
         {
             logger.LogInformation("SeedData");
-            AppDataInit.SeedAppData(context);
+            var owner = userManager.FindByEmailAsync(CompaniesModuleDataSeeder.SeedCompanyOwnerEmail)
+                .GetAwaiter().GetResult();
+
+            if (owner == null)
+            {
+                throw new ApplicationException(
+                    $"Seed owner user '{CompaniesModuleDataSeeder.SeedCompanyOwnerEmail}' was not found.");
+            }
+
+            var companyId = CompaniesModuleDataSeeder
+                .SeedCompanyAndOwnerMembershipAsync(companiesDb, owner.Id)
+                .GetAwaiter()
+                .GetResult();
+
+            ChargingModuleDataSeeder
+                .SeedDataAsync(chargingDb, companyId)
+                .GetAwaiter()
+                .GetResult();
         }
     }
 
-    private static void WaitDbConnection(AppDbContext ctx, ILogger<IApplicationBuilder> logger)
+    private static void WaitDbConnection(UsersDbContext ctx, ILogger<IApplicationBuilder> logger)
     {
         // TODO: Login failed for user 'sa'. Reason: Failed to open the explicitly specified database 'XYZ'. [CLIENT: 172.18.0.3]
         // could actually log in, but db was not there - migrations where not applied yet

@@ -1,8 +1,7 @@
 using System.Security.Claims;
-using App.BLL.Services.Interfaces;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -11,12 +10,12 @@ namespace WebApp.Areas.Company.Controllers;
 [Authorize]
 public class ConnectorController : Controller
 {
-    private readonly IChargingStationCompanyService _stationService;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public ConnectorController(IChargingStationCompanyService stationService, ICompaniesModuleApi companiesModuleApi)
+    public ConnectorController(IChargingModuleApi chargingModuleApi, ICompaniesModuleApi companiesModuleApi)
     {
-        _stationService = stationService;
+        _chargingModuleApi = chargingModuleApi;
         _companiesModuleApi = companiesModuleApi;
     }
 
@@ -30,20 +29,17 @@ public class ConnectorController : Controller
             return Forbid();
         }
 
-        var userId = ResolveCurrentUserId();
-        if (userId == null)
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, resolvedCompany.Value);
+        if (station == null)
         {
             return Forbid();
         }
 
-        var result = await _stationService.AssignConnectorAsync(
-            stationId,
-            resolvedCompany.Value,
-            userId.Value,
-            User.Identity?.Name ?? userId.Value.ToString(),
-            connectorId);
+        var assignedConnectorIds = (await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(stationId)).ToHashSet();
+        assignedConnectorIds.Add(connectorId);
+        await _chargingModuleApi.SetStationConnectorsAsync(stationId, assignedConnectorIds.ToList());
 
-        if (!result.Success && result.Errors.Any(error => error.Code == "FORBIDDEN"))
+        if (await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, resolvedCompany.Value) == null)
         {
             return Forbid();
         }
@@ -61,20 +57,17 @@ public class ConnectorController : Controller
             return Forbid();
         }
 
-        var userId = ResolveCurrentUserId();
-        if (userId == null)
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, resolvedCompany.Value);
+        if (station == null)
         {
             return Forbid();
         }
 
-        var result = await _stationService.RemoveConnectorAsync(
-            stationId,
-            resolvedCompany.Value,
-            userId.Value,
-            User.Identity?.Name ?? userId.Value.ToString(),
-            connectorId);
+        var assignedConnectorIds = (await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(stationId)).ToHashSet();
+        assignedConnectorIds.Remove(connectorId);
+        await _chargingModuleApi.SetStationConnectorsAsync(stationId, assignedConnectorIds.ToList());
 
-        if (!result.Success && result.Errors.Any(error => error.Code == "FORBIDDEN"))
+        if (await _chargingModuleApi.GetCompanyStationByIdAsync(stationId, resolvedCompany.Value) == null)
         {
             return Forbid();
         }
@@ -104,14 +97,14 @@ public class ConnectorController : Controller
 
         var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
         return memberships
-            .Where(m => Enum.TryParse<ECompanyRole>(m.Role, true, out var role) && role >= ECompanyRole.Manager)
+            .Where(m => HasManagerAccess(m.Role))
             .Select(m => m.CompanyId)
             .ToList();
     }
 
-    private Guid? ResolveCurrentUserId()
+    private static bool HasManagerAccess(string role)
     {
-        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+        return role.Equals("Manager", StringComparison.OrdinalIgnoreCase)
+               || role.Equals("Owner", StringComparison.OrdinalIgnoreCase);
     }
 }

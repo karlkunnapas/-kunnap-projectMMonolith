@@ -3,7 +3,6 @@ using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using App.DAL.EF;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -20,16 +19,14 @@ namespace WebApp.Areas.Root.Controllers;
 public class UsersController : Controller
 {
     private readonly ILogger<UsersController> _logger;
-    private readonly AppDbContext _context;
     private readonly UserManager<AppUser> _userManager;
     private readonly RoleManager<AppRole> _roleManager;
 
 
-    public UsersController(ILogger<UsersController> logger, AppDbContext context, UserManager<AppUser> userManager,
+    public UsersController(ILogger<UsersController> logger, UserManager<AppUser> userManager,
         RoleManager<AppRole> roleManager)
     {
         _logger = logger;
-        _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
     }

@@ -1,9 +1,10 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Shared.Contracts.Charging;
+using Shared.Contracts.Users;
 using WebApp.Controllers;
 using WebApp.ViewModels;
 using Xunit.Abstractions;
@@ -14,7 +15,8 @@ public class UnitTestHomeController
 {
     private readonly ITestOutputHelper _testOutputHelper;
     private readonly HomeController _homeController;
-    private readonly FakeChargingStationService _fakeService;
+    private readonly Mock<IChargingModuleApi> _chargingModuleApiMock = new();
+    private readonly Mock<IUsersModuleApi> _usersModuleApiMock = new();
 
     public UnitTestHomeController(ITestOutputHelper testOutputHelper)
     {
@@ -23,8 +25,18 @@ public class UnitTestHomeController
         using var logFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var logger = logFactory.CreateLogger<HomeController>();
 
-        _fakeService = new FakeChargingStationService(ServiceResult<HomePageDto>.Ok(new HomePageDto()));
-        _homeController = new HomeController(_fakeService, new FakeVehicleService(), logger);
+        _chargingModuleApiMock
+            .Setup(x => x.GetStationsForHomeAsync(It.IsAny<EStationStatus?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<ChargingStationContract>());
+
+        _usersModuleApiMock
+            .Setup(x => x.GetUserVehiclesAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserVehicleContract>());
+        _usersModuleApiMock
+            .Setup(x => x.GetVehicleConnectorIdsAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<Guid>());
+
+        _homeController = new HomeController(_chargingModuleApiMock.Object, _usersModuleApiMock.Object, logger);
     }
 
     [Fact]
@@ -38,21 +50,30 @@ public class UnitTestHomeController
     }
 
     [Fact]
-    public async Task IndexAction_ForwardsFiltersToService()
+    public async Task IndexAction_ForwardsStatusToChargingApi()
     {
         await _homeController.Index(status: "Available", connector: "CCS", location: "2.3");
 
-        Assert.NotNull(_fakeService.LastFilters);
-        Assert.Equal("Available", _fakeService.LastFilters!.Status);
-        Assert.Equal("CCS", _fakeService.LastFilters.Connector);
-        Assert.Equal("2.3", _fakeService.LastFilters.Location);
+        _chargingModuleApiMock.Verify(
+            x => x.GetStationsForHomeAsync(EStationStatus.Available, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task IndexAction_ForwardsVehicleIdToService()
+    public async Task IndexAction_WithCustomerVehicle_ResolvesOwnership()
     {
         var vehicleId = Guid.NewGuid();
         var userId = Guid.NewGuid();
+
+        _usersModuleApiMock
+            .Setup(x => x.GetVehicleForUserAsync(vehicleId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserVehicleContract
+            {
+                VehicleId = vehicleId,
+                UserId = userId,
+                Make = "Test",
+                Model = "Model"
+            });
 
         _homeController.ControllerContext = new ControllerContext
         {
@@ -70,52 +91,8 @@ public class UnitTestHomeController
 
         await _homeController.Index(vehicleId: vehicleId);
 
-        Assert.NotNull(_fakeService.LastFilters);
-        Assert.Equal(vehicleId, _fakeService.LastFilters!.VehicleId);
-    }
-
-    private class FakeChargingStationService : IChargingStationService
-    {
-        private readonly ServiceResult<HomePageDto> _result;
-
-        public HomePageFilterDto? LastFilters { get; private set; }
-
-        public FakeChargingStationService(ServiceResult<HomePageDto> result)
-        {
-            _result = result;
-        }
-
-        public Task<ServiceResult<HomePageDto>> GetHomePageAsync(HomePageFilterDto? filters = null)
-        {
-            LastFilters = filters;
-            return Task.FromResult(_result);
-        }
-    }
-
-    private class FakeVehicleService : IVehicleService
-    {
-        public Task<ServiceResult<List<VehicleDto>>> GetUserVehiclesAsync(Guid userId)
-            => Task.FromResult(ServiceResult<List<VehicleDto>>.Ok(new List<VehicleDto>()));
-
-        public Task<ServiceResult<VehicleDto>> GetVehicleForUserAsync(Guid id, Guid userId)
-            => Task.FromResult(ServiceResult<VehicleDto>.Ok(new VehicleDto { Id = id, Make = "Test", Model = "Model" }));
-
-        public Task<ServiceResult<VehicleDto>> CreateVehicleAsync(Guid userId, VehicleCreateDto dto)
-            => Task.FromResult(ServiceResult<VehicleDto>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
-
-        public Task<ServiceResult<VehicleDto>> UpdateVehicleAsync(Guid id, Guid userId, VehicleUpdateDto dto)
-            => Task.FromResult(ServiceResult<VehicleDto>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
-
-        public Task<ServiceResult> DeleteVehicleAsync(Guid id, Guid userId)
-            => Task.FromResult(ServiceResult.Fail("NOT_IMPLEMENTED", "Not used in this test."));
-
-        public Task<ServiceResult> SetConnectorCompatibilityAsync(Guid vehicleId, Guid userId, IReadOnlyCollection<Guid> connectorIds)
-            => Task.FromResult(ServiceResult.Fail("NOT_IMPLEMENTED", "Not used in this test."));
-
-        public Task<ServiceResult<List<VehicleConnectorDto>>> GetCompatibleConnectorsForVehicleAsync(Guid vehicleId, Guid userId)
-            => Task.FromResult(ServiceResult<List<VehicleConnectorDto>>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
-
-        public Task<ServiceResult<List<CompatibleStationDto>>> GetCompatibleStationsForVehicleAsync(Guid vehicleId, Guid userId)
-            => Task.FromResult(ServiceResult<List<CompatibleStationDto>>.Fail("NOT_IMPLEMENTED", "Not used in this test."));
+        _usersModuleApiMock.Verify(
+            x => x.GetVehicleForUserAsync(vehicleId, userId, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

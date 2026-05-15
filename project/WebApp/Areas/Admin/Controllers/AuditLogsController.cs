@@ -1,7 +1,6 @@
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Admin.ViewModels;
 
 namespace WebApp.Areas.Admin.Controllers;
@@ -10,11 +9,11 @@ namespace WebApp.Areas.Admin.Controllers;
 [Authorize(Roles = "Admin,root")]
 public class AuditLogsController : Controller
 {
-    private readonly IAdminPanelService _adminPanelService;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public AuditLogsController(IAdminPanelService adminPanelService)
+    public AuditLogsController(ICompaniesModuleApi companiesModuleApi)
     {
-        _adminPanelService = adminPanelService;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     [HttpGet]
@@ -40,38 +39,61 @@ public class AuditLogsController : Controller
             }
         }
 
-        var filterDto = BllDtoFactory.CreateAdminAuditLogFilterDto(
-            NormalizeToUtc(fromUtc),
-            NormalizeToUtc(toUtc),
-            entityName,
-            actionFilter,
-            actor,
-            entityGuid,
-            page,
-            50);
+        var normalizedFromUtc = NormalizeToUtc(fromUtc);
+        var normalizedToUtc = NormalizeToUtc(toUtc);
+        var normalizedPage = Math.Max(1, page);
+        const int pageSize = 50;
 
-        var result = await _adminPanelService.GetAuditLogsAsync(filterDto);
-        if (!result.Success || result.Data == null)
+        var companies = await _companiesModuleApi.GetCompaniesForAdminAsync();
+        var allEntries = new List<CompanyAuditEntryContract>();
+        foreach (var company in companies)
         {
-            return BadRequest();
+            var companyEntries = await _companiesModuleApi.GetCompanyAuditAsync(
+                company.CompanyId,
+                normalizedFromUtc,
+                normalizedToUtc,
+                entityName,
+                actionFilter);
+            allEntries.AddRange(companyEntries);
         }
+
+        IEnumerable<CompanyAuditEntryContract> filtered = allEntries;
+        if (!string.IsNullOrWhiteSpace(actor))
+        {
+            filtered = filtered.Where(e => e.UserName.Contains(actor, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (entityGuid.HasValue)
+        {
+            filtered = filtered.Where(e => e.EntityId == entityGuid.Value);
+        }
+
+        var ordered = filtered
+            .OrderByDescending(e => e.AtUtc)
+            .ToList();
+
+        var totalCount = ordered.Count;
+        var pagedItems = ordered
+            .Skip((normalizedPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
         var filterModel = new AdminAuditLogFilterViewModel
         {
-            FromUtc = result.Data.Filter.FromUtc,
-            ToUtc = result.Data.Filter.ToUtc,
-            EntityName = result.Data.Filter.EntityName,
-            Action = result.Data.Filter.Action,
-            Actor = result.Data.Filter.Actor,
-            EntityId = result.Data.Filter.EntityId?.ToString(),
-            Page = result.Data.Page,
-            PageSize = result.Data.PageSize
+            FromUtc = normalizedFromUtc,
+            ToUtc = normalizedToUtc,
+            EntityName = entityName,
+            Action = actionFilter,
+            Actor = actor,
+            EntityId = entityGuid?.ToString(),
+            Page = normalizedPage,
+            PageSize = pageSize
         };
 
         var model = new AdminAuditLogListViewModel
         {
             Filter = filterModel,
-            Items = result.Data.Items.Select(item => new AdminAuditLogListItemViewModel
+            Items = pagedItems.Select(item => new AdminAuditLogListItemViewModel
             {
                 Id = item.Id,
                 CompanyId = item.CompanyId,
@@ -82,9 +104,9 @@ public class AuditLogsController : Controller
                 AtUtc = item.AtUtc,
                 ChangesJson = item.ChangesJson
             }).ToList(),
-            TotalCount = result.Data.TotalCount,
-            Page = result.Data.Page,
-            PageSize = result.Data.PageSize
+            TotalCount = totalCount,
+            Page = normalizedPage,
+            PageSize = pageSize
         };
 
         return View(model);

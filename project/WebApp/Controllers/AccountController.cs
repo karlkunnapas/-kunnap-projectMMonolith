@@ -1,38 +1,31 @@
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
-using App.DAL.EF;
-using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Shared.Contracts;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Users;
 using WebApp.ViewModels.Account;
 
 namespace WebApp.Controllers;
 
 public class AccountController : Controller
 {
-    private readonly IIdentityService _identityService;
+    private readonly IUsersModuleApi _usersModuleApi;
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
-    private readonly AppDbContext _context;
     private readonly ICompaniesModuleApi _companiesModuleApi;
 
     public AccountController(
-        IIdentityService identityService,
+        IUsersModuleApi usersModuleApi,
         SignInManager<AppUser> signInManager,
         UserManager<AppUser> userManager,
-        AppDbContext context,
         ICompaniesModuleApi companiesModuleApi)
     {
-        _identityService = identityService;
+        _usersModuleApi = usersModuleApi;
         _signInManager = signInManager;
         _userManager = userManager;
-        _context = context;
         _companiesModuleApi = companiesModuleApi;
     }
 
@@ -59,27 +52,23 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var dto = BllDtoFactory.CreateRegisterCustomerDto(
-            model.FirstName,
-            model.LastName,
-            model.Email,
-            model.PhoneNumber,
-            model.Password,
-            model.ConfirmPassword);
-
-        var result = await _identityService.RegisterCustomerAsync(dto);
+        var result = await _usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
+        {
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            Email = model.Email,
+            PhoneNumber = model.PhoneNumber,
+            Password = model.Password
+        });
 
         if (!result.Success)
         {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Registration failed.");
             return View(model);
         }
 
         // Auto-login after registration
-        await _identityService.LoginAsync(model.Email, model.Password, false);
+        await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, lockoutOnFailure: false);
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
         {
@@ -107,7 +96,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var signInResult = await _identityService.LoginAsync(model.Email, model.Password, model.RememberMe);
+        var signInResult = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
         if (!signInResult.Succeeded)
         {
             ModelState.AddModelError(
@@ -130,13 +119,13 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
-        if (companiesResult.Success && companiesResult.Data != null && companiesResult.Data.Companies.Count > 0)
+        var companies = (await _companiesModuleApi.GetUserCompaniesAsync(userId.Value)).ToList();
+        if (companies.Count > 0)
         {
-            if (companiesResult.Data.Companies.Count == 1)
+            if (companies.Count == 1)
             {
-                var company = companiesResult.Data.Companies[0];
-                return RedirectToCompanyHome(company.CompanySlug, company.Role);
+                var company = companies[0];
+                return RedirectToCompanyHome(company.Slug, company.Role);
             }
 
             return RedirectToAction(nameof(CompanySelection), new { returnUrl = model.ReturnUrl });
@@ -182,36 +171,36 @@ public class AccountController : Controller
             return Redirect("/System/Companies");
         }
 
-        var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
-        if (!companiesResult.Success || companiesResult.Data == null || companiesResult.Data.Companies.Count == 0)
+        var companies = (await _companiesModuleApi.GetUserCompaniesAsync(userId.Value)).ToList();
+        if (companies.Count == 0)
         {
             if (await HasDeactivatedCompanyMembershipAsync(userId.Value))
             {
                 return RedirectToAction(nameof(CompanyDeactivated));
             }
 
-            await _identityService.LogoutAsync();
+            await _signInManager.SignOutAsync();
             return RedirectToAction(nameof(Login));
         }
 
         // If user has only one company, redirect directly
-        if (companiesResult.Data.Companies.Count == 1)
+        if (companies.Count == 1)
         {
-            var company = companiesResult.Data.Companies.First();
-            return RedirectToCompanyHome(company.CompanySlug, company.Role);
+            var company = companies.First();
+                return RedirectToCompanyHome(company.Slug, company.Role);
         }
 
         var viewModel = new CompanySelectionViewModel
         {
             ReturnUrl = returnUrl,
-            Companies = companiesResult.Data.Companies.Select(c => new CompanySelectionItemViewModel
+            Companies = companies.Select(c => new CompanySelectionItemViewModel
             {
                 CompanyId = c.CompanyId,
                 CompanyName = c.CompanyName,
-                CompanySlug = c.CompanySlug,
+                CompanySlug = c.Slug,
                 Role = c.Role
             }).ToList(),
-            SelectedCompanyId = companiesResult.Data.Companies.First().CompanyId
+            SelectedCompanyId = companies.First().CompanyId
         };
 
         return View(viewModel);
@@ -230,34 +219,23 @@ public class AccountController : Controller
         }
 
         // Reload companies from database (model.Companies is empty from form post)
-        var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
-        if (!companiesResult.Success || companiesResult.Data == null)
+        var companies = (await _companiesModuleApi.GetUserCompaniesAsync(userId.Value)).ToList();
+        if (companies.Count == 0)
         {
-            await _identityService.LogoutAsync();
-            return RedirectToAction(nameof(Login));
-        }
-
-        if (companiesResult.Data.Companies.Count == 0)
-        {
-            if (await HasDeactivatedCompanyMembershipAsync(userId.Value))
-            {
-                return RedirectToAction(nameof(CompanyDeactivated));
-            }
-
-            await _identityService.LogoutAsync();
+            await _signInManager.SignOutAsync();
             return RedirectToAction(nameof(Login));
         }
 
         var selectedCompanyId = model.SelectedCompanyId;
-        var company = companiesResult.Data.Companies.FirstOrDefault(c => c.CompanyId == selectedCompanyId);
+        var company = companies.FirstOrDefault(c => c.CompanyId == selectedCompanyId);
         if (company == null || !ModelState.IsValid)
         {
             // Reload the model with companies and show error
-            model.Companies = companiesResult.Data.Companies.Select(c => new CompanySelectionItemViewModel
+            model.Companies = companies.Select(c => new CompanySelectionItemViewModel
             {
                 CompanyId = c.CompanyId,
                 CompanyName = c.CompanyName,
-                CompanySlug = c.CompanySlug,
+                CompanySlug = c.Slug,
                 Role = c.Role
             }).ToList();
             
@@ -265,24 +243,24 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var activeCompany = await _identityService.SetActiveCompanyAsync(
-            userId.Value,
-            company.CompanyId,
-            User.Identity?.Name ?? userId.Value.ToString());
+        var actorUserName = User.Identity?.Name
+            ?? User.FindFirstValue(ClaimTypes.Email)
+            ?? userId.Value.ToString();
 
-        if (!activeCompany.Success || activeCompany.Data == null)
+        var activeCompany = await _companiesModuleApi.SelectActiveCompanyAsync(userId.Value, company.CompanyId, actorUserName);
+        if (activeCompany == null)
         {
             return Forbid();
         }
 
-        var companySlugs = companiesResult.Data.Companies
-            .Select(c => c.CompanySlug)
+        var companySlugs = companies
+            .Select(c => c.Slug)
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var normalizedReturnUrl = NormalizeCompanyReturnUrl(
             model.ReturnUrl,
-            activeCompany.Data.CompanySlug,
+            activeCompany.Slug,
             companySlugs);
 
         if (!string.IsNullOrWhiteSpace(normalizedReturnUrl) && Url.IsLocalUrl(normalizedReturnUrl))
@@ -290,7 +268,7 @@ public class AccountController : Controller
             return Redirect(normalizedReturnUrl);
         }
 
-        return RedirectToCompanyHome(activeCompany.Data.CompanySlug, activeCompany.Data.Role);
+        return RedirectToCompanyHome(activeCompany.Slug, activeCompany.Role);
     }
 
     // POST: /Account/SwitchCompany
@@ -305,27 +283,22 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Login));
         }
 
-        var activeCompany = await _identityService.SetActiveCompanyAsync(
-            userId.Value,
-            companyId,
-            User.Identity?.Name ?? userId.Value.ToString());
-
-        if (!activeCompany.Success || activeCompany.Data == null)
+        var activeCompany = await _companiesModuleApi.GetActiveCompanySelectionAsync(userId.Value, companyId);
+        if (activeCompany == null)
         {
             return Forbid();
         }
 
-        var companiesResult = await _identityService.GetUserCompaniesAsync(userId.Value);
-        var companySlugs = companiesResult.Success && companiesResult.Data != null
-            ? companiesResult.Data.Companies
-                .Select(c => c.CompanySlug)
+        var companies = await _companiesModuleApi.GetUserCompaniesAsync(userId.Value);
+        var companySlugs = companies
+                .Select(c => c.Slug)
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase)
-            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            ;
 
         var normalizedReturnUrl = NormalizeCompanyReturnUrl(
             returnUrl,
-            activeCompany.Data.CompanySlug,
+            activeCompany.Slug,
             companySlugs);
 
         if (!string.IsNullOrWhiteSpace(normalizedReturnUrl) && Url.IsLocalUrl(normalizedReturnUrl))
@@ -333,7 +306,7 @@ public class AccountController : Controller
             return Redirect(normalizedReturnUrl);
         }
 
-        return RedirectToCompanyHome(activeCompany.Data.CompanySlug, activeCompany.Data.Role);
+        return RedirectToCompanyHome(activeCompany.Slug, activeCompany.Role);
     }
 
     // POST: /Account/Logout
@@ -342,7 +315,7 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await _identityService.LogoutAsync();
+        await _signInManager.SignOutAsync();
         return RedirectToAction(nameof(LoggedOut));
     }
 
@@ -380,7 +353,7 @@ public class AccountController : Controller
 
     private IActionResult RedirectToCompanyHome(string companySlug, string? role)
     {
-        var isEmployee = string.Equals(role, ECompanyRole.Employee.ToString(), StringComparison.OrdinalIgnoreCase);
+        var isEmployee = string.Equals(role, "Employee", StringComparison.OrdinalIgnoreCase);
         return isEmployee
             ? RedirectToAction("Index", "Maintenance", new { area = "Company", companySlug })
             : RedirectToAction("Index", "Dashboard", new { area = "Company", companySlug });

@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Modules.Charging.Infrastructure;
 using Modules.Companies.Infrastructure;
 using Modules.Users.Infrastructure;
+using Modules.Users.Infrastructure.Seeding;
 using Modules.Users.Domain;
 using WebApp.Tests.Helpers;
 
@@ -92,8 +93,8 @@ public class CustomWebApplicationFactory<TStartup>
             {
                 var roleManager = scopedServices.GetRequiredService<RoleManager<AppRole>>();
                 var userManager = scopedServices.GetRequiredService<UserManager<AppUser>>();
-                SeedUsersModuleIdentity(roleManager, userManager);
-                DataSeeder.SeedData(db);
+                UsersIdentitySeeder.SeedIdentityAsync(userManager, roleManager).GetAwaiter().GetResult();
+                DataSeeder.SeedData(companiesDb, chargingDb, userManager);
             }
             catch (Exception ex)
             {
@@ -103,16 +104,4 @@ public class CustomWebApplicationFactory<TStartup>
         });
     }
 
-    private static void SeedUsersModuleIdentity(RoleManager<AppRole> roleManager, UserManager<AppUser> userManager)
-    {
-        var roles = new[] { "Admin", "CompanyOwner", "Customer", "MaintenancePersonnel", "root" };
-        foreach (var roleName in roles)
-        {
-            var role = roleManager.FindByNameAsync(roleName).GetAwaiter().GetResult();
-            if (role == null)
-            {
-                roleManager.CreateAsync(new AppRole { Name = roleName }).GetAwaiter().GetResult();
-            }
-        }
-    }
 }

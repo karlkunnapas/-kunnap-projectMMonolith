@@ -3,8 +3,10 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Modules.Charging.Application.DTO;
 using Modules.Charging.Infrastructure.Repositories;
+using Shared.Contracts;
 using Shared.Contracts.Charging;
 using DomainStation = Modules.Charging.Domain.ChargingStation;
+using DomainLangStr = Shared.Contracts.LangStr;
 
 namespace Modules.Charging.Infrastructure;
 
@@ -61,13 +63,12 @@ internal sealed class ChargingRepository : IChargingRepository
     {
         var stations = await _stationRepository.Query()
             .AsNoTracking()
-            .OrderBy(s => s.NameJson)
-            .ThenBy(s => s.Location)
+            .OrderBy(s => s.Location)
             .ToListAsync(ct);
 
         return stations.Select(station =>
         {
-            var names = ExtractLocalizedNames(station.NameJson);
+            var names = ExtractLocalizedNames(station.Name);
             return new AdminChargingStationDto
             {
                 StationId = station.Id,
@@ -236,13 +237,13 @@ internal sealed class ChargingRepository : IChargingRepository
         }
 
         var connectors = await query
-            .OrderBy(c => c.NameJson)
+            .OrderBy(c => c.Id)
             .ToListAsync(ct);
 
         return connectors.Select(c => new ConnectorDto
         {
             Id = c.Id,
-            Name = ExtractDisplayName(c.NameJson),
+            Name = ExtractDisplayName(c.Name),
             IsActive = c.IsActive
         }).ToList();
     }
@@ -260,7 +261,7 @@ internal sealed class ChargingRepository : IChargingRepository
         var connector = new Domain.Connector
         {
             Id = Guid.NewGuid(),
-            NameJson = BuildNameJson(nameEn, nameEt),
+            Name = BuildLangStr(nameEn, nameEt),
             IsActive = isActive
         };
 
@@ -278,7 +279,7 @@ internal sealed class ChargingRepository : IChargingRepository
             return null;
         }
 
-        connector.NameJson = BuildNameJson(nameEn, nameEt);
+        connector.Name = BuildLangStr(nameEn, nameEt);
         connector.IsActive = isActive;
         await _unitOfWork.SaveChangesAsync(ct);
         return MapConnectorType(connector);
@@ -304,7 +305,7 @@ internal sealed class ChargingRepository : IChargingRepository
         {
             Id = request.StationId ?? Guid.NewGuid(),
             CompanyId = request.CompanyId,
-            NameJson = BuildNameJson(request.NameEn, request.NameEt),
+            Name = BuildLangStr(request.NameEn, request.NameEt),
             Location = request.Location,
             Status = MapStationStatus(request.Status),
             PricePerKwh = request.PricePerKwh,
@@ -332,7 +333,7 @@ internal sealed class ChargingRepository : IChargingRepository
             return null;
         }
 
-        station.NameJson = BuildNameJson(request.NameEn, request.NameEt);
+        station.Name = BuildLangStr(request.NameEn, request.NameEt);
         station.Location = request.Location;
         station.Status = MapStationStatus(request.Status);
         station.PricePerKwh = request.PricePerKwh;
@@ -656,6 +657,17 @@ internal sealed class ChargingRepository : IChargingRepository
         return items.Select(MapMaintenance).ToList();
     }
 
+    public async Task<MaintenanceDto?> GetMaintenanceByIdAsync(Guid maintenanceId, CancellationToken ct = default)
+    {
+        var entity = await _maintenanceRepository.Query()
+            .AsNoTracking()
+            .Include(m => m.ChargingStation)
+            .Where(m => m.Id == maintenanceId)
+            .SingleOrDefaultAsync(ct);
+
+        return entity == null ? null : MapMaintenance(entity);
+    }
+
     public async Task<MaintenanceDto?> GetMaintenanceByIdForCompanyAsync(Guid maintenanceId, Guid companyId, CancellationToken ct = default)
     {
         var item = await _maintenanceRepository.Query()
@@ -734,12 +746,12 @@ internal sealed class ChargingRepository : IChargingRepository
 
     private static ChargingStationDto MapStation(Domain.ChargingStation station)
     {
-        var nameTranslations = ExtractLocalizedNames(station.NameJson);
+        var nameTranslations = ExtractLocalizedNames(station.Name);
 
         return new ChargingStationDto
         {
             Id = station.Id,
-            Name = ExtractDisplayName(station.NameJson),
+            Name = ExtractDisplayName(station.Name),
             NameTranslations = new Dictionary<string, string>
             {
                 ["en"] = nameTranslations.en,
@@ -756,7 +768,7 @@ internal sealed class ChargingRepository : IChargingRepository
                 .Select(link => new ConnectorDto
                 {
                     Id = link.ConnectorId,
-                    Name = ExtractDisplayName(link.Connector!.NameJson),
+                    Name = ExtractDisplayName(link.Connector!.Name),
                     IsActive = link.Connector!.IsActive
                 })
                 .ToList()
@@ -784,7 +796,7 @@ internal sealed class ChargingRepository : IChargingRepository
                 _ => EReservationStatus.Active
             },
             PromotionId = reservation.PromotionId,
-            StationName = ExtractDisplayName(reservation.ChargingStation?.NameJson)
+            StationName = ExtractDisplayName(reservation.ChargingStation?.Name)
         };
     }
 
@@ -801,7 +813,7 @@ internal sealed class ChargingRepository : IChargingRepository
             EndTimeUtc = session.EndTime,
             EnergyConsumed = session.EnergyConsumed,
             Cost = session.Cost,
-            StationName = ExtractDisplayName(session.ChargingStation?.NameJson),
+            StationName = ExtractDisplayName(session.ChargingStation?.Name),
             StationPricePerKwh = session.ChargingStation?.PricePerKwh ?? 0m,
             StationMaxPower = session.ChargingStation?.MaxPower,
             PromotionCode = null,
@@ -816,7 +828,7 @@ internal sealed class ChargingRepository : IChargingRepository
             Id = maintenance.Id,
             CompanyId = maintenance.ChargingStation?.CompanyId,
             ChargingStationId = maintenance.ChargingStationId,
-            StationName = ExtractDisplayName(maintenance.ChargingStation?.NameJson),
+            StationName = ExtractDisplayName(maintenance.ChargingStation?.Name),
             ReportedByUserId = maintenance.ReportedByUserId,
             IssueDescription = maintenance.IssueDescription,
             Status = maintenance.Status switch
@@ -833,7 +845,12 @@ internal sealed class ChargingRepository : IChargingRepository
         };
     }
 
-    private static string ExtractDisplayName(string? json)
+    private static string ExtractDisplayName(DomainLangStr? value)
+    {
+        return value?.Translate() ?? string.Empty;
+    }
+
+    private static string ExtractDisplayNameFromJson(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -872,7 +889,26 @@ internal sealed class ChargingRepository : IChargingRepository
         }
     }
 
-    private static (string en, string et) ExtractLocalizedNames(string? json)
+    private static (string en, string et) ExtractLocalizedNames(DomainLangStr? value)
+    {
+        if (value == null || value.Count == 0)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        value.TryGetValue("en", out var en);
+        value.TryGetValue("et", out var et);
+        en ??= string.Empty;
+        et ??= string.Empty;
+        if (string.IsNullOrWhiteSpace(en))
+        {
+            en = value.Values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? string.Empty;
+        }
+
+        return (en, et);
+    }
+
+    private static (string en, string et) ExtractLocalizedNamesFromJson(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -906,7 +942,7 @@ internal sealed class ChargingRepository : IChargingRepository
 
     private static ConnectorTypeDto MapConnectorType(Domain.Connector connector)
     {
-        var names = ExtractLocalizedNames(connector.NameJson);
+        var names = ExtractLocalizedNames(connector.Name);
         return new ConnectorTypeDto
         {
             ConnectorTypeId = connector.Id,
@@ -935,6 +971,27 @@ internal sealed class ChargingRepository : IChargingRepository
             ["en"] = en,
             ["et"] = et
         });
+    }
+
+    private static DomainLangStr BuildLangStr(string nameEn, string nameEt)
+    {
+        var en = (nameEn ?? string.Empty).Trim();
+        var et = (nameEt ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(en))
+        {
+            en = et;
+        }
+
+        if (string.IsNullOrWhiteSpace(et))
+        {
+            et = en;
+        }
+
+        return new DomainLangStr
+        {
+            ["en"] = en,
+            ["et"] = et
+        };
     }
 
     private static EStationStatus MapStationStatus(Domain.EStationStatus status)

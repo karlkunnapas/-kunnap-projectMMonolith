@@ -1,11 +1,10 @@
 using System.Security.Claims;
-using App.BLL.Services.Interfaces;
-using App.DAL.EF;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Tenancy;
+using Shared.Contracts.Users;
 using WebApp.Areas.Company.ViewModels;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -14,20 +13,20 @@ namespace WebApp.Areas.Company.Controllers;
 [Authorize]
 public class MaintenanceController : Controller
 {
-    private readonly IMaintenanceService _maintenanceService;
-    private readonly IChargingStationCompanyService _chargingStationCompanyService;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private readonly IUsersModuleApi _usersModuleApi;
     private readonly ITenantContext _tenantContext;
 
     public MaintenanceController(
-        IMaintenanceService maintenanceService,
-        IChargingStationCompanyService chargingStationCompanyService,
+        IChargingModuleApi chargingModuleApi,
         ICompaniesModuleApi companiesModuleApi,
+        IUsersModuleApi usersModuleApi,
         ITenantContext tenantContext)
     {
-        _maintenanceService = maintenanceService;
-        _chargingStationCompanyService = chargingStationCompanyService;
+        _chargingModuleApi = chargingModuleApi;
         _companiesModuleApi = companiesModuleApi;
+        _usersModuleApi = usersModuleApi;
         _tenantContext = tenantContext;
     }
 
@@ -40,18 +39,15 @@ public class MaintenanceController : Controller
             return Forbid();
         }
 
-        var result = await _maintenanceService.GetIssuesAsync(resolvedCompany.Value, includeResolved);
-        if (!result.Success)
-        {
-            return Forbid();
-        }
+        var issues = await _chargingModuleApi.GetMaintenancesByCompanyAsync(resolvedCompany.Value, includeResolved);
+        var mappedIssues = await MapIssuesAsync(issues);
 
         var model = new MaintenanceListViewModel
         {
             CompanyId = resolvedCompany.Value,
             IncludeResolved = includeResolved,
             CanAccessDashboard = await CanAccessDashboardAsync(resolvedCompany.Value),
-            Issues = result.Data?.Select(MapIssue).ToList() ?? new List<MaintenanceQueueItemViewModel>()
+            Issues = mappedIssues
         };
 
         return View(model);
@@ -79,34 +75,35 @@ public class MaintenanceController : Controller
             return Forbid();
         }
 
-        var issueResult = await _maintenanceService.GetByIdAsync(id, resolvedCompany.Value);
-        if (!issueResult.Success || issueResult.Data == null)
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, resolvedCompany.Value);
+        if (issue == null)
         {
             return Forbid();
         }
 
-        var historyResult = await _maintenanceService.GetStatusHistoryAsync(id, resolvedCompany.Value);
+        var historyResult = await _companiesModuleApi.GetAuditTrailAsync("Maintenance", id, resolvedCompany.Value);
+        var mappedIssue = await MapIssueAsync(issue);
         var model = new MaintenanceDetailsViewModel
         {
             CompanyId = resolvedCompany.Value,
-            Id = issueResult.Data.Id,
-            StationId = issueResult.Data.StationId,
-            StationName = issueResult.Data.StationName,
-            IssueDescription = issueResult.Data.IssueDescription,
-            Status = issueResult.Data.Status,
-            ReportedAtUtc = issueResult.Data.ReportedAtUtc,
-            ResolvedAtUtc = issueResult.Data.ResolvedAtUtc,
-            AssignedToUserId = issueResult.Data.AssignedToUserId,
-            AssignedToUserName = issueResult.Data.AssignedToUserName,
-            ReporterUserName = issueResult.Data.ReporterUserName,
-            Notes = issueResult.Data.Notes,
-            StatusHistory = historyResult.Data?.Select(item => new MaintenanceStatusHistoryViewModel
+            Id = mappedIssue.Id,
+            StationId = mappedIssue.StationId,
+            StationName = mappedIssue.StationName,
+            IssueDescription = mappedIssue.IssueDescription,
+            Status = mappedIssue.Status,
+            ReportedAtUtc = mappedIssue.ReportedAtUtc,
+            ResolvedAtUtc = mappedIssue.ResolvedAtUtc,
+            AssignedToUserId = mappedIssue.AssignedToUserId,
+            AssignedToUserName = mappedIssue.AssignedToUserName,
+            ReporterUserName = mappedIssue.ReporterUserName,
+            Notes = mappedIssue.Notes,
+            StatusHistory = historyResult.Entries.Select(item => new MaintenanceStatusHistoryViewModel
             {
                 AtUtc = item.AtUtc,
                 Action = item.Action,
-                Actor = item.Actor,
-                Changes = item.Changes
-            }).ToList() ?? new List<MaintenanceStatusHistoryViewModel>()
+                Actor = item.UserName,
+                Changes = item.ChangesJson ?? string.Empty
+            }).ToList()
         };
 
         return View(model);
@@ -128,10 +125,31 @@ public class MaintenanceController : Controller
             return Forbid();
         }
 
-        var result = await _maintenanceService.UpdateStatusAsync(id, resolvedCompany.Value, userId.Value, status, notes);
-        if (!result.Success)
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, resolvedCompany.Value);
+        if (issue == null)
         {
             return Forbid();
+        }
+
+        var actorUserName = await _usersModuleApi.GetUserDisplayNameAsync(userId.Value) ?? userId.Value.ToString();
+        var updated = await _chargingModuleApi.UpdateMaintenanceStatusAsync(
+            id,
+            status,
+            notes,
+            status == EMaintenanceStatus.Resolved ? DateTime.UtcNow : null,
+            actorUserName: actorUserName);
+        if (!updated)
+        {
+            return Forbid();
+        }
+
+        if (status == EMaintenanceStatus.InProgress)
+        {
+            await _chargingModuleApi.UpdateStationStatusAsync(issue.ChargingStationId, EStationStatus.Maintenance);
+        }
+        else if (status == EMaintenanceStatus.Resolved)
+        {
+            await _chargingModuleApi.UpdateStationStatusAsync(issue.ChargingStationId, EStationStatus.Available);
         }
 
         return RedirectToAction(nameof(Details), new { id, companyId = resolvedCompany.Value });
@@ -153,27 +171,20 @@ public class MaintenanceController : Controller
             return Forbid();
         }
 
-        var result = await _maintenanceService.AssignAsync(id, resolvedCompany.Value, userId.Value, assignedToUserId);
-        if (!result.Success)
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, resolvedCompany.Value);
+        if (issue == null)
+        {
+            return Forbid();
+        }
+
+        var actorUserName = await _usersModuleApi.GetUserDisplayNameAsync(userId.Value) ?? userId.Value.ToString();
+        var assigned = await _chargingModuleApi.AssignMaintenanceAsync(id, assignedToUserId, actorUserName: actorUserName);
+        if (!assigned)
         {
             return Forbid();
         }
 
         return RedirectToAction(nameof(Details), new { id, companyId = resolvedCompany.Value });
-    }
-
-    private async Task PopulateStationSelectListAsync(Guid companyId, Guid? selectedStationId)
-    {
-        var stationsResult = await _chargingStationCompanyService.GetCompanyStationsAsync(companyId);
-        var items = stationsResult.Data?
-                        .Select(station => new SelectListItem
-                        {
-                            Value = station.Id.ToString(),
-                            Text = $"{station.Name} ({station.Location})"
-                        })
-                        .ToList() ?? new List<SelectListItem>();
-
-        ViewBag.StationOptions = new SelectList(items, "Value", "Text", selectedStationId?.ToString());
     }
 
     private async Task<Guid?> ResolveCompanyAsync(Guid? requestedCompanyId)
@@ -222,24 +233,53 @@ public class MaintenanceController : Controller
             return false;
         }
 
-        return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= ECompanyRole.Manager;
+        return IsAtLeastManagerRole(membership.Role);
     }
 
-    private static MaintenanceQueueItemViewModel MapIssue(App.BLL.DTOs.MaintenanceIssueDto issue)
+    private async Task<List<MaintenanceQueueItemViewModel>> MapIssuesAsync(IReadOnlyCollection<MaintenanceContract> issues)
     {
+        var mapped = new List<MaintenanceQueueItemViewModel>(issues.Count);
+        foreach (var issue in issues)
+        {
+            mapped.Add(await MapIssueAsync(issue));
+        }
+
+        return mapped;
+    }
+
+    private async Task<MaintenanceQueueItemViewModel> MapIssueAsync(MaintenanceContract issue)
+    {
+        var reporterUserName = await ResolveUserDisplayNameAsync(issue.ReportedByUserId);
+        var assignedUserName = await ResolveUserDisplayNameAsync(issue.AssignedToUserId);
         return new MaintenanceQueueItemViewModel
         {
             Id = issue.Id,
-            StationId = issue.StationId,
+            StationId = issue.ChargingStationId,
             StationName = issue.StationName,
             IssueDescription = issue.IssueDescription,
             Status = issue.Status,
             ReportedAtUtc = issue.ReportedAtUtc,
             ResolvedAtUtc = issue.ResolvedAtUtc,
             AssignedToUserId = issue.AssignedToUserId,
-            AssignedToUserName = issue.AssignedToUserName,
-            ReporterUserName = issue.ReporterUserName,
+            AssignedToUserName = assignedUserName ?? string.Empty,
+            ReporterUserName = reporterUserName ?? string.Empty,
             Notes = issue.Notes
         };
+    }
+
+    private async Task<string?> ResolveUserDisplayNameAsync(Guid? userId)
+    {
+        if (userId == null || userId == Guid.Empty)
+        {
+            return null;
+        }
+
+        return await _usersModuleApi.GetUserDisplayNameAsync(userId.Value);
+    }
+
+    private static bool IsAtLeastManagerRole(string? role)
+    {
+        return string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase);
     }
 }

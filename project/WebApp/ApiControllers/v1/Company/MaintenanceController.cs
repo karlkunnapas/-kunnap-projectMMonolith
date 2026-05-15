@@ -1,15 +1,13 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
-using App.Domain;
 using App.DTO.v1.Company;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Users;
 using WebApp.Helpers;
-using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1.Company;
 
@@ -21,13 +19,18 @@ namespace WebApp.ApiControllers.v1.Company;
 [Consumes("application/json")]
 public class MaintenanceController : ControllerBase
 {
-    private readonly IMaintenanceService _maintenanceService;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private readonly IUsersModuleApi _usersModuleApi;
 
-    public MaintenanceController(IMaintenanceService maintenanceService, ICompaniesModuleApi companiesModuleApi)
+    public MaintenanceController(
+        IChargingModuleApi chargingModuleApi,
+        ICompaniesModuleApi companiesModuleApi,
+        IUsersModuleApi usersModuleApi)
     {
-        _maintenanceService = maintenanceService;
+        _chargingModuleApi = chargingModuleApi;
         _companiesModuleApi = companiesModuleApi;
+        _usersModuleApi = usersModuleApi;
     }
 
     /// <summary>
@@ -40,18 +43,19 @@ public class MaintenanceController : ControllerBase
     public async Task<ActionResult<List<MaintenanceIssueResponse>>> GetIssues(Guid companyId, [FromQuery] bool includeResolved = true)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId, ECompanyRole.Employee))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Employee"))
         {
             return Forbid();
         }
 
-        var result = await _maintenanceService.GetIssuesAsync(companyId, includeResolved);
-        if (!result.Success)
+        var issues = await _chargingModuleApi.GetMaintenancesByCompanyAsync(companyId, includeResolved);
+        var response = new List<MaintenanceIssueResponse>(issues.Count);
+        foreach (var issue in issues)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            response.Add(await ToMaintenanceIssueResponseAsync(issue));
         }
 
-        return Ok(result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<MaintenanceIssueResponse>());
+        return Ok(response);
     }
 
     /// <summary>
@@ -64,23 +68,18 @@ public class MaintenanceController : ControllerBase
     public async Task<ActionResult<MaintenanceIssueResponse>> GetIssue(Guid companyId, Guid id)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId, ECompanyRole.Employee))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Employee"))
         {
             return Forbid();
         }
 
-        var result = await _maintenanceService.GetByIdAsync(id, companyId);
-        if (HasForbidden(result.Errors))
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
+        if (issue == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Maintenance issue not found."));
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return Ok(await ToMaintenanceIssueResponseAsync(issue));
     }
 
     /// <summary>
@@ -93,24 +92,27 @@ public class MaintenanceController : ControllerBase
     public async Task<ActionResult<List<MaintenanceStatusHistoryResponse>>> GetIssueHistory(Guid companyId, Guid id)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId, ECompanyRole.Employee))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Employee"))
         {
             return Forbid();
         }
 
-        var result = await _maintenanceService.GetStatusHistoryAsync(id, companyId);
-        if (HasForbidden(result.Errors))
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
+        if (issue == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Maintenance issue not found."));
         }
 
-        if (!result.Success)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        var response = result.Data?.Select(ApiDtoFactory.CreateDto).ToList() ?? new List<MaintenanceStatusHistoryResponse>();
-
+        var trail = await _companiesModuleApi.GetAuditTrailAsync("Maintenance", id, companyId);
+        var response = trail.Entries
+            .Select(e => new MaintenanceStatusHistoryResponse
+            {
+                AtUtc = e.AtUtc,
+                Action = e.Action,
+                Actor = e.UserName,
+                Changes = e.ChangesJson ?? string.Empty
+            })
+            .ToList();
         return Ok(response);
     }
 
@@ -124,7 +126,7 @@ public class MaintenanceController : ControllerBase
     public async Task<ActionResult<MaintenanceIssueResponse>> UpdateIssueStatus(Guid companyId, Guid id, [FromBody] MaintenanceStatusUpdate request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId, ECompanyRole.Manager))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Employee"))
         {
             return Forbid();
         }
@@ -134,18 +136,33 @@ public class MaintenanceController : ControllerBase
             return BadRequest(new Message("Invalid maintenance status."));
         }
 
-        var result = await _maintenanceService.UpdateStatusAsync(id, companyId, userId, (EMaintenanceStatus)request.Status, request.Notes);
-        if (HasForbidden(result.Errors))
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
+        if (issue == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Maintenance issue not found."));
         }
 
-        if (!result.Success || result.Data == null)
+        var targetStatus = (EMaintenanceStatus)request.Status;
+        DateTime? resolvedAtUtc = targetStatus == EMaintenanceStatus.Resolved ? DateTime.UtcNow : null;
+        var actorUserName = User.Identity?.Name ?? userId.ToString();
+        var updated = await _chargingModuleApi.UpdateMaintenanceStatusAsync(id, targetStatus, request.Notes, resolvedAtUtc, actorUserName: actorUserName);
+        if (!updated)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message("Unable to update maintenance issue."));
         }
 
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        var stationStatus = targetStatus == EMaintenanceStatus.Resolved
+            ? EStationStatus.Available
+            : EStationStatus.Maintenance;
+        await _chargingModuleApi.UpdateStationStatusAsync(issue.ChargingStationId, stationStatus);
+
+        var refreshed = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
+        if (refreshed == null)
+        {
+            return BadRequest(new Message("Maintenance issue not found."));
+        }
+
+        return Ok(await ToMaintenanceIssueResponseAsync(refreshed));
     }
 
     /// <summary>
@@ -158,39 +175,55 @@ public class MaintenanceController : ControllerBase
     public async Task<ActionResult<MaintenanceIssueResponse>> AssignIssue(Guid companyId, Guid id, [FromBody] MaintenanceAssignment request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId, ECompanyRole.Employee))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Employee"))
         {
             return Forbid();
         }
 
-        var result = await _maintenanceService.AssignAsync(id, companyId, userId, request.AssignedToUserId);
-        if (HasForbidden(result.Errors))
+        var issue = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
+        if (issue == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Maintenance issue not found."));
         }
 
-        if (!result.Success || result.Data == null)
+        var actorUserName = User.Identity?.Name ?? userId.ToString();
+        var assigned = await _chargingModuleApi.AssignMaintenanceAsync(id, request.AssignedToUserId, actorUserName: actorUserName);
+        if (!assigned)
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message("Unable to assign maintenance issue."));
         }
 
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        var refreshed = await _chargingModuleApi.GetMaintenanceByIdForCompanyAsync(id, companyId);
+        if (refreshed == null)
+        {
+            return BadRequest(new Message("Maintenance issue not found."));
+        }
+
+        return Ok(await ToMaintenanceIssueResponseAsync(refreshed));
     }
 
-    private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole)
+    private async Task<MaintenanceIssueResponse> ToMaintenanceIssueResponseAsync(MaintenanceContract issue)
     {
-        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(companyId);
-        var membership = memberships.FirstOrDefault(m => m.UserId == userId && m.IsActive);
-        if (membership == null)
+        var assignedName = issue.AssignedToUserId.HasValue
+            ? await _usersModuleApi.GetUserDisplayNameAsync(issue.AssignedToUserId.Value) ?? string.Empty
+            : string.Empty;
+        var reporterName = issue.ReportedByUserId.HasValue
+            ? await _usersModuleApi.GetUserDisplayNameAsync(issue.ReportedByUserId.Value) ?? string.Empty
+            : string.Empty;
+
+        return new MaintenanceIssueResponse
         {
-            return false;
-        }
-
-        return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= minRole;
-    }
-
-    private static bool HasForbidden(IEnumerable<ServiceError> errors)
-    {
-        return errors.Any(e => e.Code == "FORBIDDEN");
+            Id = issue.Id,
+            StationId = issue.ChargingStationId,
+            StationName = issue.StationName,
+            IssueDescription = issue.IssueDescription,
+            Status = issue.Status.ToString(),
+            ReportedAtUtc = issue.ReportedAtUtc,
+            ResolvedAtUtc = issue.ResolvedAtUtc,
+            AssignedToUserId = issue.AssignedToUserId,
+            AssignedToUserName = assignedName,
+            ReporterUserName = reporterName,
+            Notes = issue.Notes
+        };
     }
 }

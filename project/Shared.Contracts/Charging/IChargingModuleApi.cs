@@ -61,8 +61,8 @@ public interface IChargingModuleApi
 
     Task<IReadOnlyCollection<MaintenanceContract>> GetMaintenancesByCompanyAsync(Guid companyId, bool includeResolved, CancellationToken ct = default);
     Task<MaintenanceContract?> GetMaintenanceByIdForCompanyAsync(Guid maintenanceId, Guid companyId, CancellationToken ct = default);
-    Task<MaintenanceContract> CreateMaintenanceAsync(MaintenanceContract maintenance, CancellationToken ct = default);
-    Task<bool> UpdateMaintenanceStatusAsync(Guid maintenanceId, EMaintenanceStatus status, string? notes, DateTime? resolvedAtUtc, CancellationToken ct = default);
-    Task<bool> AssignMaintenanceAsync(Guid maintenanceId, Guid? assignedToUserId, CancellationToken ct = default);
+    Task<MaintenanceContract> CreateMaintenanceAsync(MaintenanceContract maintenance, CancellationToken ct = default, string? actorUserName = null);
+    Task<bool> UpdateMaintenanceStatusAsync(Guid maintenanceId, EMaintenanceStatus status, string? notes, DateTime? resolvedAtUtc, CancellationToken ct = default, string? actorUserName = null);
+    Task<bool> AssignMaintenanceAsync(Guid maintenanceId, Guid? assignedToUserId, CancellationToken ct = default, string? actorUserName = null);
     Task<bool> UpdateStationStatusAsync(Guid stationId, EStationStatus status, CancellationToken ct = default);
 }

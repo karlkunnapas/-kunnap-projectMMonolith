@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using App.BLL.Services.Interfaces;
-using App.DAL.EF;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Tenancy;
 using WebApp.ViewModels;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -13,16 +11,13 @@ namespace WebApp.Areas.Company.Controllers;
 [Authorize]
 public class AuditController : Controller
 {
-    private readonly IAuditService _auditService;
     private readonly ICompaniesModuleApi _companiesModuleApi;
     private readonly ITenantContext _tenantContext;
 
     public AuditController(
-        IAuditService auditService,
         ICompaniesModuleApi companiesModuleApi,
         ITenantContext tenantContext)
     {
-        _auditService = auditService;
         _companiesModuleApi = companiesModuleApi;
         _tenantContext = tenantContext;
     }
@@ -52,16 +47,12 @@ public class AuditController : Controller
         var normalizedEntityName = string.IsNullOrWhiteSpace(entityName) ? null : entityName.Trim();
         var normalizedActionFilter = string.IsNullOrWhiteSpace(actionFilter) ? null : actionFilter.Trim();
 
-        var result = await _auditService.GetCompanyAuditAsync(
+        var entries = await _companiesModuleApi.GetCompanyAuditAsync(
             resolvedCompanyId.Value,
             normalizedFromUtc,
             normalizedToUtc,
             normalizedEntityName,
             normalizedActionFilter);
-        if (!result.Success)
-        {
-            return Forbid();
-        }
 
         var model = new CompanyAuditViewModel
         {
@@ -70,7 +61,7 @@ public class AuditController : Controller
             ToUtc = normalizedToUtc,
             EntityName = normalizedEntityName,
             Action = normalizedActionFilter,
-            Entries = result.Data?.Select(e => new AuditEntryViewModel
+            Entries = entries.Select(e => new AuditEntryViewModel
             {
                 Id = e.Id,
                 Action = e.Action,
@@ -95,9 +86,15 @@ public class AuditController : Controller
 
         var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
         return memberships
-            .Where(m => Enum.TryParse<ECompanyRole>(m.Role, true, out var role) && role >= ECompanyRole.Manager)
+            .Where(m => HasManagerAccess(m.Role))
             .Select(m => m.CompanyId)
             .ToList();
+    }
+
+    private static bool HasManagerAccess(string role)
+    {
+        return role.Equals("Manager", StringComparison.OrdinalIgnoreCase)
+               || role.Equals("Owner", StringComparison.OrdinalIgnoreCase);
     }
 
     private static DateTime? NormalizeToUtc(DateTime? value)

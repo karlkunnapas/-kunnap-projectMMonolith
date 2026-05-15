@@ -1,36 +1,48 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Companies;
 
 namespace WebApp.Areas.Admin.Controllers;
 
 [Area("Admin")]
 [Authorize(Roles = "Admin,root,SystemAdmin")]
 [Route("Admin/[controller]")]
-public class PromotionsController(IAdminPanelService adminPanelService) : Controller
+public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Controller
 {
     [HttpGet("")]
     [HttpGet("Index")]
     public async Task<IActionResult> Index(bool showExpired = false)
     {
-        var result = await adminPanelService.GetSystemPromotionsAsync();
-        if (!result.Success || result.Data == null)
+        var systemItems = (await companiesModuleApi.GetSystemPromotionsAsync())
+            .Select(p => new AdminPromotionListItemViewModel
         {
-            return RedirectToAction("Dashboard", "Dashboard");
-        }
-
-        var items = result.Data.Items.Select(p => new AdminPromotionListItemViewModel
-        {
-            PromotionId = p.PromotionId,
+            PromotionId = p.Id,
             Code = p.Code,
             DiscountValue = p.DiscountValue,
             ValidFromUtc = p.ValidFromUtc,
             ValidToUtc = p.ValidToUtc,
             IsActive = p.IsActive,
-            CompanyName = p.CompanyName,
-            IsSystemLevel = p.IsSystemLevel
+            CompanyName = "System Level",
+            IsSystemLevel = true
         }).ToList();
+        var companyItems = new List<AdminPromotionListItemViewModel>();
+        var companies = await companiesModuleApi.GetCompaniesForAdminAsync();
+        foreach (var company in companies)
+        {
+            var companyPromotions = await companiesModuleApi.GetCompanyPromotionsAsync(company.CompanyId);
+            companyItems.AddRange(companyPromotions.Select(p => new AdminPromotionListItemViewModel
+            {
+                PromotionId = p.Id,
+                Code = p.Code,
+                DiscountValue = p.DiscountValue,
+                ValidFromUtc = p.ValidFromUtc,
+                ValidToUtc = p.ValidToUtc,
+                IsActive = p.IsActive,
+                CompanyName = company.CompanyName,
+                IsSystemLevel = false
+            }));
+        }
+        var items = systemItems.Concat(companyItems).ToList();
 
         if (!showExpired)
         {
@@ -65,7 +77,23 @@ public class PromotionsController(IAdminPanelService adminPanelService) : Contro
         }
 
         var userName = User.Identity?.Name ?? "Unknown";
-        var dto = new AdminPromotionFormDto
+        if (string.IsNullOrWhiteSpace(model.Code))
+        {
+            ModelState.AddModelError("", "Promotion code is required.");
+            return View("Form", model);
+        }
+        if (model.DiscountValue <= 0)
+        {
+            ModelState.AddModelError("", "Discount value must be positive.");
+            return View("Form", model);
+        }
+        if (model.ValidFromUtc >= model.ValidToUtc)
+        {
+            ModelState.AddModelError("", "Valid from date must be before valid to date.");
+            return View("Form", model);
+        }
+
+        var dto = new UpsertCompanyPromotionContract
         {
             Code = model.Code,
             DiscountValue = model.DiscountValue,
@@ -74,10 +102,10 @@ public class PromotionsController(IAdminPanelService adminPanelService) : Contro
             IsActive = model.IsActive
         };
 
-        var result = await adminPanelService.CreateSystemPromotionAsync(dto, userName);
-        if (!result.Success)
+        var result = await companiesModuleApi.CreateSystemPromotionAsync(dto);
+        if (!result.Success || result.Promotion == null)
         {
-            ModelState.AddModelError("", result.Errors.FirstOrDefault()?.Message ?? "Failed to create promotion.");
+            ModelState.AddModelError("", result.ErrorMessage ?? "Failed to create promotion.");
             return View("Form", model);
         }
 
@@ -88,20 +116,20 @@ public class PromotionsController(IAdminPanelService adminPanelService) : Contro
     [HttpGet("Edit/{id}")]
     public async Task<IActionResult> Edit(Guid id)
     {
-        var result = await adminPanelService.GetSystemPromotionAsync(id);
-        if (!result.Success || result.Data == null)
+        var promotion = await companiesModuleApi.GetSystemPromotionAsync(id);
+        if (promotion == null)
         {
             return NotFound();
         }
 
         var model = new AdminPromotionFormViewModel
         {
-            PromotionId = result.Data.PromotionId,
-            Code = result.Data.Code,
-            DiscountValue = result.Data.DiscountValue,
-            ValidFromUtc = result.Data.ValidFromUtc,
-            ValidToUtc = result.Data.ValidToUtc,
-            IsActive = result.Data.IsActive
+            PromotionId = promotion.Id,
+            Code = promotion.Code,
+            DiscountValue = promotion.DiscountValue,
+            ValidFromUtc = promotion.ValidFromUtc,
+            ValidToUtc = promotion.ValidToUtc,
+            IsActive = promotion.IsActive
         };
 
         return View("Form", model);
@@ -116,10 +144,24 @@ public class PromotionsController(IAdminPanelService adminPanelService) : Contro
             return View("Form", model);
         }
 
-        var userName = User.Identity?.Name ?? "Unknown";
-        var dto = new AdminPromotionFormDto
+        if (string.IsNullOrWhiteSpace(model.Code))
         {
-            PromotionId = id,
+            ModelState.AddModelError("", "Promotion code is required.");
+            return View("Form", model);
+        }
+        if (model.DiscountValue <= 0)
+        {
+            ModelState.AddModelError("", "Discount value must be positive.");
+            return View("Form", model);
+        }
+        if (model.ValidFromUtc >= model.ValidToUtc)
+        {
+            ModelState.AddModelError("", "Valid from date must be before valid to date.");
+            return View("Form", model);
+        }
+
+        var dto = new UpsertCompanyPromotionContract
+        {
             Code = model.Code,
             DiscountValue = model.DiscountValue,
             ValidFromUtc = model.ValidFromUtc,
@@ -127,10 +169,10 @@ public class PromotionsController(IAdminPanelService adminPanelService) : Contro
             IsActive = model.IsActive
         };
 
-        var result = await adminPanelService.UpdateSystemPromotionAsync(id, dto, userName);
-        if (!result.Success)
+        var result = await companiesModuleApi.UpdateSystemPromotionAsync(id, dto);
+        if (!result.Success || result.Promotion == null)
         {
-            ModelState.AddModelError("", result.Errors.FirstOrDefault()?.Message ?? "Failed to update promotion.");
+            ModelState.AddModelError("", result.ErrorMessage ?? "Failed to update promotion.");
             return View("Form", model);
         }
 
@@ -142,11 +184,10 @@ public class PromotionsController(IAdminPanelService adminPanelService) : Contro
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userName = User.Identity?.Name ?? "Unknown";
-        var result = await adminPanelService.DeleteSystemPromotionAsync(id, userName);
-        if (!result.Success)
+        var deleted = await companiesModuleApi.DeleteSystemPromotionAsync(id);
+        if (!deleted)
         {
-            TempData["ErrorMessage"] = result.Errors.FirstOrDefault()?.Message ?? "Failed to delete promotion.";
+            TempData["ErrorMessage"] = "Failed to delete promotion.";
             return RedirectToAction("Index");
         }
 

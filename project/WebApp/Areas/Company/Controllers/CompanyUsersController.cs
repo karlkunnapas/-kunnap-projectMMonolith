@@ -1,12 +1,9 @@
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
-using App.DAL.EF;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Companies;
+using Shared.Contracts.Tenancy;
+using Shared.Contracts.Users;
 using WebApp.Areas.Company.ViewModels;
 
 namespace WebApp.Areas.Company.Controllers;
@@ -15,17 +12,17 @@ namespace WebApp.Areas.Company.Controllers;
 [Authorize(Roles = "CompanyOwner")]
 public class CompanyUsersController : Controller
 {
-    private readonly IIdentityService _identityService;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private readonly IUsersModuleApi _usersModuleApi;
     private readonly ITenantContext _tenantContext;
 
     public CompanyUsersController(
-        IIdentityService identityService,
         ICompaniesModuleApi companiesModuleApi,
+        IUsersModuleApi usersModuleApi,
         ITenantContext tenantContext)
     {
-        _identityService = identityService;
         _companiesModuleApi = companiesModuleApi;
+        _usersModuleApi = usersModuleApi;
         _tenantContext = tenantContext;
     }
 
@@ -39,24 +36,31 @@ public class CompanyUsersController : Controller
             return Forbid();
         }
 
-        var result = await _identityService.GetCompanyUsersAsync(resolvedCompany.Value, ownerUserId.Value);
-        if (!result.Success)
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(resolvedCompany.Value, ownerUserId.Value, "Owner"))
         {
             return Forbid();
+        }
+
+        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(resolvedCompany.Value);
+        var users = new List<CompanyUserItemViewModel>();
+        foreach (var membership in memberships.Where(m => m.IsActive))
+        {
+            var profile = await _usersModuleApi.GetUserProfileAsync(membership.UserId);
+            users.Add(new CompanyUserItemViewModel
+            {
+                MembershipId = membership.MembershipId,
+                UserId = membership.UserId,
+                Email = profile?.Email ?? string.Empty,
+                Role = NormalizeRole(membership.Role),
+                IsActive = membership.IsActive,
+                JoinedAtUtc = membership.JoinedAtUtc
+            });
         }
 
         return View(new CompanyUserListViewModel
         {
             CompanyId = resolvedCompany.Value,
-            Users = result.Data?.Select(user => new CompanyUserItemViewModel
-            {
-                MembershipId = user.MembershipId,
-                UserId = user.UserId,
-                Email = user.Email,
-                Role = user.Role,
-                IsActive = user.IsActive,
-                JoinedAtUtc = user.JoinedAtUtc
-            }).Where(user => user.IsActive).ToList() ?? new List<CompanyUserItemViewModel>()
+            Users = users
         });
     }
 
@@ -73,7 +77,7 @@ public class CompanyUsersController : Controller
         {
             CompanyId = resolvedCompany.Value,
             ReturnUrl = returnUrl,
-            Role = ECompanyRole.Employee
+            Role = 2
         });
     }
 
@@ -94,30 +98,33 @@ public class CompanyUsersController : Controller
             return View(model);
         }
 
-        var result = await _identityService.AddUserToCompanyAsync(
-            resolvedCompany.Value,
-            ownerUserId.Value,
-            User.Identity?.Name ?? ownerUserId.Value.ToString(),
-            BllDtoFactory.CreateAddCompanyUserRequestDto(
-                model.Email,
-                model.Role,
-                model.FirstName,
-                model.LastName,
-                model.PhoneNumber,
-                model.Password,
-                model.ConfirmPassword));
-
-        if (!result.Success || result.Data == null)
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(resolvedCompany.Value, ownerUserId.Value, "Owner"))
         {
-            if (result.Errors.Any(error => error.Code is "NOT_OWNER" or "FORBIDDEN"))
+            return Forbid();
+        }
+
+        var postedRole = Request.HasFormContentType ? Request.Form["Role"].FirstOrDefault() : null;
+        var normalizedRole = NormalizeRole(postedRole) ?? ToContractRole(model.Role);
+
+        var result = await _companiesModuleApi.AddCompanyUserAsync(new AddCompanyUserContract
+        {
+            CompanyId = resolvedCompany.Value,
+            Email = model.Email,
+            FirstName = model.FirstName,
+            LastName = model.LastName,
+            PhoneNumber = model.PhoneNumber,
+            Password = model.Password,
+            Role = normalizedRole
+        });
+
+        if (!result.Success)
+        {
+            if (result.ErrorCode is "NOT_OWNER" or "FORBIDDEN")
             {
                 return Forbid();
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Unable to add company user.");
 
             model.CompanyId = resolvedCompany.Value;
             return View(model);
@@ -125,17 +132,27 @@ public class CompanyUsersController : Controller
 
         TempData["AddResult"] = System.Text.Json.JsonSerializer.Serialize(new AddCompanyUserResultViewModel
         {
-            CompanyId = result.Data.CompanyId,
-            MembershipId = result.Data.MembershipId,
-            UserId = result.Data.UserId,
-            Email = result.Data.Email,
-            Role = result.Data.Role,
-            IsExistingUser = result.Data.IsExistingUser,
-            MembershipReactivated = result.Data.MembershipReactivated,
-            MembershipAlreadyActive = result.Data.MembershipAlreadyActive,
-            AccessStatus = result.Data.AccessStatus,
-            NextAction = result.Data.NextAction
+            CompanyId = resolvedCompany.Value,
+            MembershipId = result.MembershipId,
+            UserId = result.UserId,
+            Email = result.Email,
+            Role = NormalizeRole(result.Role),
+            IsExistingUser = result.IsExistingUser,
+            MembershipReactivated = false,
+            MembershipAlreadyActive = false,
+            AccessStatus = result.AccessStatus,
+            NextAction = result.NextAction
         });
+
+        if (result.IsExistingUser)
+        {
+            await _companiesModuleApi.LogAuditMutationAsync(
+                resolvedCompany.Value,
+                User.Identity?.Name ?? ownerUserId.Value.ToString(),
+                "AppUserCompany",
+                result.MembershipId,
+                "ExistingUserLinked");
+        }
 
         return RedirectToAction(nameof(AddResult), new { companyId = resolvedCompany.Value });
     }
@@ -174,23 +191,26 @@ public class CompanyUsersController : Controller
             return Forbid();
         }
 
-        var membershipResult = await _identityService.GetCompanyUserMembershipAsync(
-            resolvedCompany.Value,
-            ownerUserId.Value,
-            membershipId);
-
-        if (!membershipResult.Success || membershipResult.Data == null)
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(resolvedCompany.Value, ownerUserId.Value, "Owner"))
         {
-            return membershipResult.Errors.Any(e => e.Code is "NOT_OWNER" or "FORBIDDEN") ? Forbid() : NotFound();
+            return Forbid();
         }
+
+        var membership = await _companiesModuleApi.GetCompanyMembershipAsync(resolvedCompany.Value, membershipId);
+        if (membership == null)
+        {
+            return NotFound();
+        }
+
+        var profile = await _usersModuleApi.GetUserProfileAsync(membership.UserId);
 
         return View(new EditCompanyUserRoleViewModel
         {
             CompanyId = resolvedCompany.Value,
-            MembershipId = membershipResult.Data.MembershipId,
-            UserId = membershipResult.Data.UserId,
-            Email = membershipResult.Data.Email,
-            Role = membershipResult.Data.Role
+            MembershipId = membership.MembershipId,
+            UserId = membership.UserId,
+            Email = profile?.Email ?? string.Empty,
+            Role = ParseRoleOrDefault(membership.Role)
         });
     }
 
@@ -211,25 +231,27 @@ public class CompanyUsersController : Controller
             return View(model);
         }
 
-        var result = await _identityService.UpdateCompanyUserRoleAsync(
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(resolvedCompany.Value, ownerUserId.Value, "Owner"))
+        {
+            return Forbid();
+        }
+
+        var postedRole = Request.HasFormContentType ? Request.Form["Role"].FirstOrDefault() : null;
+        var normalizedRole = NormalizeRole(postedRole) ?? ToContractRole(model.Role);
+
+        var result = await _companiesModuleApi.UpdateCompanyMembershipRoleWithGuardsAsync(
             resolvedCompany.Value,
-            ownerUserId.Value,
-            User.Identity?.Name ?? ownerUserId.Value.ToString(),
             model.MembershipId,
-            BllDtoFactory.CreateUpdateCompanyUserRoleRequestDto(model.Role));
+            normalizedRole);
 
         if (!result.Success)
         {
-            if (result.Errors.Any(e => e.Code is "NOT_OWNER" or "FORBIDDEN"))
+            if (result.ErrorCode is "NOT_OWNER" or "FORBIDDEN")
             {
                 return Forbid();
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
-
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Unable to update company user role.");
             return View(model);
         }
 
@@ -247,23 +269,25 @@ public class CompanyUsersController : Controller
             return Forbid();
         }
 
-        var result = await _identityService.RemoveCompanyUserAsync(
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(resolvedCompany.Value, ownerUserId.Value, "Owner"))
+        {
+            return Forbid();
+        }
+
+        var result = await _companiesModuleApi.DeactivateCompanyMembershipWithGuardsAsync(
             resolvedCompany.Value,
-            ownerUserId.Value,
-            User.Identity?.Name ?? ownerUserId.Value.ToString(),
             membershipId);
 
         if (!result.Success)
         {
-            if (result.Errors.Any(e => e.Code is "NOT_OWNER" or "FORBIDDEN"))
+            if (result.ErrorCode is "NOT_OWNER" or "FORBIDDEN")
             {
                 return Forbid();
             }
 
-            var firstError = result.Errors.FirstOrDefault();
-            if (firstError != null)
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
             {
-                TempData["CompanyUsersError"] = firstError.Message;
+                TempData["CompanyUsersError"] = result.ErrorMessage;
             }
         }
 
@@ -292,7 +316,7 @@ public class CompanyUsersController : Controller
 
         var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId.Value);
         return memberships
-            .Where(m => string.Equals(m.Role, ECompanyRole.Owner.ToString(), StringComparison.OrdinalIgnoreCase))
+            .Where(m => string.Equals(m.Role, "Owner", StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(m => m.MembershipId)
             .Select(m => m.CompanyId)
             .ToList();
@@ -302,5 +326,53 @@ public class CompanyUsersController : Controller
     {
         var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdValue, out var userId) ? userId : null;
+    }
+
+    private static int ParseRoleOrDefault(string role)
+    {
+        return role.Trim().ToLowerInvariant() switch
+        {
+            "owner" => 0,
+            "manager" => 1,
+            _ => 2
+        };
+    }
+
+    private static string ToContractRole(int role)
+    {
+        return role switch
+        {
+            0 => "Owner",
+            1 => "Manager",
+            _ => "Employee"
+        };
+    }
+
+    private static string? NormalizeRole(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return null;
+        }
+
+        var normalized = role.Trim();
+        if (int.TryParse(normalized, out var roleInt))
+        {
+            return roleInt switch
+            {
+                0 => "Owner",
+                1 => "Manager",
+                2 => "Employee",
+                _ => null
+            };
+        }
+
+        return normalized.ToLowerInvariant() switch
+        {
+            "owner" => "Owner",
+            "manager" => "Manager",
+            "employee" => "Employee",
+            _ => null
+        };
     }
 }

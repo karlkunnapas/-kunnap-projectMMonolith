@@ -50,6 +50,11 @@ public abstract class CompanyBaseController : Controller
         return EnumParser.ParseCompanyRole(role) >= WebAppClient.Enums.ECompanyRole.Manager;
     }
 
+    protected bool HasEmployeeAccess(string role)
+    {
+        return EnumParser.ParseCompanyRole(role) >= WebAppClient.Enums.ECompanyRole.Employee;
+    }
+
     protected bool HasOwnerAccess(string role)
     {
         return EnumParser.ParseCompanyRole(role) == WebAppClient.Enums.ECompanyRole.Owner;

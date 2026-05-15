@@ -1,8 +1,4 @@
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Companies;
@@ -14,12 +10,10 @@ namespace WebApp.Areas.Company.Controllers;
 [Authorize]
 public class PromotionController : Controller
 {
-    private readonly IPromotionService _promotionService;
     private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public PromotionController(IPromotionService promotionService, ICompaniesModuleApi companiesModuleApi)
+    public PromotionController(ICompaniesModuleApi companiesModuleApi)
     {
-        _promotionService = promotionService;
         _companiesModuleApi = companiesModuleApi;
     }
 
@@ -32,16 +26,12 @@ public class PromotionController : Controller
             return Forbid();
         }
 
-        var result = await _promotionService.GetCompanyPromotionsAsync(resolvedCompany.Value);
-        if (!result.Success)
-        {
-            return Forbid();
-        }
+        var result = await _companiesModuleApi.GetCompanyPromotionsAsync(resolvedCompany.Value);
 
         var model = new CompanyPromotionListViewModel
         {
             CompanyId = resolvedCompany.Value,
-            Promotions = result.Data?.Select(MapItem).ToList() ?? new List<CompanyPromotionItemViewModel>()
+            Promotions = result.Select(MapItem).ToList()
         };
 
         return View(model);
@@ -81,21 +71,20 @@ public class PromotionController : Controller
             return View(model);
         }
 
-        var result = await _promotionService.CreateCompanyPromotionAsync(
+        var result = await _companiesModuleApi.CreateCompanyPromotionAsync(
             resolvedCompany.Value,
-            BllDtoFactory.CreatePromotionUpsertDto(
-                model.Code,
-                model.DiscountValue,
-                model.ValidFromUtc,
-                model.ValidToUtc,
-                model.IsActive));
-
-        if (!result.Success)
-        {
-            foreach (var error in result.Errors)
+            new UpsertCompanyPromotionContract
             {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
+                Code = model.Code,
+                DiscountValue = model.DiscountValue,
+                ValidFromUtc = model.ValidFromUtc,
+                ValidToUtc = model.ValidToUtc,
+                IsActive = model.IsActive
+            });
+
+        if (!result.Success || result.Promotion == null)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Unable to create promotion.");
 
             model.CompanyId = resolvedCompany.Value;
             return View(model);
@@ -113,8 +102,8 @@ public class PromotionController : Controller
             return Forbid();
         }
 
-        var result = await _promotionService.GetCompanyPromotionAsync(resolvedCompany.Value, id);
-        if (!result.Success || result.Data == null)
+        var result = await _companiesModuleApi.GetCompanyPromotionAsync(resolvedCompany.Value, id);
+        if (result == null)
         {
             return Forbid();
         }
@@ -122,12 +111,12 @@ public class PromotionController : Controller
         return View(new CompanyPromotionFormViewModel
         {
             CompanyId = resolvedCompany.Value,
-            Id = result.Data.Id,
-            Code = result.Data.Code,
-            DiscountValue = result.Data.DiscountValue,
-            ValidFromUtc = result.Data.ValidFromUtc,
-            ValidToUtc = result.Data.ValidToUtc,
-            IsActive = result.Data.IsActive
+            Id = result.Id,
+            Code = result.Code,
+            DiscountValue = result.DiscountValue,
+            ValidFromUtc = result.ValidFromUtc,
+            ValidToUtc = result.ValidToUtc,
+            IsActive = result.IsActive
         });
     }
 
@@ -148,27 +137,26 @@ public class PromotionController : Controller
             return View(model);
         }
 
-        var result = await _promotionService.UpdateCompanyPromotionAsync(
+        var result = await _companiesModuleApi.UpdateCompanyPromotionAsync(
             resolvedCompany.Value,
             id,
-            BllDtoFactory.CreatePromotionUpsertDto(
-                model.Code,
-                model.DiscountValue,
-                model.ValidFromUtc,
-                model.ValidToUtc,
-                model.IsActive));
+            new UpsertCompanyPromotionContract
+            {
+                Code = model.Code,
+                DiscountValue = model.DiscountValue,
+                ValidFromUtc = model.ValidFromUtc,
+                ValidToUtc = model.ValidToUtc,
+                IsActive = model.IsActive
+            });
 
-        if (!result.Success)
+        if (!result.Success || result.Promotion == null)
         {
-            if (result.Errors.Any(e => e.Code == "FORBIDDEN"))
+            if (result.ErrorCode == "FORBIDDEN")
             {
                 return Forbid();
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Unable to update promotion.");
 
             model.CompanyId = resolvedCompany.Value;
             model.Id = id;
@@ -188,16 +176,16 @@ public class PromotionController : Controller
             return Forbid();
         }
 
-        var result = await _promotionService.DeleteCompanyPromotionAsync(resolvedCompany.Value, id);
-        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        var result = await _companiesModuleApi.DeleteCompanyPromotionAsync(resolvedCompany.Value, id);
+        if (!result)
         {
-            return Forbid();
+            return BadRequest();
         }
 
         return RedirectToAction(nameof(Index), new { companyId = resolvedCompany.Value });
     }
 
-    private static CompanyPromotionItemViewModel MapItem(PromotionSummaryDto dto)
+    private static CompanyPromotionItemViewModel MapItem(CompanyPromotionContract dto)
     {
         return new CompanyPromotionItemViewModel
         {
@@ -232,8 +220,14 @@ public class PromotionController : Controller
 
         var memberships = await _companiesModuleApi.GetUserCompaniesAsync(userId);
         return memberships
-            .Where(m => Enum.TryParse<ECompanyRole>(m.Role, true, out var role) && role >= ECompanyRole.Manager)
+            .Where(m => HasManagerAccess(m.Role))
             .Select(m => m.CompanyId)
             .ToList();
+    }
+
+    private static bool HasManagerAccess(string role)
+    {
+        return role.Equals("Manager", StringComparison.OrdinalIgnoreCase)
+               || role.Equals("Owner", StringComparison.OrdinalIgnoreCase);
     }
 }

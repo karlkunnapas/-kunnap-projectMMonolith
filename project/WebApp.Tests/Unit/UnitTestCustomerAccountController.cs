@@ -1,5 +1,3 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.DTO.v1.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -15,14 +13,13 @@ public class UnitTestCustomerAccountController
     [Fact]
     public async Task RegisterCustomer_ReturnsBadRequest_WhenRegistrationFails()
     {
-        var identityService = new Mock<IIdentityService>();
         var companiesApi = new Mock<ICompaniesModuleApi>();
         var usersApi = new Mock<IUsersModuleApi>();
-        identityService
-            .Setup(x => x.RegisterCustomerAsync(It.IsAny<RegisterCustomerDto>()))
-            .ReturnsAsync(ServiceResult<Guid>.Fail("VALIDATION", "Invalid request."));
+        usersApi
+            .Setup(x => x.RegisterCustomerAsync(It.IsAny<RegisterCustomerContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterCustomerResultContract.Fail("VALIDATION", "Invalid request."));
 
-        var sut = BuildController(identityService.Object, companiesApi.Object, usersApi.Object);
+        var sut = BuildController(companiesApi.Object, usersApi.Object);
         var request = BuildRequest();
 
         var action = await sut.RegisterCustomer(request, jwtExpiresInSeconds: 60, refreshTokenExpiresInSeconds: 120);
@@ -32,41 +29,15 @@ public class UnitTestCustomerAccountController
     }
 
     [Fact]
-    public async Task RegisterCustomer_ReturnsBadRequest_WhenUserNotFoundAfterRegistration()
-    {
-        var identityService = new Mock<IIdentityService>();
-        var companiesApi = new Mock<ICompaniesModuleApi>();
-        var usersApi = new Mock<IUsersModuleApi>();
-        identityService
-            .Setup(x => x.RegisterCustomerAsync(It.IsAny<RegisterCustomerDto>()))
-            .ReturnsAsync(ServiceResult<Guid>.Ok(Guid.NewGuid()));
-        usersApi
-            .Setup(x => x.GetUserIdByEmailAsync("john@example.com", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Guid?)null);
-
-        var sut = BuildController(identityService.Object, companiesApi.Object, usersApi.Object);
-        var request = BuildRequest();
-
-        var action = await sut.RegisterCustomer(request, jwtExpiresInSeconds: 60, refreshTokenExpiresInSeconds: 120);
-        var badRequest = Assert.IsType<BadRequestObjectResult>(action.Result);
-        var payload = Assert.IsType<App.Dto.v1.Message>(badRequest.Value);
-        Assert.Contains("User was not found after registration.", payload.Messages);
-    }
-
-    [Fact]
     public async Task RegisterCustomer_ReturnsJwtResponse_WhenRegistrationSucceeds()
     {
-        var identityService = new Mock<IIdentityService>();
         var companiesApi = new Mock<ICompaniesModuleApi>();
         var usersApi = new Mock<IUsersModuleApi>();
         var userId = Guid.NewGuid();
 
-        identityService
-            .Setup(x => x.RegisterCustomerAsync(It.IsAny<RegisterCustomerDto>()))
-            .ReturnsAsync(ServiceResult<Guid>.Ok(userId));
         usersApi
-            .Setup(x => x.GetUserIdByEmailAsync("john@example.com", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(userId);
+            .Setup(x => x.RegisterCustomerAsync(It.IsAny<RegisterCustomerContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(RegisterCustomerResultContract.Ok(userId));
         usersApi
             .Setup(x => x.GetJwtClaimsAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<JwtClaimContract>
@@ -78,7 +49,7 @@ public class UnitTestCustomerAccountController
             .Setup(x => x.IssueRefreshTokenAsync(It.IsAny<IssueRefreshTokenContract>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("refresh-token");
 
-        var sut = BuildController(identityService.Object, companiesApi.Object, usersApi.Object);
+        var sut = BuildController(companiesApi.Object, usersApi.Object);
         var request = BuildRequest();
 
         var action = await sut.RegisterCustomer(request, jwtExpiresInSeconds: 60, refreshTokenExpiresInSeconds: 120);
@@ -89,7 +60,6 @@ public class UnitTestCustomerAccountController
     }
 
     private static CustomerAccountController BuildController(
-        IIdentityService identityService,
         ICompaniesModuleApi companiesApi,
         IUsersModuleApi usersApi)
     {
@@ -105,7 +75,7 @@ public class UnitTestCustomerAccountController
             })
             .Build();
 
-        return new CustomerAccountController(identityService, configuration, companiesApi, usersApi);
+        return new CustomerAccountController(configuration, companiesApi, usersApi);
     }
 
     private static RegisterCustomer BuildRequest() => new()

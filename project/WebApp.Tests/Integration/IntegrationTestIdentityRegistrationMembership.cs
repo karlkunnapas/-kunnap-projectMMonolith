@@ -1,11 +1,11 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
 using App.DAL.EF;
 using App.Domain;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts.Companies;
+using Shared.Contracts.Users;
 
 namespace WebApp.Tests.Integration;
 
@@ -23,33 +23,38 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
     public async Task RegisterCompanyOwner_CreatesCompanyMembership_AndOwnerRole()
     {
         await using var scope = _factory.Services.CreateAsyncScope();
-        var identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
+        var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
+        var companiesModuleApi = scope.ServiceProvider.GetRequiredService<ICompaniesModuleApi>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
-        await EnsureRoleExistsAsync(roleManager, "CompanyOwner");
+        await EnsureRoleExistsAsync(roleManager, "Customer");
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var email = $"company.owner.{suffix}@example.com";
         var slug = $"tenant-{suffix}";
 
-        var dto = new RegisterCompanyOwnerDto
+        var userRegistration = await usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
         {
             FirstName = "Company",
             LastName = "Owner",
             Email = email,
             PhoneNumber = "+37255550000",
-            Password = "Test.123",
-            ConfirmPassword = "Test.123",
+            Password = "Test.123"
+        });
+
+        Assert.True(userRegistration.Success);
+        var result = await companiesModuleApi.CreateCompanyWithOwnerMembershipAsync(new CreateCompanyWithOwnerMembershipContract
+        {
+            OwnerUserId = userRegistration.UserId,
+            ContactEmail = email,
+            ContactPhone = "+37255550000",
             CompanyName = $"Company {suffix}",
             CompanySlug = slug
-        };
-
-        var result = await identityService.RegisterCompanyOwnerAsync(dto);
-
+        });
         Assert.True(result.Success);
-        var companyId = result.Data;
+        var companyId = result.CompanyId;
         Assert.NotEqual(Guid.Empty, companyId);
 
         var company = await db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == companyId);
@@ -58,9 +63,6 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
 
         var user = await userManager.FindByEmailAsync(email);
         Assert.NotNull(user);
-
-        var isOwnerRole = await userManager.IsInRoleAsync(user, "CompanyOwner");
-        Assert.True(isOwnerRole);
 
         var membership = await db.AppUserCompanies
             .IgnoreQueryFilters()
@@ -75,7 +77,7 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
     public async Task RegisterCustomer_CreatesUserWithoutCompanyMembership()
     {
         await using var scope = _factory.Services.CreateAsyncScope();
-        var identityService = scope.ServiceProvider.GetRequiredService<IIdentityService>();
+        var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
@@ -85,17 +87,14 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var email = $"customer.{suffix}@example.com";
 
-        var dto = new RegisterCustomerDto
+        var result = await usersModuleApi.RegisterCustomerAsync(new RegisterCustomerContract
         {
             FirstName = "Regular",
             LastName = "Customer",
             Email = email,
             PhoneNumber = "+37255551111",
-            Password = "Test.123",
-            ConfirmPassword = "Test.123"
-        };
-
-        var result = await identityService.RegisterCustomerAsync(dto);
+            Password = "Test.123"
+        });
 
         Assert.True(result.Success);
 
@@ -124,7 +123,6 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
         Assert.True(roleResult.Succeeded, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
     }
 }
-
 
 
 

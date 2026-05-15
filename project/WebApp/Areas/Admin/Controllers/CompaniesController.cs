@@ -1,6 +1,6 @@
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Admin.ViewModels;
 
 namespace WebApp.Areas.Admin.Controllers;
@@ -9,34 +9,30 @@ namespace WebApp.Areas.Admin.Controllers;
 [Authorize(Roles = "Admin,root")]
 public class CompaniesController : Controller
 {
-    private readonly IAdminPanelService _adminPanelService;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public CompaniesController(IAdminPanelService adminPanelService)
+    public CompaniesController(ICompaniesModuleApi companiesModuleApi)
     {
-        _adminPanelService = adminPanelService;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(string? search = null)
     {
-        var result = await _adminPanelService.GetCompaniesAsync(search);
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest();
-        }
+        var companies = await _companiesModuleApi.GetCompaniesForAdminAsync(search);
 
         var model = new AdminCompanyListViewModel
         {
-            Search = result.Data.Search,
-            Items = result.Data.Items.Select(item => new AdminCompanyListItemViewModel
+            Search = search,
+            Items = companies.Select(item => new AdminCompanyListItemViewModel
             {
                 CompanyId = item.CompanyId,
-                Name = item.Name,
+                Name = item.CompanyName,
                 ContactEmail = item.ContactEmail,
-                ContactPhone = item.ContactPhone,
+                ContactPhone = string.Empty,
                 Slug = item.Slug,
                 IsActive = item.IsActive,
-                ActiveMemberCount = item.ActiveMemberCount
+                ActiveMemberCount = item.ActiveMembersCount
             }).ToList()
         };
 
@@ -59,11 +55,10 @@ public class CompaniesController : Controller
 
     private async Task<IActionResult> ChangeActivationState(Guid companyId, bool isActive, string? search)
     {
-        var actor = User.Identity?.Name ?? "admin";
-        var result = await _adminPanelService.SetCompanyActivationAsync(companyId, isActive, actor);
-        if (!result.Success)
+        var result = await _companiesModuleApi.SetCompanyActivationAsync(companyId, isActive);
+        if (result == null)
         {
-            TempData["AdminCompaniesError"] = result.Errors.FirstOrDefault()?.Message ?? "Operation failed.";
+            TempData["AdminCompaniesError"] = "Operation failed.";
             return RedirectToAction(nameof(Index), new { search });
         }
 

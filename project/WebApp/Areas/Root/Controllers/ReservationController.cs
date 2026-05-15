@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using App.BLL.DTOs;
-using App.BLL.Mappers;
-using App.BLL.Services.Interfaces;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Root.ViewModels;
 
 namespace WebApp.Areas.Root.Controllers;
@@ -13,13 +11,13 @@ namespace WebApp.Areas.Root.Controllers;
 [Authorize(Roles = "Customer")]
 public class ReservationController : Controller
 {
-    private readonly IReservationService _reservationService;
-    private readonly IPromotionService _promotionService;
+    private readonly IChargingModuleApi _chargingModuleApi;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public ReservationController(IReservationService reservationService, IPromotionService promotionService)
+    public ReservationController(IChargingModuleApi chargingModuleApi, ICompaniesModuleApi companiesModuleApi)
     {
-        _reservationService = reservationService;
-        _promotionService = promotionService;
+        _chargingModuleApi = chargingModuleApi;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     public async Task<IActionResult> Index()
@@ -31,19 +29,22 @@ public class ReservationController : Controller
         }
 
         var nowUtc = DateTime.UtcNow;
-        var result = await _reservationService.GetUserReservationsAsync(userId.Value);
+        var result = await _chargingModuleApi.GetUserReservationsAsync(userId.Value);
         var model = new ReservationListViewModel
         {
-            Reservations = result.Data?.Select(r => new ReservationListItemViewModel
-            {
-                Id = r.Id,
-                StationName = r.StationName,
-                StartTimeUtc = r.StartTimeUtc,
-                EndTimeUtc = r.EndTimeUtc,
-                EstimatedCost = r.EstimatedCost,
-                Status = r.Status,
-                CanStart = r.Status == EReservationStatus.Active && r.StartTimeUtc <= nowUtc && nowUtc < r.EndTimeUtc
-            }).ToList() ?? new List<ReservationListItemViewModel>()
+            Reservations = result
+                .Where(r => r.EndTimeUtc > nowUtc)
+                .OrderBy(r => r.StartTimeUtc)
+                .Select(r => new ReservationListItemViewModel
+                {
+                    Id = r.Id,
+                    StationName = r.StationName,
+                    StartTimeUtc = r.StartTimeUtc,
+                    EndTimeUtc = r.EndTimeUtc,
+                    EstimatedCost = r.EstimatedCost,
+                    Status = r.Status,
+                    CanStart = r.Status == Shared.Contracts.Charging.EReservationStatus.Active && r.StartTimeUtc <= nowUtc && nowUtc < r.EndTimeUtc
+                }).ToList()
         };
 
         return View(model);
@@ -65,14 +66,11 @@ public class ReservationController : Controller
             endTimeUtc = startTimeUtc.AddMinutes(durationMinutes);
         }
 
-        var stationResult = await _reservationService.GetStationDetailsAsync(stationId);
-        var canReserve = stationResult.Success
-                         && stationResult.Data != null
-                         && stationResult.Data.Status != EStationStatus.Maintenance;
-
-        var estimateResult = canReserve
-            ? await _reservationService.EstimateCostAsync(stationId, durationMinutes, estimatedEnergyKwh)
-            : ServiceResult<CostEstimateDto>.Ok(BllDtoFactory.CreateCostEstimateDto(durationMinutes, 0));
+        var station = await _chargingModuleApi.GetStationByIdAsync(stationId);
+        var canReserve = station != null && station.Status != Shared.Contracts.Charging.EStationStatus.Maintenance;
+        var estimateCost = canReserve
+            ? CalculateEstimatedCost(station!, durationMinutes, estimatedEnergyKwh)
+            : 0m;
 
         var model = new ReservationCreateViewModel
         {
@@ -81,8 +79,8 @@ public class ReservationController : Controller
             EndTimeUtc = endTimeUtc,
             EstimatedEnergyKwh = estimatedEnergyKwh,
             PromotionCode = promotionCode,
-            EstimatedCost = estimateResult.Data?.EstimatedCost ?? 0,
-            StationName = stationResult.Data?.Name ?? string.Empty,
+            EstimatedCost = estimateCost,
+            StationName = station?.Name ?? string.Empty,
             CanReserve = canReserve
         };
         await PopulatePromotionOptionsAsync(model, GetCurrentUserId());
@@ -106,29 +104,67 @@ public class ReservationController : Controller
             return View(model);
         }
 
-        var result = await _reservationService.ReserveAsync(
-            userId.Value,
-            BllDtoFactory.CreateReservationCreateDto(
-                model.StationId,
-                model.StartTimeUtc,
-                model.EndTimeUtc,
-                model.EstimatedEnergyKwh,
-                model.PromotionCode));
-
-        if (!result.Success)
+        var station = await _chargingModuleApi.GetStationByIdAsync(model.StationId);
+        if (station == null || station.Status == Shared.Contracts.Charging.EStationStatus.Maintenance)
         {
-            foreach (var error in result.Errors)
+            ModelState.AddModelError(string.Empty, "Station is unavailable for reservation.");
+            await PopulatePromotionOptionsAsync(model, userId);
+            return View(model);
+        }
+
+        var overlaps = await _chargingModuleApi.GetOverlappingReservationsAsync(
+            model.StationId,
+            model.StartTimeUtc,
+            model.EndTimeUtc);
+        if (overlaps.Any(x => x.Status is Shared.Contracts.Charging.EReservationStatus.Active or Shared.Contracts.Charging.EReservationStatus.Started))
+        {
+            ModelState.AddModelError(string.Empty, "Selected time slot is no longer available.");
+            await PopulatePromotionOptionsAsync(model, userId);
+            return View(model);
+        }
+
+        Guid? promotionId = null;
+        if (!string.IsNullOrWhiteSpace(model.PromotionCode))
+        {
+            var normalizedCode = model.PromotionCode.Trim();
+            var userPromotion = await _companiesModuleApi.GetValidUserPromotionByCodeAsync(userId.Value, normalizedCode);
+            if (userPromotion == null || userPromotion.IsUsed || userPromotion.Promotion == null)
             {
-                ModelState.AddModelError(string.Empty, error.Message);
+                ModelState.AddModelError(nameof(model.PromotionCode), "Selected promotion is invalid or expired.");
+                await PopulatePromotionOptionsAsync(model, userId);
+                return View(model);
             }
 
-            var duration = (int)Math.Ceiling((model.EndTimeUtc - model.StartTimeUtc).TotalMinutes);
-            if (duration > 0)
+            if (userPromotion.Promotion.CompanyId.HasValue && station.CompanyId != userPromotion.Promotion.CompanyId)
             {
-                var estimate = await _reservationService.EstimateCostAsync(model.StationId, duration, model.EstimatedEnergyKwh);
-                model.EstimatedCost = estimate.Data?.EstimatedCost ?? model.EstimatedCost;
+                ModelState.AddModelError(nameof(model.PromotionCode), "Selected promotion is not valid for this station company.");
+                await PopulatePromotionOptionsAsync(model, userId);
+                return View(model);
             }
 
+            model.PromotionCode = normalizedCode;
+            promotionId = userPromotion.PromotionId;
+        }
+
+        var created = await _chargingModuleApi.CreateReservationAsync(new ReservationContract
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId.Value,
+            ChargingStationId = model.StationId,
+            StartTimeUtc = model.StartTimeUtc,
+            EndTimeUtc = model.EndTimeUtc,
+            ExpiresAtUtc = model.EndTimeUtc,
+            CancelledAtUtc = null,
+            EstimatedCost = CalculateEstimatedCost(station, (int)Math.Ceiling((model.EndTimeUtc - model.StartTimeUtc).TotalMinutes), model.EstimatedEnergyKwh),
+            Status = Shared.Contracts.Charging.EReservationStatus.Active,
+            PromotionId = promotionId,
+            StationName = station.Name
+        });
+
+        if (created == null)
+        {
+            model.EstimatedCost = CalculateEstimatedCost(station, (int)Math.Ceiling((model.EndTimeUtc - model.StartTimeUtc).TotalMinutes), model.EstimatedEnergyKwh);
+            ModelState.AddModelError(string.Empty, "Unable to create reservation.");
             await PopulatePromotionOptionsAsync(model, userId);
             return View(model);
         }
@@ -145,22 +181,22 @@ public class ReservationController : Controller
             return Forbid();
         }
 
-        var result = await _reservationService.GetReservationDetailsAsync(id, userId.Value);
-        if (!result.Success || result.Data == null)
+        var result = await _chargingModuleApi.GetReservationByIdForUserAsync(id, userId.Value);
+        if (result == null)
         {
             return Forbid();
         }
 
         var model = new ReservationDetailViewModel
         {
-            Id = result.Data.Id,
-            StationName = result.Data.StationName,
-            StartTimeUtc = result.Data.StartTimeUtc,
-            EndTimeUtc = result.Data.EndTimeUtc,
-            ExpiresAtUtc = result.Data.ExpiresAtUtc,
-            CancelledAtUtc = result.Data.CancelledAtUtc,
-            EstimatedCost = result.Data.EstimatedCost,
-            Status = result.Data.Status
+            Id = result.Id,
+            StationName = result.StationName,
+            StartTimeUtc = result.StartTimeUtc,
+            EndTimeUtc = result.EndTimeUtc,
+            ExpiresAtUtc = result.ExpiresAtUtc,
+            CancelledAtUtc = result.CancelledAtUtc,
+            EstimatedCost = result.EstimatedCost,
+            Status = result.Status
         };
 
         return View(model);
@@ -176,11 +212,18 @@ public class ReservationController : Controller
             return Forbid();
         }
 
-        var result = await _reservationService.StartReservationAsync(id, userId.Value);
-        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        var reservation = await _chargingModuleApi.GetReservationByIdForUserAsync(id, userId.Value);
+        if (reservation == null)
         {
             return Forbid();
         }
+
+        await _chargingModuleApi.UpdateReservationStatusAsync(
+            id,
+            Shared.Contracts.Charging.EReservationStatus.Started,
+            reservation.ExpiresAtUtc,
+            reservation.CancelledAtUtc,
+            Shared.Contracts.Charging.EStationStatus.InUse);
 
         return RedirectToAction(nameof(Index));
     }
@@ -195,11 +238,18 @@ public class ReservationController : Controller
             return Forbid();
         }
 
-        var result = await _reservationService.CancelReservationAsync(id, userId.Value);
-        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        var reservation = await _chargingModuleApi.GetReservationByIdForUserAsync(id, userId.Value);
+        if (reservation == null)
         {
             return Forbid();
         }
+
+        await _chargingModuleApi.UpdateReservationStatusAsync(
+            id,
+            Shared.Contracts.Charging.EReservationStatus.Cancelled,
+            reservation.ExpiresAtUtc,
+            DateTime.UtcNow,
+            Shared.Contracts.Charging.EStationStatus.Available);
 
         return RedirectToAction(nameof(Index));
     }
@@ -218,14 +268,39 @@ public class ReservationController : Controller
             return;
         }
 
-        var promotionsResult = await _promotionService.GetUserPromotionsAsync(userId.Value);
-        model.AvailablePromotions = promotionsResult.Data?
-            .OrderBy(p => p.Code)
+        var promotions = await _companiesModuleApi.GetUserPromotionsAsync(userId.Value);
+        var nowUtc = DateTime.UtcNow;
+        model.AvailablePromotions = promotions
+            .Where(p =>
+                !p.IsUsed
+                && p.Promotion != null
+                && p.Promotion.IsActive
+                && p.Promotion.ValidFromUtc <= nowUtc
+                && p.Promotion.ValidToUtc >= nowUtc)
+            .OrderBy(p => p.Promotion!.Code)
             .Select(p => new PromotionSelectOptionViewModel
             {
-                Code = p.Code,
-                DisplayText = $"{p.Code} (-{p.DiscountValue:0.##}%)"
+                Code = p.Promotion!.Code,
+                DisplayText = $"{p.Promotion.Code} (-{p.Promotion.DiscountValue:0.##}%)"
             })
-            .ToList() ?? new List<PromotionSelectOptionViewModel>();
+            .ToList();
+    }
+
+    private static decimal CalculateEstimatedCost(ChargingStationContract station, int durationMinutes, decimal? estimatedEnergyKwh)
+    {
+        if (durationMinutes <= 0)
+        {
+            return 0m;
+        }
+
+        var estimatedEnergy = estimatedEnergyKwh
+            ?? Math.Round((durationMinutes / 60m) * station.MaxPower * 0.6m, 2, MidpointRounding.AwayFromZero);
+
+        if (estimatedEnergy < 0)
+        {
+            estimatedEnergy = 0;
+        }
+
+        return Math.Round(estimatedEnergy * station.PricePerKwh, 2, MidpointRounding.AwayFromZero);
     }
 }

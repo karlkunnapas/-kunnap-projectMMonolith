@@ -26,6 +26,11 @@ internal interface ICompaniesRepository
     Task<PromotionOperationResultDto> CreateCompanyPromotionAsync(Guid companyId, UpsertCompanyPromotionDto request, CancellationToken ct = default);
     Task<PromotionOperationResultDto> UpdateCompanyPromotionAsync(Guid companyId, Guid promotionId, UpsertCompanyPromotionDto request, CancellationToken ct = default);
     Task<bool> DeleteCompanyPromotionAsync(Guid companyId, Guid promotionId, CancellationToken ct = default);
+    Task<IReadOnlyCollection<CompanyPromotionDto>> GetSystemPromotionsAsync(CancellationToken ct = default);
+    Task<CompanyPromotionDto?> GetSystemPromotionAsync(Guid promotionId, CancellationToken ct = default);
+    Task<PromotionOperationResultDto> CreateSystemPromotionAsync(UpsertCompanyPromotionDto request, CancellationToken ct = default);
+    Task<PromotionOperationResultDto> UpdateSystemPromotionAsync(Guid promotionId, UpsertCompanyPromotionDto request, CancellationToken ct = default);
+    Task<bool> DeleteSystemPromotionAsync(Guid promotionId, CancellationToken ct = default);
     Task<IReadOnlyCollection<UserPromotionDto>> GetUserPromotionsAsync(Guid userId, CancellationToken ct = default);
     Task<PromotionOperationResultDto> RedeemPromotionAsync(Guid userId, string code, CancellationToken ct = default);
     Task<bool> RemoveUserPromotionAsync(Guid userId, Guid userPromotionId, CancellationToken ct = default);

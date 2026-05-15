@@ -1,16 +1,12 @@
-using App.BLL.DTOs;
-using App.BLL.Services.Interfaces;
-using App.DAL.EF;
-using App.Domain;
 using App.DTO.v1.Company;
 using App.Dto.v1;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
 using WebApp.Helpers;
-using WebApp.Mappers;
 
 namespace WebApp.ApiControllers.v1.Company;
 
@@ -22,12 +18,12 @@ namespace WebApp.ApiControllers.v1.Company;
 [Consumes("application/json")]
 public class StationController : ControllerBase
 {
-    private readonly IChargingStationCompanyService _stationService;
+    private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public StationController(IChargingStationCompanyService stationService, ICompaniesModuleApi companiesModuleApi)
+    public StationController(IChargingModuleApi chargingModuleApi, ICompaniesModuleApi companiesModuleApi)
     {
-        _stationService = stationService;
+        _chargingModuleApi = chargingModuleApi;
         _companiesModuleApi = companiesModuleApi;
     }
 
@@ -40,18 +36,18 @@ public class StationController : ControllerBase
     public async Task<ActionResult<List<CompanyStationResponse>>> GetStations(Guid companyId)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
 
-        var result = await _stationService.GetCompanyStationsAsync(companyId);
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
+        var stations = await _chargingModuleApi.GetCompanyStationsAsync(companyId);
+        var maintenance = await _chargingModuleApi.GetMaintenancesByCompanyAsync(companyId, includeResolved: true);
+        var issueCounts = maintenance
+            .GroupBy(m => m.ChargingStationId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
-        return Ok(result.Data.Select(ApiDtoFactory.CreateDto).ToList());
+        return Ok(stations.Select(s => ToCompanyStationResponse(s, issueCounts)).ToList());
     }
 
     /// <summary>
@@ -64,23 +60,23 @@ public class StationController : ControllerBase
     public async Task<ActionResult<CompanyStationResponse>> GetStation(Guid companyId, Guid id)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
 
-        var result = await _stationService.GetStationDetailsAsync(id, companyId);
-        if (HasForbidden(result.Errors))
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(id, companyId);
+        if (station == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Station not found."));
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
+        var maintenance = await _chargingModuleApi.GetMaintenancesByCompanyAsync(companyId, includeResolved: true);
+        var issueCounts = maintenance
+            .GroupBy(m => m.ChargingStationId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return Ok(ToCompanyStationResponse(station, issueCounts));
     }
 
     /// <summary>
@@ -93,26 +89,54 @@ public class StationController : ControllerBase
     public async Task<ActionResult<CompanyStationFormResponse>> GetForm(Guid companyId, [FromQuery] Guid? stationId = null)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
 
-        var result = stationId.HasValue
-            ? await _stationService.GetEditFormAsync(stationId.Value, companyId)
-            : await _stationService.GetCreateFormAsync(companyId);
-
-        if (HasForbidden(result.Errors))
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        if (stationId.HasValue)
         {
-            return Forbid();
+            var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId.Value, companyId);
+            if (station == null)
+            {
+                return BadRequest(new Message("Station not found."));
+            }
+
+            var assignedConnectorIds = await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(station.Id);
+            return Ok(new CompanyStationFormResponse
+            {
+                Id = station.Id,
+                CompanyId = companyId,
+                NameEn = station.NameTranslations.TryGetValue("en", out var en) ? en : station.Name,
+                NameEt = station.NameTranslations.TryGetValue("et", out var et) ? et : station.Name,
+                Location = station.Location,
+                PricePerKwh = station.PricePerKwh,
+                MaxPower = station.MaxPower,
+                Status = station.Status.ToString(),
+                IsActive = station.IsActive,
+                SelectedConnectorIds = assignedConnectorIds.ToList(),
+                AvailableConnectors = connectors.Select(c => new ConnectorAssignmentOption
+                {
+                    ConnectorId = c.Id,
+                    ConnectorName = c.Name,
+                    IsAssigned = assignedConnectorIds.Contains(c.Id)
+                }).ToList()
+            });
         }
 
-        if (!result.Success || result.Data == null)
+        return Ok(new CompanyStationFormResponse
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+            CompanyId = companyId,
+            Status = EStationStatus.Available.ToString(),
+            IsActive = true,
+            AvailableConnectors = connectors.Select(c => new ConnectorAssignmentOption
+            {
+                ConnectorId = c.Id,
+                ConnectorName = c.Name,
+                IsAssigned = false
+            }).ToList()
+        });
     }
 
     /// <summary>
@@ -125,7 +149,7 @@ public class StationController : ControllerBase
     public async Task<ActionResult<CompanyStationResponse>> CreateStation(Guid companyId, [FromBody] CompanyStationUpsert request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -135,15 +159,19 @@ public class StationController : ControllerBase
             return BadRequest(new Message("Invalid station status."));
         }
 
-        var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _stationService.CreateStationAsync(companyId, userId, userName, ApiDtoFactory.CreateDto(request));
-
-        if (!result.Success || result.Data == null)
+        var created = await _chargingModuleApi.CreateCompanyStationAsync(new UpsertCompanyStationContract
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+            CompanyId = companyId,
+            NameEn = request.NameEn,
+            NameEt = request.NameEt,
+            Location = request.Location,
+            Status = (EStationStatus)request.Status,
+            PricePerKwh = request.PricePerKwh,
+            MaxPower = request.MaxPower,
+            IsActive = request.IsActive
+        });
+        await _chargingModuleApi.SetStationConnectorsAsync(created.Id, request.SelectedConnectorIds);
+        return Ok(ToCompanyStationResponse(created, null));
     }
 
     /// <summary>
@@ -156,7 +184,7 @@ public class StationController : ControllerBase
     public async Task<ActionResult<CompanyStationResponse>> UpdateStation(Guid companyId, Guid id, [FromBody] CompanyStationUpsert request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -166,20 +194,25 @@ public class StationController : ControllerBase
             return BadRequest(new Message("Invalid station status."));
         }
 
-        var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _stationService.UpdateStationAsync(id, companyId, userId, userName, ApiDtoFactory.CreateDto(request));
-
-        if (HasForbidden(result.Errors))
+        var updated = await _chargingModuleApi.UpdateCompanyStationAsync(new UpsertCompanyStationContract
         {
-            return Forbid();
+            StationId = id,
+            CompanyId = companyId,
+            NameEn = request.NameEn,
+            NameEt = request.NameEt,
+            Location = request.Location,
+            Status = (EStationStatus)request.Status,
+            PricePerKwh = request.PricePerKwh,
+            MaxPower = request.MaxPower,
+            IsActive = request.IsActive
+        });
+        if (updated == null)
+        {
+            return BadRequest(new Message("Station not found."));
         }
 
-        if (!result.Success || result.Data == null)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
-        }
-
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        await _chargingModuleApi.SetStationConnectorsAsync(id, request.SelectedConnectorIds);
+        return Ok(ToCompanyStationResponse(updated, null));
     }
 
     /// <summary>
@@ -192,21 +225,15 @@ public class StationController : ControllerBase
     public async Task<IActionResult> DeleteStation(Guid companyId, Guid id)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
 
-        var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _stationService.DeleteStationAsync(id, companyId, userId, userName);
-        if (HasForbidden(result.Errors))
+        var deleted = await _chargingModuleApi.DeleteCompanyStationAsync(id, companyId);
+        if (!deleted)
         {
-            return Forbid();
-        }
-
-        if (!result.Success)
-        {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            return BadRequest(new Message("Unable to delete station."));
         }
 
         return Ok();
@@ -222,7 +249,7 @@ public class StationController : ControllerBase
     public async Task<ActionResult<CompanyStationResponse>> UpdateStatus(Guid companyId, Guid id, [FromBody] StationStatusUpdate request)
     {
         var userId = User.UserId();
-        if (!await IsCompanyMemberAsync(companyId, userId))
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
         {
             return Forbid();
         }
@@ -232,35 +259,50 @@ public class StationController : ControllerBase
             return BadRequest(new Message("Invalid station status."));
         }
 
-        var userName = User.Identity?.Name ?? userId.ToString();
-        var result = await _stationService.UpdateStatusAsync(id, companyId, userId, userName, (EStationStatus)request.Status);
-        if (HasForbidden(result.Errors))
+        var station = await _chargingModuleApi.GetCompanyStationByIdAsync(id, companyId);
+        if (station == null)
         {
-            return Forbid();
+            return BadRequest(new Message("Station not found."));
         }
 
-        if (!result.Success || result.Data == null)
+        var updated = await _chargingModuleApi.UpdateCompanyStationAsync(new UpsertCompanyStationContract
         {
-            return BadRequest(new Message(result.Errors.Select(e => e.Message).ToArray()));
+            StationId = id,
+            CompanyId = companyId,
+            NameEn = station.NameTranslations.TryGetValue("en", out var en) ? en : station.Name,
+            NameEt = station.NameTranslations.TryGetValue("et", out var et) ? et : station.Name,
+            Location = station.Location,
+            Status = (EStationStatus)request.Status,
+            PricePerKwh = station.PricePerKwh,
+            MaxPower = station.MaxPower,
+            IsActive = station.IsActive
+        });
+        if (updated == null)
+        {
+            return BadRequest(new Message("Unable to update station status."));
         }
 
-        return Ok(ApiDtoFactory.CreateDto(result.Data));
+        return Ok(ToCompanyStationResponse(updated, null));
     }
 
-    private async Task<bool> IsCompanyMemberAsync(Guid companyId, Guid userId, ECompanyRole minRole = ECompanyRole.Manager)
+    private static CompanyStationResponse ToCompanyStationResponse(
+        ChargingStationContract station,
+        IReadOnlyDictionary<Guid, int>? maintenanceIssueCounts)
     {
-        var memberships = await _companiesModuleApi.GetCompanyMembershipsAsync(companyId);
-        var membership = memberships.FirstOrDefault(m => m.UserId == userId && m.IsActive);
-        if (membership == null)
+        return new CompanyStationResponse
         {
-            return false;
-        }
-
-        return Enum.TryParse<ECompanyRole>(membership.Role, true, out var role) && role >= minRole;
-    }
-
-    private static bool HasForbidden(IEnumerable<ServiceError> errors)
-    {
-        return errors.Any(e => e.Code == "FORBIDDEN");
+            Id = station.Id,
+            Name = station.Name,
+            Location = station.Location,
+            Status = station.Status.ToString(),
+            PricePerKwh = station.PricePerKwh,
+            MaxPower = station.MaxPower,
+            IsActive = station.IsActive,
+            Connectors = station.Connectors.Select(c => c.Name).ToList(),
+            MaintenanceIssueCount = maintenanceIssueCounts != null
+                && maintenanceIssueCounts.TryGetValue(station.Id, out var count)
+                ? count
+                : 0
+        };
     }
 }

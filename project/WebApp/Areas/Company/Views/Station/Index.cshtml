@@ -1,5 +1,5 @@
 @model WebApp.Areas.Company.ViewModels.CompanyStationListViewModel
-@using App.Domain
+@using StationStatus = Shared.Contracts.Charging.EStationStatus
 @{
     ViewData["Title"] = App.Resources.Views.Company.Station.Index.Title;
 }
@@ -24,8 +24,8 @@
             {
                 var statusClass = station.Status switch
                 {
-                    EStationStatus.Available => "status-ok",
-                    EStationStatus.InUse => "status-warn",
+                    StationStatus.Available => "status-ok",
+                    StationStatus.InUse => "status-warn",
                     _ => "status-bad"
                 };
 
@@ -48,9 +48,9 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="companyId" value="@Model.CompanyId" />
                             <input type="hidden" name="id" value="@station.Id" />
-                            <button type="submit" class="filter-chip" name="status" value="@EStationStatus.Available">@App.Resources.Views.Company.Station.Index.SetAvailableAction</button>
-                            <button type="submit" class="filter-chip" name="status" value="@EStationStatus.InUse">@App.Resources.Views.Company.Station.Index.SetInUseAction</button>
-                            <button type="submit" class="filter-chip" name="status" value="@EStationStatus.Maintenance">@App.Resources.Views.Company.Station.Index.SetMaintenanceAction</button>
+                            <button type="submit" class="filter-chip" name="status" value="@StationStatus.Available">@App.Resources.Views.Company.Station.Index.SetAvailableAction</button>
+                            <button type="submit" class="filter-chip" name="status" value="@StationStatus.InUse">@App.Resources.Views.Company.Station.Index.SetInUseAction</button>
+                            <button type="submit" class="filter-chip" name="status" value="@StationStatus.Maintenance">@App.Resources.Views.Company.Station.Index.SetMaintenanceAction</button>
                         </form>
                         <a class="station-button" asp-area="Company" asp-controller="Station" asp-action="Details" asp-route-id="@station.Id" asp-route-companyId="@Model.CompanyId">
                             @App.Resources.Views.Company.Station.Index.DetailsAction

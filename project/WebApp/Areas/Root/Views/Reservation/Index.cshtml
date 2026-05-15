@@ -1,5 +1,5 @@
 @model WebApp.Areas.Root.ViewModels.ReservationListViewModel
-@using App.Domain
+@using ReservationStatus = Shared.Contracts.Charging.EReservationStatus
 @{
     ViewData["Title"] = App.Resources.Views.Root.Reservation.Index.Title;
 }
@@ -20,16 +20,16 @@
             {
                 var statusClass = reservation.Status switch
                 {
-                    EReservationStatus.Active => "status-ok",
-                    EReservationStatus.Started => "status-warn",
-                    EReservationStatus.Cancelled => "status-bad",
+                    ReservationStatus.Active => "status-ok",
+                    ReservationStatus.Started => "status-warn",
+                    ReservationStatus.Cancelled => "status-bad",
                     _ => "status-bad"
                 };
 
                 var localizedStatus = reservation.Status switch
                 {
-                    EReservationStatus.Active => App.Resources.Views.Root.Reservation.Index.StatusActive,
-                    EReservationStatus.Started => App.Resources.Views.Root.Reservation.Index.StatusStarted,
+                    ReservationStatus.Active => App.Resources.Views.Root.Reservation.Index.StatusActive,
+                    ReservationStatus.Started => App.Resources.Views.Root.Reservation.Index.StatusStarted,
                     _ => reservation.Status.ToString()
                 };
 
@@ -56,7 +56,7 @@
                                 @App.Resources.Views.Root.Reservation.Index.Start
                             </a>
                         }
-                        @if (reservation.Status == EReservationStatus.Active)
+                        @if (reservation.Status == ReservationStatus.Active)
                         {
                             <form asp-action="Cancel" asp-route-id="@reservation.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()

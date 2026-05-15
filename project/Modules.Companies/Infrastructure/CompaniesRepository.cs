@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Modules.Companies.Application.DTO;
+using Shared.Contracts;
 using System.Text.Json;
 
 namespace Modules.Companies.Infrastructure;
@@ -67,20 +68,20 @@ internal sealed class CompaniesRepository : ICompaniesRepository
 
     public async Task<IReadOnlyCollection<AdminCompanyDto>> GetCompaniesForAdminAsync(string? search = null, CancellationToken ct = default)
     {
-        var query = _dbContext.Companies
+        var companies = await _dbContext.Companies
             .IgnoreQueryFilters()
-            .AsNoTracking();
+            .AsNoTracking()
+            .ToListAsync(ct);
 
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
         if (!string.IsNullOrWhiteSpace(normalizedSearch))
         {
-            query = query.Where(c =>
-                c.Slug.Contains(normalizedSearch) ||
-                c.ContactEmail.Contains(normalizedSearch) ||
-                c.Name.Contains(normalizedSearch));
+            companies = companies.Where(c =>
+                    c.Slug.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                    c.ContactEmail.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                    ParseCompanyName(c.Name).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
-
-        var companies = await query.ToListAsync(ct);
         var memberCounts = await _dbContext.AppUserCompanies
             .AsNoTracking()
             .Where(uc => uc.IsActive)
@@ -154,17 +155,12 @@ internal sealed class CompaniesRepository : ICompaniesRepository
                     MembershipId = uc.Id,
                     CompanyId = c.Id,
                     UserId = uc.AppUserId,
-                    CompanyName = c.Name,
+                    CompanyName = ParseCompanyName(c.Name),
                     Slug = c.Slug,
                     Role = uc.Role.ToString(),
                     IsActive = uc.IsActive
                 })
             .ToListAsync(ct);
-
-        foreach (var item in items)
-        {
-            item.CompanyName = ParseCompanyName(item.CompanyName);
-        }
 
         return items;
     }
@@ -183,7 +179,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
                     MembershipId = uc.Id,
                     CompanyId = c.Id,
                     UserId = uc.AppUserId,
-                    CompanyName = c.Name,
+                    CompanyName = ParseCompanyName(c.Name),
                     Slug = c.Slug,
                     Role = uc.Role.ToString(),
                     IsActive = uc.IsActive
@@ -195,7 +191,6 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             return null;
         }
 
-        item.CompanyName = ParseCompanyName(item.CompanyName);
         return item;
     }
 
@@ -460,6 +455,95 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         return true;
     }
 
+    public async Task<IReadOnlyCollection<CompanyPromotionDto>> GetSystemPromotionsAsync(CancellationToken ct = default)
+    {
+        return await _dbContext.Promotions
+            .AsNoTracking()
+            .Where(x => x.CompanyId == null)
+            .OrderByDescending(x => x.ValidTo)
+            .ThenBy(x => x.Code)
+            .Select(x => new CompanyPromotionDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                DiscountValue = x.DiscountValue,
+                ValidFromUtc = x.ValidFrom,
+                ValidToUtc = x.ValidTo,
+                IsActive = x.IsActive,
+                CompanyId = x.CompanyId
+            })
+            .ToListAsync(ct);
+    }
+
+    public async Task<CompanyPromotionDto?> GetSystemPromotionAsync(Guid promotionId, CancellationToken ct = default)
+    {
+        return await _dbContext.Promotions
+            .AsNoTracking()
+            .Where(x => x.CompanyId == null && x.Id == promotionId)
+            .Select(x => new CompanyPromotionDto
+            {
+                Id = x.Id,
+                Code = x.Code,
+                DiscountValue = x.DiscountValue,
+                ValidFromUtc = x.ValidFrom,
+                ValidToUtc = x.ValidTo,
+                IsActive = x.IsActive,
+                CompanyId = x.CompanyId
+            })
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<PromotionOperationResultDto> CreateSystemPromotionAsync(UpsertCompanyPromotionDto request, CancellationToken ct = default)
+    {
+        var promotion = new Domain.Promotion
+        {
+            Id = Guid.NewGuid(),
+            Code = NormalizeCode(request.Code),
+            DiscountValue = request.DiscountValue,
+            ValidFrom = ToUtc(request.ValidFromUtc),
+            ValidTo = ToUtc(request.ValidToUtc),
+            IsActive = request.IsActive,
+            CompanyId = null
+        };
+
+        _dbContext.Promotions.Add(promotion);
+        await _dbContext.SaveChangesAsync(ct);
+        return PromotionOperationResultDto.Ok(ToPromotionDto(promotion));
+    }
+
+    public async Task<PromotionOperationResultDto> UpdateSystemPromotionAsync(Guid promotionId, UpsertCompanyPromotionDto request, CancellationToken ct = default)
+    {
+        var promotion = await _dbContext.Promotions
+            .FirstOrDefaultAsync(x => x.CompanyId == null && x.Id == promotionId, ct);
+        if (promotion == null)
+        {
+            return PromotionOperationResultDto.Fail("NOT_FOUND", "System promotion not found.");
+        }
+
+        promotion.Code = NormalizeCode(request.Code);
+        promotion.DiscountValue = request.DiscountValue;
+        promotion.ValidFrom = ToUtc(request.ValidFromUtc);
+        promotion.ValidTo = ToUtc(request.ValidToUtc);
+        promotion.IsActive = request.IsActive;
+
+        await _dbContext.SaveChangesAsync(ct);
+        return PromotionOperationResultDto.Ok(ToPromotionDto(promotion));
+    }
+
+    public async Task<bool> DeleteSystemPromotionAsync(Guid promotionId, CancellationToken ct = default)
+    {
+        var promotion = await _dbContext.Promotions
+            .FirstOrDefaultAsync(x => x.CompanyId == null && x.Id == promotionId, ct);
+        if (promotion == null)
+        {
+            return false;
+        }
+
+        _dbContext.Promotions.Remove(promotion);
+        await _dbContext.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<IReadOnlyCollection<UserPromotionDto>> GetUserPromotionsAsync(Guid userId, CancellationToken ct = default)
     {
         return await _dbContext.UserPromotions
@@ -696,7 +780,10 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         var company = new Domain.Company
         {
             Id = companyId,
-            Name = JsonSerializer.Serialize(new Dictionary<string, string> { ["en"] = request.CompanyName.Trim() }),
+            Name = new LangStr
+            {
+                ["en"] = request.CompanyName.Trim()
+            },
             ContactEmail = request.ContactEmail.Trim(),
             ContactPhone = request.ContactPhone.Trim(),
             Slug = normalizedSlug,
@@ -719,44 +806,9 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         return CreateCompanyWithOwnerMembershipResultDto.Ok(companyId);
     }
 
-    private static string ParseCompanyName(string raw)
+    private static string ParseCompanyName(LangStr? raw)
     {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return string.Empty;
-        }
-
-        if (!raw.TrimStart().StartsWith("{", StringComparison.Ordinal))
-        {
-            return raw;
-        }
-
-        try
-        {
-            using var document = JsonDocument.Parse(raw);
-            var root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object)
-            {
-                return raw;
-            }
-
-            if (root.TryGetProperty("en", out var en) && en.ValueKind == JsonValueKind.String)
-            {
-                return en.GetString() ?? raw;
-            }
-
-            var firstString = root.EnumerateObject()
-                .FirstOrDefault(x => x.Value.ValueKind == JsonValueKind.String)
-                .Value;
-
-            return firstString.ValueKind == JsonValueKind.String
-                ? firstString.GetString() ?? raw
-                : raw;
-        }
-        catch
-        {
-            return raw;
-        }
+        return raw?.Translate() ?? string.Empty;
     }
 
     private static CompanyPromotionDto ToPromotionDto(Domain.Promotion x) => new()

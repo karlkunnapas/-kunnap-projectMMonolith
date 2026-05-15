@@ -1,4 +1,5 @@
 @model WebApp.Areas.Company.ViewModels.MaintenanceDetailsViewModel
+@using MaintenanceStatus = Shared.Contracts.Charging.EMaintenanceStatus
 @{
     ViewData["Title"] = App.Resources.Views.Company.Maintenance.Details.Title;
 }
@@ -30,23 +31,23 @@
             <div class="station-details">
                 <div class="station-name">@App.Resources.Views.Company.Maintenance.Details.QuickActionsHeading</div>
                 <div class="vehicle-actions">
-                    @if (Model.Status == App.Domain.EMaintenanceStatus.Reported)
+                    @if (Model.Status == MaintenanceStatus.Reported)
                     {
                         <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Update">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="companyId" value="@Model.CompanyId" />
                             <input type="hidden" name="id" value="@Model.Id" />
-                            <input type="hidden" name="status" value="@App.Domain.EMaintenanceStatus.InProgress" />
+                            <input type="hidden" name="status" value="@MaintenanceStatus.InProgress" />
                             <button type="submit" class="station-button">@App.Resources.Views.Company.Maintenance.Details.MarkMaintenanceAction</button>
                         </form>
                     }
-                    @if (Model.Status != App.Domain.EMaintenanceStatus.Resolved)
+                    @if (Model.Status != MaintenanceStatus.Resolved)
                     {
                         <form method="post" asp-area="Company" asp-controller="Maintenance" asp-action="Update">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="companyId" value="@Model.CompanyId" />
                             <input type="hidden" name="id" value="@Model.Id" />
-                            <input type="hidden" name="status" value="@App.Domain.EMaintenanceStatus.Resolved" />
+                            <input type="hidden" name="status" value="@MaintenanceStatus.Resolved" />
                             <button type="submit" class="station-button">@App.Resources.Views.Company.Maintenance.Details.ResolveIssueAction</button>
                         </form>
                     }
@@ -62,7 +63,7 @@
                     <input type="hidden" name="companyId" value="@Model.CompanyId" />
                     <input type="hidden" name="id" value="@Model.Id" />
                     <select name="status" class="form-control">
-                        @foreach (var value in Enum.GetValues<App.Domain.EMaintenanceStatus>())
+                        @foreach (var value in Enum.GetValues<MaintenanceStatus>())
                         {
                             if (value == Model.Status)
                             {

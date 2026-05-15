@@ -1,10 +1,13 @@
-using App.Domain;
+namespace Shared.Contracts.Tenancy;
 
-namespace App.DAL.EF;
+public sealed record TenantCompanyContext(
+    Guid CompanyId,
+    string Slug,
+    bool IsActive);
 
 public interface ITenantContext
 {
-    Company? Company { get; }
+    TenantCompanyContext? Company { get; }
 
     Guid? CompanyId { get; }
 
@@ -14,16 +17,16 @@ public interface ITenantContext
 
     Guid? CurrentUserId { get; }
 
-    void SetCompany(Company company);
+    void SetCompany(TenantCompanyContext company);
 
     void SetCurrentUserId(Guid? userId);
 }
 
 public sealed class TenantContext : ITenantContext
 {
-    public Company? Company { get; private set; }
+    public TenantCompanyContext? Company { get; private set; }
 
-    public Guid? CompanyId => Company?.Id;
+    public Guid? CompanyId => Company?.CompanyId;
 
     public string? CompanySlug => Company?.Slug;
 
@@ -31,7 +34,7 @@ public sealed class TenantContext : ITenantContext
 
     public Guid? CurrentUserId { get; private set; }
 
-    public void SetCompany(Company company)
+    public void SetCompany(TenantCompanyContext company)
     {
         Company = company;
     }

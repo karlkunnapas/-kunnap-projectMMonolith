@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using App.BLL.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts.Companies;
 using WebApp.Areas.Root.ViewModels;
 
 namespace WebApp.Areas.Root.Controllers;
@@ -10,11 +10,11 @@ namespace WebApp.Areas.Root.Controllers;
 [Authorize(Roles = "Customer")]
 public class PromotionController : Controller
 {
-    private readonly IPromotionService _promotionService;
+    private readonly ICompaniesModuleApi _companiesModuleApi;
 
-    public PromotionController(IPromotionService promotionService)
+    public PromotionController(ICompaniesModuleApi companiesModuleApi)
     {
-        _promotionService = promotionService;
+        _companiesModuleApi = companiesModuleApi;
     }
 
     [HttpGet]
@@ -26,21 +26,21 @@ public class PromotionController : Controller
             return Forbid();
         }
 
-        var result = await _promotionService.GetUserPromotionsAsync(userId.Value);
+        var result = await _companiesModuleApi.GetUserPromotionsAsync(userId.Value);
         var model = new PromotionWalletViewModel
         {
-            Promotions = result.Data?
-                .Where(p => !p.IsUsed)
+            Promotions = result
+                .Where(p => !p.IsUsed && p.Promotion != null)
                 .Select(p => new PromotionWalletItemViewModel
             {
                 Id = p.Id,
-                Code = p.Code,
-                DiscountValue = p.DiscountValue,
-                ValidFromUtc = p.ValidFromUtc,
-                ValidToUtc = p.ValidToUtc,
+                Code = p.Promotion!.Code,
+                DiscountValue = p.Promotion.DiscountValue,
+                ValidFromUtc = p.Promotion.ValidFromUtc,
+                ValidToUtc = p.Promotion.ValidToUtc,
                 AddedAtUtc = p.AddedAtUtc,
-                IsActive = p.IsActive
-            }).ToList() ?? new List<PromotionWalletItemViewModel>()
+                IsActive = p.Promotion.IsActive
+            }).ToList()
         };
 
         return View(model);
@@ -56,10 +56,10 @@ public class PromotionController : Controller
             return Forbid();
         }
 
-        var result = await _promotionService.RedeemPromotionAsync(userId.Value, model.RedeemCode);
+        var result = await _companiesModuleApi.RedeemPromotionAsync(userId.Value, model.RedeemCode);
         if (!result.Success)
         {
-            TempData["PromotionError"] = string.Join("; ", result.Errors.Select(e => e.Message));
+            TempData["PromotionError"] = result.ErrorMessage ?? "Unable to redeem promotion.";
         }
         else
         {
@@ -79,10 +79,10 @@ public class PromotionController : Controller
             return Forbid();
         }
 
-        var result = await _promotionService.RemoveUserPromotionAsync(userId.Value, id);
-        if (!result.Success && result.Errors.Any(e => e.Code == "FORBIDDEN"))
+        var result = await _companiesModuleApi.RemoveUserPromotionAsync(userId.Value, id);
+        if (!result)
         {
-            return Forbid();
+            return BadRequest();
         }
 
         return RedirectToAction(nameof(Index));

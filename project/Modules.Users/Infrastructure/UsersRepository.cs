@@ -454,6 +454,17 @@ internal sealed class UsersRepository : IUsersRepository
             return RegisterCustomerResultDto.Fail("ROLE_ASSIGNMENT_FAILED", message);
         }
 
+        var claimsResult = await _userManager.AddClaimsAsync(user, new[]
+        {
+            new Claim(ClaimTypes.GivenName, request.FirstName.Trim()),
+            new Claim(ClaimTypes.Surname, request.LastName.Trim())
+        });
+        if (!claimsResult.Succeeded)
+        {
+            var message = string.Join(", ", claimsResult.Errors.Select(e => e.Description));
+            return RegisterCustomerResultDto.Fail("CLAIMS_ASSIGNMENT_FAILED", message);
+        }
+
         return RegisterCustomerResultDto.Ok(user.Id);
     }
 

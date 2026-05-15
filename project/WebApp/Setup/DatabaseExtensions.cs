@@ -1,6 +1,4 @@
 using App.DAL.EF;
-using App.DAL.EF.Repositories.Implementations;
-using App.DAL.EF.Repositories.Interfaces;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
+using Shared.Contracts.Auditing;
 using WebApp.Helpers;
 
 namespace WebApp.Setup;
@@ -49,7 +48,6 @@ public static class DatabaseExtensions
         services.AddDataProtection().PersistKeysToDbContext<AppDbContext>();
         services.AddHttpContextAccessor();
         services.AddScoped<IAuditActorProvider, HttpContextAuditActorProvider>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }

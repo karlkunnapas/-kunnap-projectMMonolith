@@ -91,7 +91,7 @@ public class MaintenanceController : CompanyBaseController
     public async Task<IActionResult> Update(Guid companyId, Guid id, EMaintenanceStatus status, string? notes)
     {
         var company = await ResolveCompanyAsync(companyId);
-        if (company == null || !HasManagerAccess(company.Value.Role))
+        if (company == null || !HasEmployeeAccess(company.Value.Role))
         {
             return Forbid();
         }

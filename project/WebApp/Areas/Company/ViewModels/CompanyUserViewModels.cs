@@ -1,7 +1,13 @@
 using System.ComponentModel.DataAnnotations;
-using App.Domain;
 
 namespace WebApp.Areas.Company.ViewModels;
+
+public enum CompanyRoleOption
+{
+    Owner = 0,
+    Manager = 1,
+    Employee = 2
+}
 
 public class CompanyUserListViewModel
 {
@@ -14,7 +20,7 @@ public class CompanyUserItemViewModel
     public Guid MembershipId { get; set; }
     public Guid UserId { get; set; }
     public string Email { get; set; } = string.Empty;
-    public ECompanyRole Role { get; set; }
+    public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime JoinedAtUtc { get; set; }
 }
@@ -27,7 +33,7 @@ public class AddCompanyUserViewModel
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    public ECompanyRole Role { get; set; } = ECompanyRole.Employee;
+    public int Role { get; set; } = 2;
 
     [Display(Name = "First name")]
     [StringLength(200)]
@@ -60,7 +66,7 @@ public class AddCompanyUserResultViewModel
     public Guid MembershipId { get; set; }
     public Guid UserId { get; set; }
     public string Email { get; set; } = string.Empty;
-    public ECompanyRole Role { get; set; }
+    public string Role { get; set; } = string.Empty;
     public bool IsExistingUser { get; set; }
     public bool MembershipReactivated { get; set; }
     public bool MembershipAlreadyActive { get; set; }
@@ -76,5 +82,5 @@ public class EditCompanyUserRoleViewModel
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    public ECompanyRole Role { get; set; }
+    public int Role { get; set; } = 2;
 }

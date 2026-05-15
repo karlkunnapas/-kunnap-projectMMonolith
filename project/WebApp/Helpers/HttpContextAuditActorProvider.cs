@@ -1,5 +1,5 @@
-using App.DAL.EF;
 using Microsoft.AspNetCore.Http;
+using Shared.Contracts.Auditing;
 
 namespace WebApp.Helpers;
 
@@ -7,4 +7,3 @@ public class HttpContextAuditActorProvider(IHttpContextAccessor httpContextAcces
 {
     public string? UserName => httpContextAccessor.HttpContext?.User?.Identity?.Name;
 }
-
