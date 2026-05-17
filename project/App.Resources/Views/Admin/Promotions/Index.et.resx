@@ -73,8 +73,92 @@
   <data name="DeleteConfirm" xml:space="preserve">
     <value>Kas oled kindel, et soovid selle promocoodi kustutada?</value>
   </data>
+  <data name="DeleteLabel" xml:space="preserve">
+    <value>Kustuta</value>
+  </data>
   <data name="DiscountHeader" xml:space="preserve">
     <value>Allahindlus</value>
+  </data>
+  <data name="EditLabel" xml:space="preserve">
+    <value>Muuda</value>
+  </data>
+  <data name="ShowCurrentlyValidOnly" xml:space="preserve">
+    <value>Naita ainult kehtivaid</value>
+  </data>
+  <data name="ShowExpiredToo" xml:space="preserve">
+    <value>Naita ka aegunuid</value>
+  </data>
+  <data name="SystemPromotionsHeading" xml:space="preserve">
+    <value>Süsteemi promocoodid</value>
+  </data>
+  <data name="CompanyPromotionsHeading" xml:space="preserve">
+    <value>Ettevõtte promocoodid</value>
+  </data>
+  <data name="CompanyHeader" xml:space="preserve">
+    <value>Ettevõte</value>
+  </data>
+  <data name="CloseLabel" xml:space="preserve">
+    <value>Sulge</value>
+  </data>
+  <data name="NoCompanyPromos" xml:space="preserve">
+    <value>Ühtegi ettevõtte promocoodi ei leitud.</value>
+  </data>
+  <data name="SystemLevel" xml:space="preserve">
+    <value>Süsteemi tase</value>
+  </data>
+  <data name="CreateTitle" xml:space="preserve">
+    <value>Loo süsteemi promocood</value>
+  </data>
+  <data name="EditTitle" xml:space="preserve">
+    <value>Muuda süsteemi promocoodi</value>
+  </data>
+  <data name="PromotionCodeLabel" xml:space="preserve">
+    <value>Promocood</value>
+  </data>
+  <data name="DiscountValueLabel" xml:space="preserve">
+    <value>Allahindluse väärtus</value>
+  </data>
+  <data name="ValidFromLabel" xml:space="preserve">
+    <value>Kehtib alates</value>
+  </data>
+  <data name="ValidToLabel" xml:space="preserve">
+    <value>Kehtib kuni</value>
+  </data>
+  <data name="ActiveLabel" xml:space="preserve">
+    <value>Aktiivne</value>
+  </data>
+  <data name="SaveLabel" xml:space="preserve">
+    <value>Salvesta</value>
+  </data>
+  <data name="CancelLabel" xml:space="preserve">
+    <value>Katkesta</value>
+  </data>
+  <data name="PromotionCodeRequired" xml:space="preserve">
+    <value>Promocood on kohustuslik.</value>
+  </data>
+  <data name="DiscountValuePositive" xml:space="preserve">
+    <value>Allahindluse väärtus peab olema positiivne.</value>
+  </data>
+  <data name="ValidFromBeforeValidTo" xml:space="preserve">
+    <value>Alguskuupäev peab olema enne lõppkuupäeva.</value>
+  </data>
+  <data name="CreateFailed" xml:space="preserve">
+    <value>Promocoodi loomine ebaõnnestus.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>Promocoodi uuendamine ebaõnnestus.</value>
+  </data>
+  <data name="CreatedSuccess" xml:space="preserve">
+    <value>Promocood loodi edukalt.</value>
+  </data>
+  <data name="UpdatedSuccess" xml:space="preserve">
+    <value>Promocood uuendati edukalt.</value>
+  </data>
+  <data name="DeleteFailed" xml:space="preserve">
+    <value>Promocoodi kustutamine ebaõnnestus.</value>
+  </data>
+  <data name="DeletedSuccess" xml:space="preserve">
+    <value>Promocood kustutati edukalt.</value>
   </data>
   <data name="InactiveStatus" xml:space="preserve">
     <value>Mitteaktiivne</value>

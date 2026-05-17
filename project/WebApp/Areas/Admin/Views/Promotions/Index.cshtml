@@ -1,7 +1,8 @@
 @model WebApp.Areas.Admin.Controllers.AdminPromotionIndexViewModel
 
 @{
-    ViewData["Title"] = "System Promotions";
+    var r = App.Resources.Views.Admin.Promotions.Index.ResourceManager;
+    var title = App.Resources.Views.Admin.Promotions.Index.Title;
 }
 
 <div class="admin-header mb-4">
@@ -11,13 +12,13 @@
             @if (Model.ShowExpired)
             {
                 <a asp-action="Index" asp-route-showExpired="false" class="btn btn-outline-secondary">
-                    Show Currently Valid Only
+                    @r.GetString("ShowCurrentlyValidOnly")
                 </a>
             }
             else
             {
                 <a asp-action="Index" asp-route-showExpired="true" class="btn btn-outline-secondary">
-                    Show Expired Too
+                    @r.GetString("ShowExpiredToo")
                 </a>
             }
 
@@ -32,7 +33,7 @@
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         @TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@r.GetString("CloseLabel")"></button>
     </div>
 }
 
@@ -40,12 +41,12 @@
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         @TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@r.GetString("CloseLabel")"></button>
     </div>
 }
 
 <section class="mb-4">
-    <h2 class="h4 mb-3">System Promotions</h2>
+    <h2 class="h4 mb-3">@r.GetString("SystemPromotionsHeading")</h2>
     <div class="card">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
@@ -82,12 +83,12 @@
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a asp-action="Edit" asp-route-id="@promo.PromotionId" class="btn btn-outline-primary">
-                                            <span class="bi bi-pencil"></span> Edit
+                                            <span class="bi bi-pencil"></span> @r.GetString("EditLabel")
                                         </a>
                                         <form asp-action="Delete" asp-route-id="@promo.PromotionId" method="post" style="display:inline;" onsubmit="return confirm('@App.Resources.Views.Admin.Promotions.Index.DeleteConfirm');">
                                             @Html.AntiForgeryToken()
                                             <button type="submit" class="btn btn-outline-danger">
-                                                <span class="bi bi-trash"></span> Delete
+                                                <span class="bi bi-trash"></span> @r.GetString("DeleteLabel")
                                             </button>
                                         </form>
                                     </div>
@@ -108,13 +109,13 @@
 </section>
 
 <section>
-    <h2 class="h4 mb-3">Company Promotions</h2>
+    <h2 class="h4 mb-3">@r.GetString("CompanyPromotionsHeading")</h2>
     <div class="card">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Company</th>
+                        <th>@r.GetString("CompanyHeader")</th>
                         <th>@App.Resources.Views.Admin.Promotions.Index.CodeHeader</th>
                         <th>@App.Resources.Views.Admin.Promotions.Index.DiscountHeader (%)</th>
                         <th>@App.Resources.Views.Admin.Promotions.Index.ValidFromHeader</th>
@@ -149,7 +150,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No company promotions found.</td>
+                            <td colspan="6" class="text-center text-muted py-4">@r.GetString("NoCompanyPromos")</td>
                         </tr>
                     }
                 </tbody>

@@ -9,6 +9,9 @@ namespace WebApp.Areas.Admin.Controllers;
 [Route("Admin/[controller]")]
 public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Controller
 {
+    private static string R(string key) =>
+        App.Resources.Views.Admin.Promotions.Index.ResourceManager.GetString(key) ?? key;
+
     [HttpGet("")]
     [HttpGet("Index")]
     public async Task<IActionResult> Index(bool showExpired = false)
@@ -22,7 +25,7 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
             ValidFromUtc = p.ValidFromUtc,
             ValidToUtc = p.ValidToUtc,
             IsActive = p.IsActive,
-            CompanyName = "System Level",
+            CompanyName = R("SystemLevel"),
             IsSystemLevel = true
         }).ToList();
         var companyItems = new List<AdminPromotionListItemViewModel>();
@@ -76,20 +79,19 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
             return View("Form", model);
         }
 
-        var userName = User.Identity?.Name ?? "Unknown";
         if (string.IsNullOrWhiteSpace(model.Code))
         {
-            ModelState.AddModelError("", "Promotion code is required.");
+            ModelState.AddModelError("", R("PromotionCodeRequired"));
             return View("Form", model);
         }
         if (model.DiscountValue <= 0)
         {
-            ModelState.AddModelError("", "Discount value must be positive.");
+            ModelState.AddModelError("", R("DiscountValuePositive"));
             return View("Form", model);
         }
         if (model.ValidFromUtc >= model.ValidToUtc)
         {
-            ModelState.AddModelError("", "Valid from date must be before valid to date.");
+            ModelState.AddModelError("", R("ValidFromBeforeValidTo"));
             return View("Form", model);
         }
 
@@ -105,11 +107,11 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
         var result = await companiesModuleApi.CreateSystemPromotionAsync(dto);
         if (!result.Success || result.Promotion == null)
         {
-            ModelState.AddModelError("", result.ErrorMessage ?? "Failed to create promotion.");
+            ModelState.AddModelError("", result.ErrorMessage ?? R("CreateFailed"));
             return View("Form", model);
         }
 
-        TempData["SuccessMessage"] = "Promotion created successfully.";
+        TempData["SuccessMessage"] = R("CreatedSuccess");
         return RedirectToAction("Index");
     }
 
@@ -146,17 +148,17 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
 
         if (string.IsNullOrWhiteSpace(model.Code))
         {
-            ModelState.AddModelError("", "Promotion code is required.");
+            ModelState.AddModelError("", R("PromotionCodeRequired"));
             return View("Form", model);
         }
         if (model.DiscountValue <= 0)
         {
-            ModelState.AddModelError("", "Discount value must be positive.");
+            ModelState.AddModelError("", R("DiscountValuePositive"));
             return View("Form", model);
         }
         if (model.ValidFromUtc >= model.ValidToUtc)
         {
-            ModelState.AddModelError("", "Valid from date must be before valid to date.");
+            ModelState.AddModelError("", R("ValidFromBeforeValidTo"));
             return View("Form", model);
         }
 
@@ -172,11 +174,11 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
         var result = await companiesModuleApi.UpdateSystemPromotionAsync(id, dto);
         if (!result.Success || result.Promotion == null)
         {
-            ModelState.AddModelError("", result.ErrorMessage ?? "Failed to update promotion.");
+            ModelState.AddModelError("", result.ErrorMessage ?? R("UpdateFailed"));
             return View("Form", model);
         }
 
-        TempData["SuccessMessage"] = "Promotion updated successfully.";
+        TempData["SuccessMessage"] = R("UpdatedSuccess");
         return RedirectToAction("Index");
     }
 
@@ -187,11 +189,11 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
         var deleted = await companiesModuleApi.DeleteSystemPromotionAsync(id);
         if (!deleted)
         {
-            TempData["ErrorMessage"] = "Failed to delete promotion.";
+            TempData["ErrorMessage"] = R("DeleteFailed");
             return RedirectToAction("Index");
         }
 
-        TempData["SuccessMessage"] = "Promotion deleted successfully.";
+        TempData["SuccessMessage"] = R("DeletedSuccess");
         return RedirectToAction("Index");
     }
 }
@@ -211,7 +213,7 @@ public class AdminPromotionListItemViewModel
     public DateTime ValidFromUtc { get; set; }
     public DateTime ValidToUtc { get; set; }
     public bool IsActive { get; set; }
-    public string CompanyName { get; set; } = "System Level";
+    public string CompanyName { get; set; } = App.Resources.Views.Admin.Promotions.Index.ResourceManager.GetString("SystemLevel") ?? "System Level";
     public bool IsSystemLevel { get; set; }
 }
 

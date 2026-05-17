@@ -73,8 +73,92 @@
   <data name="DeleteConfirm" xml:space="preserve">
     <value>Are you sure you want to delete this promotion?</value>
   </data>
+  <data name="DeleteLabel" xml:space="preserve">
+    <value>Delete</value>
+  </data>
   <data name="DiscountHeader" xml:space="preserve">
     <value>Discount</value>
+  </data>
+  <data name="EditLabel" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="ShowCurrentlyValidOnly" xml:space="preserve">
+    <value>Show Currently Valid Only</value>
+  </data>
+  <data name="ShowExpiredToo" xml:space="preserve">
+    <value>Show Expired Too</value>
+  </data>
+  <data name="SystemPromotionsHeading" xml:space="preserve">
+    <value>System Promotions</value>
+  </data>
+  <data name="CompanyPromotionsHeading" xml:space="preserve">
+    <value>Company Promotions</value>
+  </data>
+  <data name="CompanyHeader" xml:space="preserve">
+    <value>Company</value>
+  </data>
+  <data name="CloseLabel" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="NoCompanyPromos" xml:space="preserve">
+    <value>No company promotions found.</value>
+  </data>
+  <data name="SystemLevel" xml:space="preserve">
+    <value>System Level</value>
+  </data>
+  <data name="CreateTitle" xml:space="preserve">
+    <value>Create System Promotion</value>
+  </data>
+  <data name="EditTitle" xml:space="preserve">
+    <value>Edit System Promotion</value>
+  </data>
+  <data name="PromotionCodeLabel" xml:space="preserve">
+    <value>Promotion Code</value>
+  </data>
+  <data name="DiscountValueLabel" xml:space="preserve">
+    <value>Discount Value</value>
+  </data>
+  <data name="ValidFromLabel" xml:space="preserve">
+    <value>Valid From</value>
+  </data>
+  <data name="ValidToLabel" xml:space="preserve">
+    <value>Valid To</value>
+  </data>
+  <data name="ActiveLabel" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="SaveLabel" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="CancelLabel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="PromotionCodeRequired" xml:space="preserve">
+    <value>Promotion code is required.</value>
+  </data>
+  <data name="DiscountValuePositive" xml:space="preserve">
+    <value>Discount value must be positive.</value>
+  </data>
+  <data name="ValidFromBeforeValidTo" xml:space="preserve">
+    <value>Valid from date must be before valid to date.</value>
+  </data>
+  <data name="CreateFailed" xml:space="preserve">
+    <value>Failed to create promotion.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>Failed to update promotion.</value>
+  </data>
+  <data name="CreatedSuccess" xml:space="preserve">
+    <value>Promotion created successfully.</value>
+  </data>
+  <data name="UpdatedSuccess" xml:space="preserve">
+    <value>Promotion updated successfully.</value>
+  </data>
+  <data name="DeleteFailed" xml:space="preserve">
+    <value>Failed to delete promotion.</value>
+  </data>
+  <data name="DeletedSuccess" xml:space="preserve">
+    <value>Promotion deleted successfully.</value>
   </data>
   <data name="InactiveStatus" xml:space="preserve">
     <value>Inactive</value>
