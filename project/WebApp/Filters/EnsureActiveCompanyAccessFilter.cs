@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using App.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -33,7 +32,10 @@ public sealed class EnsureActiveCompanyAccessFilter(ICompaniesModuleApi companie
         }
 
         var memberships = await companiesModuleApi.GetUserCompaniesAsync(userId);
-        if (memberships.Any(m => Enum.TryParse<ECompanyRole>(m.Role, true, out _)))
+        if (memberships.Any(m =>
+                string.Equals(m.Role, "Owner", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(m.Role, "Manager", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(m.Role, "Employee", StringComparison.OrdinalIgnoreCase)))
         {
             await next();
             return;

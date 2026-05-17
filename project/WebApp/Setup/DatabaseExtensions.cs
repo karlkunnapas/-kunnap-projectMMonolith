@@ -1,11 +1,8 @@
-using App.DAL.EF;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Modules.Users.Infrastructure;
 using Npgsql;
 using Shared.Contracts.Auditing;
 using WebApp.Helpers;
@@ -19,33 +16,16 @@ public static class DatabaseExtensions
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-                               ?? throw new InvalidOperationException(
-                                   "Connection string 'DefaultConnection' not found.");
+        _ = configuration;
+        _ = environment;
 
         // used for older style [Column(TypeName = "jsonb")] for LangStr
 #pragma warning disable CS0618 // Type or member is obsolete
         NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
 #pragma warning restore CS0618 // Type or member is obsolete
 
-        services.AddDbContext<AppDbContext>(options =>
-        {
-            options.UseNpgsql(
-                    connectionString,
-                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-                .ConfigureWarnings(w =>
-                    w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))
-                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution);
-
-            if (!environment.IsProduction())
-            {
-                options.EnableDetailedErrors()
-                    .EnableSensitiveDataLogging();
-            }
-        });
-
         services.AddDatabaseDeveloperPageExceptionFilter();
-        services.AddDataProtection().PersistKeysToDbContext<AppDbContext>();
+        services.AddDataProtection().PersistKeysToDbContext<UsersDbContext>();
         services.AddHttpContextAccessor();
         services.AddScoped<IAuditActorProvider, HttpContextAuditActorProvider>();
 

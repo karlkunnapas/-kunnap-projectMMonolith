@@ -1,11 +1,11 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain.Identity;
+using Modules.Companies.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Modules.Users.Domain;
 using Shared.Contracts.Companies;
 using Shared.Contracts.Users;
 using WebApp.Tests.Helpers;
@@ -84,8 +84,14 @@ public class IntegrationTestRegistrationAndTenantRouting : IClassFixture<CustomW
         {
             var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
             var companiesModuleApi = scope.ServiceProvider.GetRequiredService<ICompaniesModuleApi>();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
+
+            if (!await roleManager.RoleExistsAsync("Customer"))
+            {
+                var customerRoleResult = await roleManager.CreateAsync(new AppRole { Name = "Customer" });
+                Assert.True(customerRoleResult.Succeeded, string.Join(", ", customerRoleResult.Errors.Select(e => e.Description)));
+            }
 
             if (!await roleManager.RoleExistsAsync("CompanyOwner"))
             {
@@ -113,9 +119,9 @@ public class IntegrationTestRegistrationAndTenantRouting : IClassFixture<CustomW
             });
 
             Assert.True(registerResult.Success);
-            var company = await db.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == registerResult.CompanyId);
+            var company = await companiesDb.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == registerResult.CompanyId);
             company.IsActive = false;
-            await db.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
         }
 
         var getLogin = await _client.GetAsync("/Account/Login");

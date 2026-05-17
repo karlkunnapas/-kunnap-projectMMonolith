@@ -1,6 +1,7 @@
-using App.DAL.EF;
-using App.Domain;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
 
 namespace WebApp.Tests.Integration;
 
@@ -18,7 +19,7 @@ public class IntegrationTestAuditLogging : IClassFixture<CustomWebApplicationFac
     public async Task SaveChanges_WritesAuditLogs_ThroughApplicationServiceProvider()
     {
         using var scope = _factory.Services.CreateScope();
-        var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var ctx = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
 
         var company = new Company
         {
@@ -40,10 +41,9 @@ public class IntegrationTestAuditLogging : IClassFixture<CustomWebApplicationFac
             .OrderBy(l => l.AtUtc)
             .ToList();
 
-        Assert.Contains(logs, l => l.Action == "Create");
-        Assert.Contains(logs, l => l.Action == "Update");
+        Assert.Contains(logs, l => l.Action == "Created");
+        Assert.Contains(logs, l => l.Action == "Updated");
         Assert.All(logs, l => Assert.Equal(company.Id, l.CompanyId));
         Assert.All(logs, l => Assert.Equal("system", l.UserName));
     }
 }
-

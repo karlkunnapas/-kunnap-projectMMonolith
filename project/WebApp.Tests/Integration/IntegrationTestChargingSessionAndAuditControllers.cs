@@ -1,11 +1,15 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Charging.Domain;
+using Modules.Charging.Infrastructure;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
 using WebApp.Tests.Helpers;
 
 namespace WebApp.Tests.Integration;
@@ -59,7 +63,9 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         await using var authFactory = CreateAuthenticatedFactory();
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
             var company = new Company
             {
                 Id = Guid.NewGuid(),
@@ -92,11 +98,13 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 EstimatedCost = 12m
             };
 
-            db.Companies.Add(company);
-            db.ChargingStations.Add(station);
-            db.Reservations.Add(reservation);
-            db.Users.Add(new AppUser { Id = userId, UserName = $"customer-{userId}", Email = $"customer-{userId}@test.local" });
-            await db.SaveChangesAsync();
+            companiesDb.Companies.Add(company);
+            chargingDb.ChargingStations.Add(station);
+            chargingDb.Reservations.Add(reservation);
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"customer-{userId}", Email = $"customer-{userId}@test.local" });
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
+            await chargingDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, userId, "Customer");
@@ -124,8 +132,8 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         Assert.Equal(HttpStatusCode.Redirect, postStop.StatusCode);
 
         using var verifyScope = authFactory.Services.CreateScope();
-        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var session = verifyDb.ChargingSessions.Single(s => s.Id == sessionId);
+        var verifyChargingDb = verifyScope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        var session = verifyChargingDb.ChargingSessions.Single(s => s.Id == sessionId);
         Assert.NotNull(session.EndTime);
         Assert.True(session.EnergyConsumed > 0m);
         Assert.True(session.Cost > 0m);
@@ -140,7 +148,9 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         await using var authFactory = CreateAuthenticatedFactory();
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
 
             var company = new Company
             {
@@ -172,12 +182,14 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 Cost = 0m
             };
 
-            db.Companies.Add(company);
-            db.ChargingStations.Add(station);
-            db.ChargingSessions.Add(session);
-            db.Users.Add(new AppUser { Id = ownerUserId, UserName = $"owner-{ownerUserId}", Email = $"owner-{ownerUserId}@test.local" });
-            db.Users.Add(new AppUser { Id = foreignUserId, UserName = $"foreign-{foreignUserId}", Email = $"foreign-{foreignUserId}@test.local" });
-            await db.SaveChangesAsync();
+            companiesDb.Companies.Add(company);
+            chargingDb.ChargingStations.Add(station);
+            chargingDb.ChargingSessions.Add(session);
+            usersDb.Users.Add(new AppUser { Id = ownerUserId, UserName = $"owner-{ownerUserId}", Email = $"owner-{ownerUserId}@test.local" });
+            usersDb.Users.Add(new AppUser { Id = foreignUserId, UserName = $"foreign-{foreignUserId}", Email = $"foreign-{foreignUserId}@test.local" });
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
+            await chargingDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, foreignUserId, "Customer");
@@ -202,7 +214,8 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
 
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
 
             companyA = Guid.NewGuid();
             companyB = Guid.NewGuid();
@@ -210,19 +223,19 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
             companyASlug = $"a-{Guid.NewGuid():N}";
             foreignCompanySlug = $"c-{Guid.NewGuid():N}";
 
-            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
-            db.Companies.AddRange(
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            companiesDb.Companies.AddRange(
                 new Company { Id = companyA, Name = "A", ContactEmail = "a@test.local", ContactPhone = "+3723000000", Slug = companyASlug, IsActive = true },
                 new Company { Id = companyB, Name = "B", ContactEmail = "b@test.local", ContactPhone = "+3723000001", Slug = $"b-{Guid.NewGuid():N}", IsActive = true },
                 new Company { Id = foreignCompany, Name = "C", ContactEmail = "c@test.local", ContactPhone = "+3723000002", Slug = foreignCompanySlug, IsActive = true }
             );
 
-            db.AppUserCompanies.AddRange(
+            companiesDb.AppUserCompanies.AddRange(
                 new AppUserCompany { Id = Guid.NewGuid(), AppUserId = userId, CompanyId = companyA, Role = ECompanyRole.Owner, IsActive = true, JoinedAtUtc = DateTime.UtcNow.AddMinutes(-10) },
                 new AppUserCompany { Id = Guid.NewGuid(), AppUserId = userId, CompanyId = companyB, Role = ECompanyRole.Owner, IsActive = true, JoinedAtUtc = DateTime.UtcNow }
             );
 
-            db.AuditLogs.Add(new AuditLog
+            companiesDb.AuditLogs.Add(new AuditLog
             {
                 Id = Guid.NewGuid(),
                 CompanyId = foreignCompany,
@@ -234,7 +247,8 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 ChangesJson = "[]"
             });
 
-            await db.SaveChangesAsync();
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
@@ -256,10 +270,11 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         await using var authFactory = CreateAuthenticatedFactory();
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
 
-            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
-            db.Companies.Add(new Company
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Audit Link Company",
@@ -268,7 +283,7 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 Slug = companySlug,
                 IsActive = true
             });
-            db.AppUserCompanies.Add(new AppUserCompany
+            companiesDb.AppUserCompanies.Add(new AppUserCompany
             {
                 Id = Guid.NewGuid(),
                 AppUserId = userId,
@@ -277,7 +292,8 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 IsActive = true,
                 JoinedAtUtc = DateTime.UtcNow
             });
-            await db.SaveChangesAsync();
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
@@ -305,10 +321,12 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         await using var authFactory = CreateAuthenticatedFactory();
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
 
-            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
-            db.Companies.Add(new Company
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Find Stations Company",
@@ -317,7 +335,7 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 Slug = companySlug,
                 IsActive = true
             });
-            db.AppUserCompanies.Add(new AppUserCompany
+            companiesDb.AppUserCompanies.Add(new AppUserCompany
             {
                 Id = Guid.NewGuid(),
                 AppUserId = userId,
@@ -326,7 +344,7 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 IsActive = true,
                 JoinedAtUtc = DateTime.UtcNow
             });
-            db.ChargingStations.Add(new ChargingStation
+            chargingDb.ChargingStations.Add(new ChargingStation
             {
                 Id = stationId,
                 CompanyId = companyId,
@@ -337,7 +355,9 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 MaxPower = 50m,
                 IsActive = true
             });
-            await db.SaveChangesAsync();
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
+            await chargingDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
@@ -396,10 +416,12 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
         await using var authFactory = CreateAuthenticatedFactory();
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
 
-            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
-            db.Companies.Add(new Company
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Maintenance Audit Company",
@@ -408,7 +430,7 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 Slug = companySlug,
                 IsActive = true
             });
-            db.AppUserCompanies.Add(new AppUserCompany
+            companiesDb.AppUserCompanies.Add(new AppUserCompany
             {
                 Id = Guid.NewGuid(),
                 AppUserId = userId,
@@ -417,7 +439,7 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 IsActive = true,
                 JoinedAtUtc = DateTime.UtcNow
             });
-            db.ChargingStations.Add(new ChargingStation
+            chargingDb.ChargingStations.Add(new ChargingStation
             {
                 Id = stationId,
                 CompanyId = companyId,
@@ -428,9 +450,11 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 MaxPower = 80m,
                 IsActive = true
             });
-            await db.SaveChangesAsync();
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
+            await chargingDb.SaveChangesAsync();
 
-            db.Maintenances.Add(new Maintenance
+            chargingDb.Maintenances.Add(new Maintenance
             {
                 Id = Guid.NewGuid(),
                 ChargingStationId = stationId,
@@ -439,7 +463,8 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
                 Status = EMaintenanceStatus.Reported,
                 ReportedAt = DateTime.UtcNow
             });
-            await db.SaveChangesAsync();
+            await usersDb.SaveChangesAsync();
+            await chargingDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
@@ -478,21 +503,21 @@ public class IntegrationTestChargingSessionAndAuditControllers : IClassFixture<C
     private static Guid GetReservationId(WebApplicationFactory<Program> factory, Guid userId)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        return db.Reservations.Where(r => r.UserId == userId).OrderByDescending(r => r.StartTime).Select(r => r.Id).First();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        return chargingDb.Reservations.Where(r => r.UserId == userId).OrderByDescending(r => r.StartTime).Select(r => r.Id).First();
     }
 
     private static Guid GetSessionId(WebApplicationFactory<Program> factory, Guid userId)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        return db.ChargingSessions.Where(s => s.UserId == userId).OrderByDescending(s => s.StartTime).Select(s => s.Id).First();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        return chargingDb.ChargingSessions.Where(s => s.UserId == userId).OrderByDescending(s => s.StartTime).Select(s => s.Id).First();
     }
 
     private static Guid GetAnySessionId(WebApplicationFactory<Program> factory, Guid userId)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        return db.ChargingSessions.Where(s => s.UserId == userId).Select(s => s.Id).First();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        return chargingDb.ChargingSessions.Where(s => s.UserId == userId).Select(s => s.Id).First();
     }
 }

@@ -1,12 +1,16 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Charging.Domain;
+using Modules.Charging.Infrastructure;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
 using WebApp.Tests.Helpers;
 
 namespace WebApp.Tests.Integration;
@@ -52,8 +56,8 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.False(db.Companies.IgnoreQueryFilters().Single(c => c.Id == companyId).IsActive);
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        Assert.False(companiesDb.Companies.IgnoreQueryFilters().Single(c => c.Id == companyId).IsActive);
     }
 
     [Fact]
@@ -278,14 +282,14 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
     private static async Task SeedUser(WebApplicationFactory<Program> factory, Guid userId, string email)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
 
-        if (db.Users.Any(u => u.Id == userId))
+        if (usersDb.Users.Any(u => u.Id == userId))
         {
             return;
         }
 
-        db.Users.Add(new AppUser
+        usersDb.Users.Add(new AppUser
         {
             Id = userId,
             UserName = email,
@@ -294,19 +298,19 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
             EmailConfirmed = true
         });
 
-        await db.SaveChangesAsync();
+        await usersDb.SaveChangesAsync();
     }
 
     private static async Task SeedCompany(WebApplicationFactory<Program> factory, Guid companyId, string slug)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        if (db.Companies.IgnoreQueryFilters().Any(c => c.Id == companyId))
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        if (companiesDb.Companies.IgnoreQueryFilters().Any(c => c.Id == companyId))
         {
             return;
         }
 
-        db.Companies.Add(new Company
+        companiesDb.Companies.Add(new Company
         {
             Id = companyId,
             Name = new LangStr("Integration Company"),
@@ -315,14 +319,14 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
             Slug = slug,
             IsActive = true
         });
-        await db.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
     }
 
     private static async Task SeedAuditLog(WebApplicationFactory<Program> factory, Guid companyId, string userName, string action)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.AuditLogs.Add(new AuditLog
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        companiesDb.AuditLogs.Add(new AuditLog
         {
             Id = Guid.NewGuid(),
             CompanyId = companyId,
@@ -333,14 +337,14 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
             AtUtc = DateTime.UtcNow,
             ChangesJson = "{}"
         });
-        await db.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
     }
 
     private static async Task SeedStation(WebApplicationFactory<Program> factory, Guid companyId, string stationName)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.ChargingStations.Add(new ChargingStation
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        chargingDb.ChargingStations.Add(new ChargingStation
         {
             Id = Guid.NewGuid(),
             Name = new LangStr(stationName),
@@ -351,14 +355,14 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
             IsActive = true,
             CompanyId = companyId
         });
-        await db.SaveChangesAsync();
+        await chargingDb.SaveChangesAsync();
     }
 
     private static async Task SeedSystemPromotion(WebApplicationFactory<Program> factory, string code, decimal discount, bool isActive = true, DateTime? validTo = null)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Promotions.Add(new Promotion
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        companiesDb.Promotions.Add(new Promotion
         {
             Id = Guid.NewGuid(),
             Code = code,
@@ -368,14 +372,14 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
             IsActive = isActive,
             CompanyId = null
         });
-        await db.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
     }
 
     private static async Task SeedCompanyPromotion(WebApplicationFactory<Program> factory, Guid companyId, string code, decimal discount)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Promotions.Add(new Promotion
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        companiesDb.Promotions.Add(new Promotion
         {
             Id = Guid.NewGuid(),
             Code = code,
@@ -385,19 +389,19 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
             IsActive = true,
             CompanyId = companyId
         });
-        await db.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
     }
 
     private static async Task SeedConnectorType(WebApplicationFactory<Program> factory, string nameEn, bool isActive)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Connectors.Add(new Connector
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        chargingDb.Connectors.Add(new Connector
         {
             Id = Guid.NewGuid(),
             Name = new LangStr(nameEn),
             IsActive = isActive
         });
-        await db.SaveChangesAsync();
+        await chargingDb.SaveChangesAsync();
     }
 }

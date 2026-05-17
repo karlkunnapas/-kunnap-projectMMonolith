@@ -1,6 +1,6 @@
 ﻿@model WebApp.ViewModels.HomeIndexViewModel
 @using System
-@using App.Domain
+@using StationStatus = Shared.Contracts.Charging.EStationStatus
 @{
     ViewData["Title"] = App.Resources.Views.Home.Index.Title;
     var hasActiveFilters = !string.IsNullOrWhiteSpace(Model.SelectedStatus)
@@ -30,10 +30,10 @@
         <div class="home-filters">
             <div class="home-filters-title">@App.Resources.Views.Home.Index.Filters</div>
             <div class="home-filter-row">
-                <a class="filter-chip @(string.Equals(Model.SelectedStatus, EStationStatus.Available.ToString(), StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+                <a class="filter-chip @(string.Equals(Model.SelectedStatus, StationStatus.Available.ToString(), StringComparison.OrdinalIgnoreCase) ? "active" : "")"
                    asp-controller="Home"
                    asp-action="Index"
-                   asp-route-status="@EStationStatus.Available"
+                   asp-route-status="@StationStatus.Available"
                    asp-route-location="@Model.LocationQuery"
                    asp-route-connector="@Model.SelectedConnector"
                    asp-route-vehicleId="@Model.SelectedVehicleId">

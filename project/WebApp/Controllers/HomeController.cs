@@ -6,7 +6,6 @@ using Shared.Contracts.Charging;
 using Shared.Contracts.Users;
 using WebApp.ViewModels;
 using ContractStationStatus = Shared.Contracts.Charging.EStationStatus;
-using DomainStationStatus = App.Domain.EStationStatus;
 
 namespace WebApp.Controllers;
 
@@ -121,7 +120,7 @@ public class HomeController : Controller
                 Id = station.Id,
                 Name = station.Name,
                 Location = station.Location,
-                Status = (DomainStationStatus)(int)station.Status,
+                Status = station.Status,
                 PricePerKwh = station.PricePerKwh,
                 MaxPower = station.MaxPower,
                 ConnectorNames = station.Connectors.Select(c => c.Name).ToList(),

@@ -1,8 +1,9 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,13 +39,14 @@ public class IntegrationTestPromotionControllers : IClassFixture<CustomWebApplic
 
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
-            db.Companies.AddRange(
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            companiesDb.Companies.AddRange(
                 new Company { Id = ownCompany, Name = "Own", ContactEmail = "own@test.local", ContactPhone = "+3721111111", Slug = $"own-{Guid.NewGuid():N}", IsActive = true },
                 new Company { Id = foreignCompany, Name = "Foreign", ContactEmail = "foreign@test.local", ContactPhone = "+3722222222", Slug = $"foreign-{Guid.NewGuid():N}", IsActive = true }
             );
-            db.AppUserCompanies.Add(new AppUserCompany
+            companiesDb.AppUserCompanies.Add(new AppUserCompany
             {
                 Id = Guid.NewGuid(),
                 AppUserId = userId,
@@ -53,7 +55,8 @@ public class IntegrationTestPromotionControllers : IClassFixture<CustomWebApplic
                 IsActive = true,
                 JoinedAtUtc = DateTime.UtcNow
             });
-            await db.SaveChangesAsync();
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, userId, "CompanyOwner");
@@ -71,9 +74,10 @@ public class IntegrationTestPromotionControllers : IClassFixture<CustomWebApplic
 
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Users.Add(new AppUser { Id = userId, UserName = $"customer-{userId}", Email = $"customer-{userId}@test.local" });
-            db.Companies.Add(new Company
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"customer-{userId}", Email = $"customer-{userId}@test.local" });
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Promo Co",
@@ -82,7 +86,7 @@ public class IntegrationTestPromotionControllers : IClassFixture<CustomWebApplic
                 Slug = $"promo-{Guid.NewGuid():N}",
                 IsActive = true
             });
-            db.Promotions.Add(new Promotion
+            companiesDb.Promotions.Add(new Promotion
             {
                 Id = Guid.NewGuid(),
                 CompanyId = companyId,
@@ -92,7 +96,8 @@ public class IntegrationTestPromotionControllers : IClassFixture<CustomWebApplic
                 ValidTo = DateTime.UtcNow.AddDays(10),
                 IsActive = true
             });
-            await db.SaveChangesAsync();
+            await usersDb.SaveChangesAsync();
+            await companiesDb.SaveChangesAsync();
         }
 
         var client = CreateAuthenticatedClient(authFactory, userId, "Customer");
@@ -110,8 +115,8 @@ public class IntegrationTestPromotionControllers : IClassFixture<CustomWebApplic
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var verifyScope = authFactory.Services.CreateScope();
-        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.True(verifyDb.UserPromotions.Any(up => up.UserId == userId && up.Promotion != null && up.Promotion.Code == code));
+        var verifyCompaniesDb = verifyScope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        Assert.True(verifyCompaniesDb.UserPromotions.Any(up => up.UserId == userId && up.Promotion != null && up.Promotion.Code == code));
     }
 
     private static WebApplicationFactory<Program> CreateAuthenticatedFactory()

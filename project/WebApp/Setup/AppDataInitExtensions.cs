@@ -1,5 +1,4 @@
 using System.Threading;
-using App.Domain.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -11,6 +10,7 @@ using Modules.Charging.Infrastructure;
 using Modules.Charging.Infrastructure.Seeding;
 using Modules.Companies.Infrastructure;
 using Modules.Companies.Infrastructure.Seeding;
+using Modules.Users.Domain;
 using Modules.Users.Infrastructure;
 using Modules.Users.Infrastructure.Seeding;
 

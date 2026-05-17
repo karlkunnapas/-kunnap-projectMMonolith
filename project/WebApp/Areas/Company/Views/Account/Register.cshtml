@@ -1,4 +1,4 @@
-@using App.Domain
+@using Shared.Contracts
 @model WebApp.ViewModels.Account.RegisterViewModel
 @{
     ViewData["Title"] = (new LangStr { ["en"] = "Company registration", ["et"] = "Ettevotte registreerimine" }).Translate();
@@ -64,5 +64,4 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }
-
 

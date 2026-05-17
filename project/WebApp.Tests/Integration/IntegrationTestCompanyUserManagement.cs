@@ -1,12 +1,16 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Charging.Domain;
+using Modules.Charging.Infrastructure;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
 using WebApp.Tests.Helpers;
 
 namespace WebApp.Tests.Integration;
@@ -68,13 +72,13 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.True(db.AppUserCompanies.Any(uc =>
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        Assert.True(companiesDb.AppUserCompanies.Any(uc =>
             uc.CompanyId == companyId &&
             uc.AppUserId == targetUserId &&
             uc.Role == ECompanyRole.Manager &&
             uc.IsActive));
-        Assert.True(db.AuditLogs.Any(log =>
+        Assert.True(companiesDb.AuditLogs.Any(log =>
             log.CompanyId == companyId &&
             log.Action == "ExistingUserLinked" &&
             log.EntityName == nameof(AppUserCompany)));
@@ -110,8 +114,8 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(ECompanyRole.Manager, db.AppUserCompanies.Single(uc => uc.Id == membershipId).Role);
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        Assert.Equal(ECompanyRole.Manager, companiesDb.AppUserCompanies.Single(uc => uc.Id == membershipId).Role);
     }
 
     [Fact]
@@ -138,8 +142,8 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.True(db.AppUserCompanies.Single(uc => uc.Id == ownerMembershipId).IsActive);
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        Assert.True(companiesDb.AppUserCompanies.Single(uc => uc.Id == ownerMembershipId).IsActive);
     }
 
     [Fact]
@@ -170,8 +174,8 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
 
         using (var scope = authFactory.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            Assert.False(db.AppUserCompanies.Single(uc => uc.Id == employeeMembershipId).IsActive);
+            var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+            Assert.False(companiesDb.AppUserCompanies.Single(uc => uc.Id == employeeMembershipId).IsActive);
         }
 
         var indexAfter = await client.GetAsync($"/Company/CompanyUsers/Index?companyId={companyId}");
@@ -206,8 +210,8 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         Assert.Contains("beta-company", post.Headers.Location?.ToString() ?? string.Empty);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.True(db.AuditLogs.Any(log =>
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        Assert.True(companiesDb.AuditLogs.Any(log =>
             log.CompanyId == companyB &&
             log.Action == "CompanySwitched" &&
             log.EntityName == nameof(AppUserCompany)));
@@ -302,9 +306,9 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(EMaintenanceStatus.InProgress, db.Maintenances.Single(m => m.Id == issueId).Status);
-        Assert.Equal(EStationStatus.Maintenance, db.ChargingStations.Single(s => s.Id == stationId).Status);
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        Assert.Equal(EMaintenanceStatus.InProgress, chargingDb.Maintenances.Single(m => m.Id == issueId).Status);
+        Assert.Equal(EStationStatus.Maintenance, chargingDb.ChargingStations.Single(s => s.Id == stationId).Status);
     }
 
     [Fact]
@@ -333,11 +337,11 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var issue = db.Maintenances.Single(m => m.Id == issueId);
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        var issue = chargingDb.Maintenances.Single(m => m.Id == issueId);
         Assert.Equal(EMaintenanceStatus.Resolved, issue.Status);
         Assert.NotNull(issue.ResolvedAt);
-        Assert.Equal(EStationStatus.Available, db.ChargingStations.Single(s => s.Id == stationId).Status);
+        Assert.Equal(EStationStatus.Available, chargingDb.ChargingStations.Single(s => s.Id == stationId).Status);
     }
 
     [Fact]
@@ -389,11 +393,12 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         string? slug = null)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
 
-        if (!db.Users.Any(u => u.Id == userId))
+        if (!usersDb.Users.Any(u => u.Id == userId))
         {
-            db.Users.Add(new AppUser
+            usersDb.Users.Add(new AppUser
             {
                 Id = userId,
                 UserName = email,
@@ -403,9 +408,9 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             });
         }
 
-        if (!db.Companies.Any(c => c.Id == companyId))
+        if (!companiesDb.Companies.Any(c => c.Id == companyId))
         {
-            db.Companies.Add(new Company
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Company",
@@ -416,9 +421,9 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             });
         }
 
-        if (!db.AppUserCompanies.Any(uc => uc.AppUserId == userId && uc.CompanyId == companyId))
+        if (!companiesDb.AppUserCompanies.Any(uc => uc.AppUserId == userId && uc.CompanyId == companyId))
         {
-            db.AppUserCompanies.Add(new AppUserCompany
+            companiesDb.AppUserCompanies.Add(new AppUserCompany
             {
                 Id = Guid.NewGuid(),
                 AppUserId = userId,
@@ -429,20 +434,21 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             });
         }
 
-        await db.SaveChangesAsync();
+        await usersDb.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
     }
 
     private static async Task SeedUser(WebApplicationFactory<Program> factory, Guid userId, string email)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
 
-        if (db.Users.Any(u => u.Id == userId))
+        if (usersDb.Users.Any(u => u.Id == userId))
         {
             return;
         }
 
-        db.Users.Add(new AppUser
+        usersDb.Users.Add(new AppUser
         {
             Id = userId,
             UserName = email,
@@ -451,15 +457,15 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             EmailConfirmed = true
         });
 
-        await db.SaveChangesAsync();
+        await usersDb.SaveChangesAsync();
     }
 
     private static async Task<Guid> SeedMembership(WebApplicationFactory<Program> factory, Guid userId, Guid companyId, ECompanyRole role)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
 
-        var existing = db.AppUserCompanies.FirstOrDefault(uc => uc.AppUserId == userId && uc.CompanyId == companyId);
+        var existing = companiesDb.AppUserCompanies.FirstOrDefault(uc => uc.AppUserId == userId && uc.CompanyId == companyId);
         if (existing != null)
         {
             return existing.Id;
@@ -474,16 +480,16 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             IsActive = true,
             JoinedAtUtc = DateTime.UtcNow
         };
-        db.AppUserCompanies.Add(membership);
-        await db.SaveChangesAsync();
+        companiesDb.AppUserCompanies.Add(membership);
+        await companiesDb.SaveChangesAsync();
         return membership.Id;
     }
 
     private static async Task<Guid> GetMembershipId(WebApplicationFactory<Program> factory, Guid userId, Guid companyId)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var membership = await db.AppUserCompanies
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        var membership = await companiesDb.AppUserCompanies
             .AsNoTracking()
             .FirstAsync(uc => uc.AppUserId == userId && uc.CompanyId == companyId);
         return membership.Id;
@@ -497,7 +503,7 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
         Guid? stationId = null)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
 
         var station = new ChargingStation
         {
@@ -510,9 +516,9 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             IsActive = true,
             CompanyId = companyId
         };
-        db.ChargingStations.Add(station);
+        chargingDb.ChargingStations.Add(station);
 
-        db.Maintenances.Add(new Maintenance
+        chargingDb.Maintenances.Add(new Maintenance
         {
             Id = issueId ?? Guid.NewGuid(),
             ChargingStationId = station.Id,
@@ -521,6 +527,6 @@ public class IntegrationTestCompanyUserManagement : IClassFixture<CustomWebAppli
             ReportedAt = DateTime.UtcNow
         });
 
-        await db.SaveChangesAsync();
+        await chargingDb.SaveChangesAsync();
     }
 }

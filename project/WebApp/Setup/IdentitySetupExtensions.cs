@@ -1,10 +1,10 @@
-using App.DAL.EF;
-using App.Domain.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using System.Text;
 
 namespace WebApp.Setup;
@@ -16,7 +16,7 @@ public static class IdentitySetupExtensions
         services
             .AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
             .AddDefaultUI()
-            .AddEntityFrameworkStores<AppDbContext>()
+            .AddEntityFrameworkStores<UsersDbContext>()
             .AddDefaultTokenProviders();
 
         services

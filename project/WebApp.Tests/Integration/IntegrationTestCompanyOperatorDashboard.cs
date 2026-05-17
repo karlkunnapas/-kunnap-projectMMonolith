@@ -1,12 +1,16 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Charging.Domain;
+using Modules.Charging.Infrastructure;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
 using WebApp.Tests.Helpers;
 
 namespace WebApp.Tests.Integration;
@@ -106,11 +110,11 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var issue = db.Maintenances.Single(m => m.Id == issueId);
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        var issue = chargingDb.Maintenances.Single(m => m.Id == issueId);
         Assert.Equal(EMaintenanceStatus.Resolved, issue.Status);
         Assert.NotNull(issue.ResolvedAt);
-        var station = db.ChargingStations.Single(s => s.Id == stationId);
+        var station = chargingDb.ChargingStations.Single(s => s.Id == stationId);
         Assert.Equal(EStationStatus.Available, station.Status);
     }
 
@@ -139,10 +143,10 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var issue = db.Maintenances.Single(m => m.Id == issueId);
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        var issue = chargingDb.Maintenances.Single(m => m.Id == issueId);
         Assert.Equal(EMaintenanceStatus.InProgress, issue.Status);
-        var station = db.ChargingStations.Single(s => s.Id == stationId);
+        var station = chargingDb.ChargingStations.Single(s => s.Id == stationId);
         Assert.Equal(EStationStatus.Maintenance, station.Status);
     }
 
@@ -173,16 +177,18 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
     private static async Task SeedCompanyOwnerData(WebApplicationFactory<Program> factory, Guid userId, Guid companyId, Guid? stationId = null, Guid? issueId = null)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
 
-        if (!db.Users.Any(u => u.Id == userId))
+        if (!usersDb.Users.Any(u => u.Id == userId))
         {
-            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
         }
 
-        if (!db.Companies.Any(c => c.Id == companyId))
+        if (!companiesDb.Companies.Any(c => c.Id == companyId))
         {
-            db.Companies.Add(new Company
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Company",
@@ -193,9 +199,9 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
             });
         }
 
-        if (!db.AppUserCompanies.Any(uc => uc.AppUserId == userId && uc.CompanyId == companyId))
+        if (!companiesDb.AppUserCompanies.Any(uc => uc.AppUserId == userId && uc.CompanyId == companyId))
         {
-            db.AppUserCompanies.Add(new AppUserCompany
+            companiesDb.AppUserCompanies.Add(new AppUserCompany
             {
                 Id = Guid.NewGuid(),
                 AppUserId = userId,
@@ -206,9 +212,9 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
             });
         }
 
-        if (stationId.HasValue && !db.ChargingStations.Any(s => s.Id == stationId.Value))
+        if (stationId.HasValue && !chargingDb.ChargingStations.Any(s => s.Id == stationId.Value))
         {
-            db.ChargingStations.Add(new ChargingStation
+            chargingDb.ChargingStations.Add(new ChargingStation
             {
                 Id = stationId.Value,
                 Name = new LangStr("Operator Station"),
@@ -221,9 +227,9 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
             });
         }
 
-        if (issueId.HasValue && stationId.HasValue && !db.Maintenances.Any(m => m.Id == issueId.Value))
+        if (issueId.HasValue && stationId.HasValue && !chargingDb.Maintenances.Any(m => m.Id == issueId.Value))
         {
-            db.Maintenances.Add(new Maintenance
+            chargingDb.Maintenances.Add(new Maintenance
             {
                 Id = issueId.Value,
                 ChargingStationId = stationId.Value,
@@ -234,19 +240,21 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
             });
         }
 
-        await db.SaveChangesAsync();
+        await usersDb.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
+        await chargingDb.SaveChangesAsync();
     }
 
     private static async Task SeedCompany(WebApplicationFactory<Program> factory, Guid companyId, string slug)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        if (db.Companies.Any(c => c.Id == companyId))
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        if (companiesDb.Companies.Any(c => c.Id == companyId))
         {
             return;
         }
 
-        db.Companies.Add(new Company
+        companiesDb.Companies.Add(new Company
         {
             Id = companyId,
             Name = "Foreign",
@@ -256,16 +264,16 @@ public class IntegrationTestCompanyOperatorDashboard : IClassFixture<CustomWebAp
             IsActive = true
         });
 
-        await db.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
     }
 
     private static async Task DeactivateCompany(WebApplicationFactory<Program> factory, Guid companyId)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
 
-        var company = await db.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == companyId);
+        var company = await companiesDb.Companies.IgnoreQueryFilters().FirstAsync(c => c.Id == companyId);
         company.IsActive = false;
-        await db.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
     }
 }

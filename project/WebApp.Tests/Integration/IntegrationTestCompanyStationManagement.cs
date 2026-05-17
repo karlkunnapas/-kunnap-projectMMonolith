@@ -1,11 +1,15 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Charging.Domain;
+using Modules.Charging.Infrastructure;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
 using WebApp.Tests.Helpers;
 
 namespace WebApp.Tests.Integration;
@@ -61,8 +65,9 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var station = db.ChargingStations
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        var station = chargingDb.ChargingStations
             .Where(s => s.CompanyId == companyId && s.Location == "Tallinn")
             .OrderByDescending(s => s.Id)
             .FirstOrDefault();
@@ -70,8 +75,8 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
         Assert.NotNull(station);
         Assert.Equal("Operator Station EN", station!.Name.Translate("en"));
         Assert.Equal("Operaatori jaam ET", station.Name.Translate("et"));
-        Assert.True(db.ChargingStationConnectors.Any(link => link.ChargingStationId == station.Id && link.ConnectorId == connectorId));
-        Assert.True(db.AuditLogs.Any(log => log.CompanyId == companyId && log.EntityName == nameof(ChargingStation) && log.EntityId == station.Id));
+        Assert.True(chargingDb.ChargingStationConnectors.Any(link => link.ChargingStationId == station.Id && link.ConnectorId == connectorId));
+        Assert.True(companiesDb.AuditLogs.Any(log => log.CompanyId == companyId && log.EntityName == nameof(ChargingStation) && log.EntityId == station.Id));
     }
 
     [Fact]
@@ -109,13 +114,13 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var station = db.ChargingStations.Single(s => s.Id == stationId);
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        var station = chargingDb.ChargingStations.Single(s => s.Id == stationId);
         Assert.Equal("Updated Station EN", station.Name.Translate("en"));
         Assert.Equal("Uuendatud jaam ET", station.Name.Translate("et"));
         Assert.Equal(EStationStatus.InUse, station.Status);
-        Assert.True(db.ChargingStationConnectors.Any(link => link.ChargingStationId == stationId && link.ConnectorId == connectorB));
-        Assert.False(db.ChargingStationConnectors.Any(link => link.ChargingStationId == stationId && link.ConnectorId == connectorA));
+        Assert.True(chargingDb.ChargingStationConnectors.Any(link => link.ChargingStationId == stationId && link.ConnectorId == connectorB));
+        Assert.False(chargingDb.ChargingStationConnectors.Any(link => link.ChargingStationId == stationId && link.ConnectorId == connectorA));
     }
 
     [Fact]
@@ -164,8 +169,8 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
         Assert.Equal(HttpStatusCode.Forbidden, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.True(db.ChargingStations.Any(s => s.Id == foreignStationId));
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        Assert.True(chargingDb.ChargingStations.Any(s => s.Id == foreignStationId));
     }
 
     [Fact]
@@ -223,16 +228,18 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
         Guid? stationId = null)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
 
-        if (!db.Users.Any(u => u.Id == userId))
+        if (!usersDb.Users.Any(u => u.Id == userId))
         {
-            db.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"owner-{userId}", Email = $"owner-{userId}@test.local" });
         }
 
-        if (!db.Companies.Any(c => c.Id == companyId))
+        if (!companiesDb.Companies.Any(c => c.Id == companyId))
         {
-            db.Companies.Add(new Company
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Company",
@@ -243,9 +250,9 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
             });
         }
 
-        if (!db.AppUserCompanies.Any(uc => uc.AppUserId == userId && uc.CompanyId == companyId))
+        if (!companiesDb.AppUserCompanies.Any(uc => uc.AppUserId == userId && uc.CompanyId == companyId))
         {
-            db.AppUserCompanies.Add(new AppUserCompany
+            companiesDb.AppUserCompanies.Add(new AppUserCompany
             {
                 Id = Guid.NewGuid(),
                 AppUserId = userId,
@@ -256,19 +263,19 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
             });
         }
 
-        if (!db.Connectors.Any(c => c.Id == connectorA))
+        if (!chargingDb.Connectors.Any(c => c.Id == connectorA))
         {
-            db.Connectors.Add(new Connector { Id = connectorA, Name = new LangStr("CCS"), IsActive = true });
+            chargingDb.Connectors.Add(new Connector { Id = connectorA, Name = new LangStr("CCS"), IsActive = true });
         }
 
-        if (connectorB.HasValue && !db.Connectors.Any(c => c.Id == connectorB.Value))
+        if (connectorB.HasValue && !chargingDb.Connectors.Any(c => c.Id == connectorB.Value))
         {
-            db.Connectors.Add(new Connector { Id = connectorB.Value, Name = new LangStr("Type 2"), IsActive = true });
+            chargingDb.Connectors.Add(new Connector { Id = connectorB.Value, Name = new LangStr("Type 2"), IsActive = true });
         }
 
-        if (stationId.HasValue && !db.ChargingStations.Any(s => s.Id == stationId.Value))
+        if (stationId.HasValue && !chargingDb.ChargingStations.Any(s => s.Id == stationId.Value))
         {
-            db.ChargingStations.Add(new ChargingStation
+            chargingDb.ChargingStations.Add(new ChargingStation
             {
                 Id = stationId.Value,
                 Name = new LangStr("Existing Station"),
@@ -280,7 +287,7 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
                 CompanyId = companyId
             });
 
-            db.ChargingStationConnectors.Add(new ChargingStationConnector
+            chargingDb.ChargingStationConnectors.Add(new ChargingStationConnector
             {
                 Id = Guid.NewGuid(),
                 ChargingStationId = stationId.Value,
@@ -288,17 +295,20 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
             });
         }
 
-        await db.SaveChangesAsync();
+        await usersDb.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
+        await chargingDb.SaveChangesAsync();
     }
 
     private static async Task SeedForeignStation(WebApplicationFactory<Program> factory, Guid companyId, Guid stationId)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
 
-        if (!db.Companies.Any(c => c.Id == companyId))
+        if (!companiesDb.Companies.Any(c => c.Id == companyId))
         {
-            db.Companies.Add(new Company
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Foreign",
@@ -309,9 +319,9 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
             });
         }
 
-        if (!db.ChargingStations.Any(s => s.Id == stationId))
+        if (!chargingDb.ChargingStations.Any(s => s.Id == stationId))
         {
-            db.ChargingStations.Add(new ChargingStation
+            chargingDb.ChargingStations.Add(new ChargingStation
             {
                 Id = stationId,
                 Name = new LangStr("Foreign Station"),
@@ -324,7 +334,8 @@ public class IntegrationTestCompanyStationManagement : IClassFixture<CustomWebAp
             });
         }
 
-        await db.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
+        await chargingDb.SaveChangesAsync();
     }
 
     private static Task<HttpResponseMessage> PostFormAsync(

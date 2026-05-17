@@ -1,4 +1,5 @@
 @model WebApp.Areas.Company.ViewModels.CompanyStationFormViewModel
+@using StationStatus = Shared.Contracts.Charging.EStationStatus
 @{
     ViewData["Title"] = App.Resources.Views.Company.Station.Create.Title;
 }
@@ -44,7 +45,7 @@
                 </div>
                 <div class="vehicle-form-field">
                     <label asp-for="Status" class="home-filters-title">@App.Resources.Views.Company.Station.Create.StatusLabel</label>
-                    <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<App.Domain.EStationStatus>()"></select>
+                    <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<StationStatus>()"></select>
                     <span asp-validation-for="Status" class="text-danger"></span>
                 </div>
 

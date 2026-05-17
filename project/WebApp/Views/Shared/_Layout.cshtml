@@ -1,6 +1,5 @@
 ﻿@using System.Threading
 @using System.Security.Claims
-@using App.Domain
 @using Shared.Contracts.Companies
 @using Shared.Contracts.Tenancy
 @using WebApp.Helpers
@@ -24,7 +23,7 @@
     @{
         var minimalNavigationMode = ViewData["MinimalNavigationMode"] is bool isMinimalNavigationMode && isMinimalNavigationMode;
         var isCompanyUser = false;
-        ECompanyRole? currentCompanyRole = null;
+        string? currentCompanyRole = null;
         var canAccessManagerFeatures = false;
         var canManageUsers = false;
         var hasMultipleCompanyMemberships = false;
@@ -55,12 +54,12 @@
 
                 currentMembership ??= memberships.First();
 
-                currentCompanyRole = Enum.TryParse<ECompanyRole>(currentMembership.Role, true, out var parsedRole)
-                    ? parsedRole
-                    : ECompanyRole.Employee;
+                currentCompanyRole = currentMembership.Role;
                 currentCompanySlug = currentMembership.Slug ?? currentCompanySlug;
-                canAccessManagerFeatures = currentCompanyRole >= ECompanyRole.Manager;
-                canManageUsers = currentCompanyRole == ECompanyRole.Owner;
+                canAccessManagerFeatures =
+                    string.Equals(currentCompanyRole, "Manager", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(currentCompanyRole, "Owner", StringComparison.OrdinalIgnoreCase);
+                canManageUsers = string.Equals(currentCompanyRole, "Owner", StringComparison.OrdinalIgnoreCase);
             }
         }
     }

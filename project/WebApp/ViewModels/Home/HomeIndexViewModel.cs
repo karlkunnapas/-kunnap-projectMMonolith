@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using App.Domain;
+using Shared.Contracts.Charging;
 
 namespace WebApp.ViewModels;
 

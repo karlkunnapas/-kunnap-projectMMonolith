@@ -1,8 +1,8 @@
 using System.Security.Claims;
-using App.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Modules.Users.Domain;
 using Shared.Contracts;
 using Shared.Contracts.Companies;
 using Shared.Contracts.Users;

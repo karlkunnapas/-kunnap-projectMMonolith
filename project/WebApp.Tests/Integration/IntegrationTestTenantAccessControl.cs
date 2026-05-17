@@ -1,13 +1,14 @@
 using System.Globalization;
 using System.IO;
 using System.Security.Claims;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Shared.Contracts;
 using Shared.Contracts.Companies;
 using Shared.Contracts.Tenancy;
 using Shared.Contracts.Users;
@@ -29,10 +30,11 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
         var companiesModuleApi = scope.ServiceProvider.GetRequiredService<ICompaniesModuleApi>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
+        await EnsureRoleExistsAsync(roleManager, "Customer");
         await EnsureRoleExistsAsync(roleManager, "CompanyOwner");
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
@@ -63,22 +65,21 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
         var ownerCompanyId = registerResult.CompanyId;
         Assert.NotEqual(Guid.Empty, ownerCompanyId);
 
-        var ownerMembership = await db.AppUserCompanies
+        var ownerMembership = await companiesDb.AppUserCompanies
             .IgnoreQueryFilters()
-            .Include(x => x.AppUser)
             .FirstAsync(x => x.CompanyId == ownerCompanyId);
 
         var targetCompany = new Company
         {
-            Name = new LangStr($"Target Company {suffix}"),
+            Name = new LangStr { ["en"] = $"Target Company {suffix}" },
             ContactEmail = $"target.{suffix}@example.com",
             ContactPhone = "+37255553333",
             Slug = targetCompanySlug,
             IsActive = true
         };
 
-        db.Companies.Add(targetCompany);
-        await db.SaveChangesAsync();
+        companiesDb.Companies.Add(targetCompany);
+        await companiesDb.SaveChangesAsync();
 
         var previousCulture = CultureInfo.CurrentUICulture;
         try
@@ -132,4 +133,3 @@ public class IntegrationTestTenantAccessControl : IClassFixture<CustomWebApplica
         Assert.True(roleResult.Succeeded, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
     }
 }
-

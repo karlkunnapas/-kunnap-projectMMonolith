@@ -1,11 +1,15 @@
 using System.Net;
 using AngleSharp.Html.Dom;
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Charging.Domain;
+using Modules.Charging.Infrastructure;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Modules.Users.Domain;
+using Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Shared.Contracts;
 using WebApp.Tests.Helpers;
 
 namespace WebApp.Tests.Integration;
@@ -42,10 +46,10 @@ public class IntegrationTestRootStationIssueReporting : IClassFixture<CustomWebA
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         using var scope = authFactory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var issue = db.Maintenances.Single(m => m.ChargingStationId == stationId);
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        var issue = chargingDb.Maintenances.Single(m => m.ChargingStationId == stationId);
         Assert.Equal(EMaintenanceStatus.Reported, issue.Status);
-        var station = db.ChargingStations.Single(s => s.Id == stationId);
+        var station = chargingDb.ChargingStations.Single(s => s.Id == stationId);
         Assert.Equal(EStationStatus.Available, station.Status);
     }
 
@@ -93,16 +97,18 @@ public class IntegrationTestRootStationIssueReporting : IClassFixture<CustomWebA
     private static async Task SeedData(WebApplicationFactory<Program> factory, Guid userId, Guid companyId, Guid stationId)
     {
         using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var usersDb = scope.ServiceProvider.GetRequiredService<UsersDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        var chargingDb = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
 
-        if (!db.Users.Any(u => u.Id == userId))
+        if (!usersDb.Users.Any(u => u.Id == userId))
         {
-            db.Users.Add(new AppUser { Id = userId, UserName = $"user-{userId}", Email = $"user-{userId}@test.local" });
+            usersDb.Users.Add(new AppUser { Id = userId, UserName = $"user-{userId}", Email = $"user-{userId}@test.local" });
         }
 
-        if (!db.Companies.Any(c => c.Id == companyId))
+        if (!companiesDb.Companies.Any(c => c.Id == companyId))
         {
-            db.Companies.Add(new Company
+            companiesDb.Companies.Add(new Company
             {
                 Id = companyId,
                 Name = "Ops Company",
@@ -113,9 +119,9 @@ public class IntegrationTestRootStationIssueReporting : IClassFixture<CustomWebA
             });
         }
 
-        if (!db.ChargingStations.Any(s => s.Id == stationId))
+        if (!chargingDb.ChargingStations.Any(s => s.Id == stationId))
         {
-            db.ChargingStations.Add(new ChargingStation
+            chargingDb.ChargingStations.Add(new ChargingStation
             {
                 Id = stationId,
                 Name = new LangStr("Customer visible station"),
@@ -128,7 +134,9 @@ public class IntegrationTestRootStationIssueReporting : IClassFixture<CustomWebA
             });
         }
 
-        await db.SaveChangesAsync();
+        await usersDb.SaveChangesAsync();
+        await companiesDb.SaveChangesAsync();
+        await chargingDb.SaveChangesAsync();
     }
 
     private static Task<HttpResponseMessage> PostFormAsync(

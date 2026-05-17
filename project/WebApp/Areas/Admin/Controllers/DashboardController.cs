@@ -1,7 +1,7 @@
-using App.Domain.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Modules.Users.Domain;
 using Shared.Contracts.Charging;
 using Shared.Contracts.Companies;
 using WebApp.Areas.Admin.ViewModels;

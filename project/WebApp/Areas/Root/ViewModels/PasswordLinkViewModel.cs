@@ -1,4 +1,4 @@
-using App.Domain.Identity;
+using Modules.Users.Domain;
 
 namespace WebApp.Areas.Root.ViewModels;
 

@@ -1,21 +1,32 @@
+using System.Security.Claims;
 using System.Text.Json;
-using App.DAL.EF;
-using App.Domain;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Shared.Contracts.Auditing;
+using Modules.Companies.Domain;
+using Modules.Companies.Infrastructure;
+using Shared.Contracts;
 
 namespace WebApp.Tests.Unit;
 
 public class UnitTestAuditLogging
 {
-    private static AppDbContext CreateContext(string? userName = null)
+    private static CompaniesDbContext CreateContext(string? userName = null)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var options = new DbContextOptionsBuilder<CompaniesDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        var provider = new TestAuditActorProvider(userName);
-        var ctx = new AppDbContext(options, provider);
+        var httpContext = new DefaultHttpContext();
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Name, userName)
+            ], "UnitTestAuth"));
+        }
+
+        var accessor = new HttpContextAccessor { HttpContext = httpContext };
+        var ctx = new CompaniesDbContext(options, accessor);
         ctx.Database.EnsureDeleted();
         ctx.Database.EnsureCreated();
         return ctx;
@@ -28,7 +39,7 @@ public class UnitTestAuditLogging
 
         var company = new Company
         {
-            Name = "Unit Test Company",
+            Name = new LangStr { ["en"] = "Unit Test Company" },
             ContactEmail = "unit@company.test",
             ContactPhone = "+3720000000",
             Slug = "unit-test-company",
@@ -38,7 +49,7 @@ public class UnitTestAuditLogging
         ctx.Companies.Add(company);
         ctx.SaveChanges();
 
-        var log = ctx.AuditLogs.Single(l => l.EntityId == company.Id && l.Action == "Create");
+        var log = ctx.AuditLogs.Single(l => l.EntityId == company.Id && l.Action == "Created");
 
         Assert.Equal(company.Id, log.CompanyId);
         Assert.Equal("unit.user@example.com", log.UserName);
@@ -53,7 +64,7 @@ public class UnitTestAuditLogging
 
         var company = new Company
         {
-            Name = "Audit Diff Company",
+            Name = new LangStr { ["en"] = "Audit Diff Company" },
             ContactEmail = "audit@company.test",
             ContactPhone = "+3721111111",
             Slug = "audit-diff-company",
@@ -82,86 +93,15 @@ public class UnitTestAuditLogging
         ctx.Promotions.Remove(promotion);
         await ctx.SaveChangesAsync();
 
-        var updateLog = ctx.AuditLogs.Single(l => l.EntityId == promotion.Id && l.Action == "Update");
-        var deleteLog = ctx.AuditLogs.Single(l => l.EntityId == promotion.Id && l.Action == "Delete");
+        var updateLog = ctx.AuditLogs.Single(l => l.EntityId == promotion.Id && l.Action == "Updated");
+        var deleteLog = ctx.AuditLogs.Single(l => l.EntityId == promotion.Id && l.Action == "Deleted");
 
         Assert.NotNull(updateLog.ChangesJson);
         Assert.NotNull(deleteLog.ChangesJson);
 
         using var updateDoc = JsonDocument.Parse(updateLog.ChangesJson!);
-        var changedPhone = updateDoc.RootElement
-            .EnumerateArray()
-            .Single(e => e.GetProperty("property").GetString() == nameof(Promotion.Code));
-
-        Assert.Equal("SPRING-UNIT", changedPhone.GetProperty("old").GetString());
-        Assert.Equal("SPRING-UNIT-UPDATED", changedPhone.GetProperty("new").GetString());
-    }
-
-    [Fact]
-    public async Task SaveChangesAsync_CreatesAuditLogs_ForReservationAndChargingSession_UsingStationCompany()
-    {
-        await using var ctx = CreateContext("unit.user@example.com");
-
-        var company = new Company
-        {
-            Id = Guid.NewGuid(),
-            Name = "Station Company",
-            ContactEmail = "company@test.local",
-            ContactPhone = "+3720000001",
-            Slug = "station-company",
-            IsActive = true
-        };
-
-        var station = new ChargingStation
-        {
-            Id = Guid.NewGuid(),
-            Name = new LangStr { ["en"] = "Audit Station" },
-            Location = "Tallinn",
-            Status = EStationStatus.Available,
-            PricePerKwh = 0.40m,
-            MaxPower = 100,
-            IsActive = true,
-            CompanyId = company.Id
-        };
-
-        var reservation = new Reservation
-        {
-            Id = Guid.NewGuid(),
-            UserId = Guid.NewGuid(),
-            ChargingStationId = station.Id,
-            StartTime = DateTime.UtcNow.AddMinutes(5),
-            EndTime = DateTime.UtcNow.AddMinutes(35),
-            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(20),
-            Status = EReservationStatus.Active,
-            EstimatedCost = 8
-        };
-
-        var session = new ChargingSession
-        {
-            Id = Guid.NewGuid(),
-            UserId = reservation.UserId,
-            ChargingStationId = station.Id,
-            ReservationId = reservation.Id,
-            StartTime = DateTime.UtcNow,
-            EnergyConsumed = 0,
-            Cost = 0
-        };
-
-        ctx.Companies.Add(company);
-        ctx.ChargingStations.Add(station);
-        ctx.Reservations.Add(reservation);
-        ctx.ChargingSessions.Add(session);
-        await ctx.SaveChangesAsync();
-
-        var reservationAudit = ctx.AuditLogs.Single(l => l.EntityName == nameof(Reservation) && l.EntityId == reservation.Id && l.Action == "Create");
-        var sessionAudit = ctx.AuditLogs.Single(l => l.EntityName == nameof(ChargingSession) && l.EntityId == session.Id && l.Action == "Create");
-
-        Assert.Equal(company.Id, reservationAudit.CompanyId);
-        Assert.Equal(company.Id, sessionAudit.CompanyId);
-    }
-
-    private sealed class TestAuditActorProvider(string? userName) : IAuditActorProvider
-    {
-        public string? UserName { get; } = userName;
+        Assert.True(updateDoc.RootElement.TryGetProperty(nameof(Promotion.Code), out var codeDiff));
+        Assert.Equal("SPRING-UNIT", codeDiff.GetProperty("Old").GetString());
+        Assert.Equal("SPRING-UNIT-UPDATED", codeDiff.GetProperty("New").GetString());
     }
 }

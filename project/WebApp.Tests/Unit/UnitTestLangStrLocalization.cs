@@ -1,4 +1,4 @@
-using App.Domain;
+using Shared.Contracts;
 
 namespace WebApp.Tests.Unit;
 
@@ -55,4 +55,3 @@ public class UnitTestLangStrLocalization
         }
     }
 }
-

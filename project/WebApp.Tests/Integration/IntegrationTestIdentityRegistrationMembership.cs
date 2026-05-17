@@ -1,9 +1,9 @@
-using App.DAL.EF;
-using App.Domain;
-using App.Domain.Identity;
+using Modules.Companies.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Modules.Companies.Domain;
+using Modules.Users.Domain;
 using Shared.Contracts.Companies;
 using Shared.Contracts.Users;
 
@@ -25,7 +25,7 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
         await using var scope = _factory.Services.CreateAsyncScope();
         var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
         var companiesModuleApi = scope.ServiceProvider.GetRequiredService<ICompaniesModuleApi>();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
@@ -57,14 +57,14 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
         var companyId = result.CompanyId;
         Assert.NotEqual(Guid.Empty, companyId);
 
-        var company = await db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == companyId);
+        var company = await companiesDb.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == companyId);
         Assert.NotNull(company);
         Assert.Equal(slug, company!.Slug);
 
         var user = await userManager.FindByEmailAsync(email);
         Assert.NotNull(user);
 
-        var membership = await db.AppUserCompanies
+        var membership = await companiesDb.AppUserCompanies
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(x => x.AppUserId == user.Id && x.CompanyId == companyId);
 
@@ -78,7 +78,7 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
     {
         await using var scope = _factory.Services.CreateAsyncScope();
         var usersModuleApi = scope.ServiceProvider.GetRequiredService<IUsersModuleApi>();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
@@ -104,7 +104,7 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
         var isCustomerRole = await userManager.IsInRoleAsync(user, "Customer");
         Assert.True(isCustomerRole);
 
-        var memberships = await db.AppUserCompanies
+        var memberships = await companiesDb.AppUserCompanies
             .IgnoreQueryFilters()
             .Where(x => x.AppUserId == user.Id)
             .ToListAsync();
@@ -123,7 +123,5 @@ public class IntegrationTestIdentityRegistrationMembership : IClassFixture<Custo
         Assert.True(roleResult.Succeeded, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
     }
 }
-
-
 
 
