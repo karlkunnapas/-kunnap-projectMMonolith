@@ -4,6 +4,7 @@ using Mediator;
 using Shared.Contracts.Companies;
 using Shared.Contracts.Companies.Events;
 using Shared.Contracts.Users;
+using Shared.Contracts.Users.Mediator;
 
 namespace Modules.Companies.Application.Services;
 
@@ -18,13 +19,11 @@ internal sealed class CompaniesApplicationService : ICompaniesApplicationService
     }
 
     private readonly ICompaniesRepository _companiesRepository;
-    private readonly IUsersModuleApi _usersModuleApi;
     private readonly IMediator _mediator;
 
-    public CompaniesApplicationService(ICompaniesRepository companiesRepository, IUsersModuleApi usersModuleApi, IMediator mediator)
+    public CompaniesApplicationService(ICompaniesRepository companiesRepository, IMediator mediator)
     {
         _companiesRepository = companiesRepository;
-        _usersModuleApi = usersModuleApi;
         _mediator = mediator;
     }
 
@@ -156,7 +155,7 @@ internal sealed class CompaniesApplicationService : ICompaniesApplicationService
             return new AddCompanyUserResultContract { Success = false, ErrorCode = "INVALID_ROLE", ErrorMessage = "Invalid company role." };
         }
 
-        var existingUserId = await _usersModuleApi.GetUserIdByEmailAsync(email, ct);
+        var existingUserId = await _mediator.Send(new GetUserIdByEmailQuery(email), ct);
         var isExistingUser = existingUserId.HasValue;
         var userId = existingUserId ?? Guid.Empty;
 
@@ -167,11 +166,7 @@ internal sealed class CompaniesApplicationService : ICompaniesApplicationService
                 return new AddCompanyUserResultContract { Success = false, ErrorCode = "VALIDATION", ErrorMessage = "Password is required for new users." };
             }
 
-            var registerResult = await _usersModuleApi.RegisterBasicUserAsync(new RegisterBasicUserContract
-            {
-                Email = email,
-                Password = request.Password
-            }, ct);
+            var registerResult = await _mediator.Send(new RegisterBasicUserCommand(email, request.Password), ct);
 
             if (!registerResult.Success)
             {
@@ -185,12 +180,11 @@ internal sealed class CompaniesApplicationService : ICompaniesApplicationService
 
             userId = registerResult.UserId;
 
-            await _usersModuleApi.UpdateUserProfileAsync(userId, new UpdateUserProfileContract
-            {
-                FirstName = request.FirstName ?? string.Empty,
-                LastName = request.LastName ?? string.Empty,
-                PhoneNumber = request.PhoneNumber ?? string.Empty
-            }, ct);
+            await _mediator.Send(new UpdateUserProfileCommand(
+                userId,
+                request.FirstName ?? string.Empty,
+                request.LastName ?? string.Empty,
+                request.PhoneNumber ?? string.Empty), ct);
         }
 
         var upsert = await _companiesRepository.UpsertCompanyMembershipAsync(

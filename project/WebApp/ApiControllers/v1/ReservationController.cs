@@ -74,6 +74,12 @@ public class ReservationController : ControllerBase
     public async Task<ActionResult<ReservationResponse>> CreateReservation([FromBody] ReservationCreate request)
     {
         var userId = User.UserId();
+        var nowUtc = DateTime.UtcNow;
+        if (request.StartTimeUtc <= nowUtc)
+        {
+            return BadRequest(new Message("Start time must be in the future."));
+        }
+
         var station = await _chargingModuleApi.GetStationByIdAsync(request.StationId);
         if (station == null || station.Status == EStationStatus.Maintenance)
         {

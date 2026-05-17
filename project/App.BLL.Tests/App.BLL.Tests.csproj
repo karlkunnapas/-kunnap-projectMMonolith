@@ -15,8 +15,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
     <PackageReference Include="xunit" Version="2.9.3"/>
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.1" />
-    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,12 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\App.BLL\App.BLL.csproj" />
-    <ProjectReference Include="..\App.DAL.EF\App.DAL.EF.csproj" />
-    <ProjectReference Include="..\App.DTO\App.DTO.csproj" />
-    <ProjectReference Include="..\App.Domain\App.Domain.csproj" />
-    <ProjectReference Include="..\App.Resources\App.Resources.csproj" />
+    <ProjectReference Include="..\WebApp\WebApp.csproj" />
+    <ProjectReference Include="..\WebApp.Tests\WebApp.Tests.csproj" />
     <ProjectReference Include="..\Shared.Contracts\Shared.Contracts.csproj" />
+    <ProjectReference Include="..\App.Resources\App.Resources.csproj" />
   </ItemGroup>
 
 </Project>

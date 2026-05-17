@@ -112,6 +112,13 @@ public class ReservationController : Controller
             return View(model);
         }
 
+        if (model.StartTimeUtc <= DateTime.UtcNow)
+        {
+            ModelState.AddModelError(nameof(model.StartTimeUtc), "Start time must be in the future.");
+            await PopulatePromotionOptionsAsync(model, userId);
+            return View(model);
+        }
+
         var overlaps = await _chargingModuleApi.GetOverlappingReservationsAsync(
             model.StationId,
             model.StartTimeUtc,

@@ -1,21 +1,22 @@
+using Mediator;
 using Modules.Charging.Application.Mappers;
 using Modules.Charging.Infrastructure;
 using Shared.Contracts.Charging;
-using Shared.Contracts.Companies;
+using Shared.Contracts.Companies.Mediator;
 
 namespace Modules.Charging.Application.Services;
 
 internal sealed class ChargingApplicationService : IChargingApplicationService
 {
     private readonly IChargingRepository _chargingRepository;
-    private readonly ICompaniesModuleApi _companiesModuleApi;
+    private readonly IMediator _mediator;
 
     public ChargingApplicationService(
         IChargingRepository chargingRepository,
-        ICompaniesModuleApi companiesModuleApi)
+        IMediator mediator)
     {
         _chargingRepository = chargingRepository;
-        _companiesModuleApi = companiesModuleApi;
+        _mediator = mediator;
     }
 
     public async Task<IReadOnlyCollection<ChargingStationContract>> GetStationsForHomeAsync(EStationStatus? status = null, CancellationToken ct = default)
@@ -30,7 +31,7 @@ internal sealed class ChargingApplicationService : IChargingApplicationService
         var companyActiveMap = new Dictionary<Guid, bool>(companyIds.Count);
         foreach (var companyId in companyIds)
         {
-            companyActiveMap[companyId] = await _companiesModuleApi.IsCompanyActiveAsync(companyId, ct);
+            companyActiveMap[companyId] = await _mediator.Send(new IsCompanyActiveQuery(companyId), ct);
         }
 
         return stations
