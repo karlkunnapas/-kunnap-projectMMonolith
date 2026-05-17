@@ -1,37 +1,41 @@
+name: chargepanel-modular-monolith
+
 services:
-  aspnet:
+  chargepanel-modular-monolith-webapp:
+    container_name: chargepanel-modular-monolith-webapp
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_started
+      chargepanel-modular-monolith-postgres:
+        condition: service_healthy
     ports:
-      - "8081:8080"
+      - "8083:8083"
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
-      ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=project;Username=postgres;Password=postgres"
+      ASPNETCORE_URLS: "http://+:8083"
+      ConnectionStrings__DefaultConnection: "Host=chargepanel-modular-monolith-postgres;Port=5432;Database=chargepanel_modular_monolith;Username=postgres;Password=postgres"
 
 
-  postgres:
+  chargepanel-modular-monolith-postgres:
+    container_name: chargepanel-modular-monolith-postgres
     pull_policy: always
     # https://github.com/baosystems/docker-postgis/pkgs/container/postgis
     image: ghcr.io/baosystems/postgis:18
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=project
+      - POSTGRES_DB=chargepanel_modular_monolith
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U postgres -d project"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U postgres -d chargepanel_modular_monolith"]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 20s
     volumes:
-      - postgres-dev-data:/var/lib/postgresql
+      - chargepanel-modular-monolith-postgres-data:/var/lib/postgresql
 
 volumes:
-  postgres-dev-data:
+  chargepanel-modular-monolith-postgres-data:

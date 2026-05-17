@@ -29,8 +29,7 @@ public class AccountController : Controller
     // GET: /Company/Account/Register
     public IActionResult Register(string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-        return View(new RegisterViewModel());
+        return View(new RegisterViewModel { ReturnUrl = returnUrl });
     }
 
     // POST: /Company/Account/Register
@@ -38,7 +37,7 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
+        model.ReturnUrl = returnUrl;
 
         if (!ModelState.IsValid)
         {
@@ -78,7 +77,7 @@ public class AccountController : Controller
         var signInResult = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
         if (!signInResult.Succeeded)
         {
-            ModelState.AddModelError(string.Empty, "Registration completed but automatic login failed. Please log in manually.");
+            ModelState.AddModelError(string.Empty, App.Resources.Views.Account.Register.ResourceManager.GetString("AutoLoginFailed") ?? "Registration completed but automatic login failed. Please log in manually.");
             return RedirectToAction("Login", "Account", new { area = "" });
         }
 

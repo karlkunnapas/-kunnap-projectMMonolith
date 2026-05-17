@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Shared.Contracts.Charging;
 
 namespace WebApp.Areas.Company.ViewModels;
@@ -81,6 +82,7 @@ public class CompanyStationItemViewModel
 
 public class CompanyStationDetailsViewModel : CompanyStationItemViewModel
 {
+    public Guid CompanyId { get; set; }
     public List<MaintenanceQueueItemViewModel> RecentMaintenance { get; set; } = new();
 }
 
@@ -130,12 +132,15 @@ public class MaintenanceListViewModel
 
 public class MaintenanceCreateViewModel
 {
+    public Guid CompanyId { get; set; }
+
     [Required]
     public Guid StationId { get; set; }
 
     [Required]
     [StringLength(128, MinimumLength = 1)]
     public string IssueDescription { get; set; } = string.Empty;
+    public List<SelectListItem> StationOptions { get; set; } = new();
 }
 
 public class MaintenanceDetailsViewModel

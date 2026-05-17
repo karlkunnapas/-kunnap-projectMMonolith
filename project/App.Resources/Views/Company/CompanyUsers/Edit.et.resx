@@ -8,5 +8,8 @@
   <data name="Heading" xml:space="preserve"><value>Muuda liikme rolli</value></data>
   <data name="BackAction" xml:space="preserve"><value>Tagasi kasutajatele</value></data>
   <data name="RoleLabel" xml:space="preserve"><value>Roll</value></data>
+  <data name="OwnerRole" xml:space="preserve"><value>Omanik</value></data>
+  <data name="ManagerRole" xml:space="preserve"><value>Haldur</value></data>
+  <data name="EmployeeRole" xml:space="preserve"><value>Töötaja</value></data>
   <data name="SaveAction" xml:space="preserve"><value>Salvesta muudatused</value></data>
 </root>

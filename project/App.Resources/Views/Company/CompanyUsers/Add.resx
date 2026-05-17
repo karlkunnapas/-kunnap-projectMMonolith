@@ -9,6 +9,9 @@
   <data name="BackAction" xml:space="preserve"><value>Back to users</value></data>
   <data name="EmailLabel" xml:space="preserve"><value>Email</value></data>
   <data name="RoleLabel" xml:space="preserve"><value>Role</value></data>
+  <data name="OwnerRole" xml:space="preserve"><value>Owner</value></data>
+  <data name="ManagerRole" xml:space="preserve"><value>Manager</value></data>
+  <data name="EmployeeRole" xml:space="preserve"><value>Employee</value></data>
   <data name="NewUserFieldsHint" xml:space="preserve"><value>The fields below are required only when creating a new user account.</value></data>
   <data name="FirstNameLabel" xml:space="preserve"><value>First name</value></data>
   <data name="LastNameLabel" xml:space="preserve"><value>Last name</value></data>

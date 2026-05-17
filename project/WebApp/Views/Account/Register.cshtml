@@ -1,10 +1,10 @@
 @model WebApp.ViewModels.Account.CustomerRegisterViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Account.Register.Title;
-    var companyRegisterUrl = ViewData["CompanyRegisterUrl"] as string;
+    var title = App.Resources.Views.Account.Register.Title;
+    var companyRegisterUrl = Model.CompanyRegisterUrl;
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@title</h1>
 
 <p>
     @App.Resources.Views.Account.Register.NeedCompanyAccount
@@ -16,7 +16,7 @@
 
 <form asp-action="Register" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+    <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
 
     <div class="mb-3">
         <label asp-for="FirstName" class="form-label">@App.Resources.Views.Account.Register.FirstName</label>

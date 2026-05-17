@@ -23,6 +23,7 @@ public static class UsersModuleExtensions
             .AddEntityFrameworkStores<UsersDbContext>();
 
         services.AddScoped<IPasswordHasher<Domain.AppUser>, PasswordHasher<Domain.AppUser>>();
+        services.AddScoped<IUsersUnitOfWork, UsersUnitOfWork>();
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IUsersApplicationService, UsersApplicationService>();
         services.AddScoped<IUsersModuleApi, UsersModuleApi>();

@@ -1,6 +1,7 @@
 @model WebApp.Areas.Company.ViewModels.EditCompanyUserRoleViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Company.CompanyUsers.Edit.Title;
+    var r = App.Resources.Views.Company.CompanyUsers.Edit.ResourceManager;
+    var title = App.Resources.Views.Company.CompanyUsers.Edit.Title;
 }
 
 <div class="home-page reservation-page">
@@ -24,9 +25,9 @@
             <div class="form-group">
                 <label asp-for="Role" class="form-label">@App.Resources.Views.Company.CompanyUsers.Edit.RoleLabel</label>
                 <select asp-for="Role" class="form-control">
-                    <option value="0">Owner</option>
-                    <option value="1">Manager</option>
-                    <option value="2">Employee</option>
+                    <option value="0">@r.GetString("OwnerRole")</option>
+                    <option value="1">@r.GetString("ManagerRole")</option>
+                    <option value="2">@r.GetString("EmployeeRole")</option>
                 </select>
                 <span asp-validation-for="Role" class="text-danger"></span>
             </div>

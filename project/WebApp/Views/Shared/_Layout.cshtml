@@ -11,7 +11,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>@ViewData["Title"]</title>
+    <title>@AppNameService.AppName</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
@@ -21,7 +21,7 @@
 <body>
 <div class="app-shell">
     @{
-        var minimalNavigationMode = ViewData["MinimalNavigationMode"] is bool isMinimalNavigationMode && isMinimalNavigationMode;
+        var minimalNavigationMode = Context.Request.Path.StartsWithSegments("/Account/CompanyDeactivated");
         var isCompanyUser = false;
         string? currentCompanyRole = null;
         var canAccessManagerFeatures = false;

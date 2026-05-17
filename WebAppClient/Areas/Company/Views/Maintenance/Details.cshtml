@@ -2,7 +2,7 @@
 @using System.Text.Json
 @model WebApp.Areas.Company.ViewModels.MaintenanceDetailsViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Company.Maintenance.Details.Title;
+    var title = App.Resources.Views.Company.Maintenance.Details.Title;
     var assignSuccessKey = TempData["MaintenanceAssignSuccessKey"] as string;
     var assignErrorKey = TempData["MaintenanceAssignErrorKey"] as string;
     var assignSuccessText = assignSuccessKey switch

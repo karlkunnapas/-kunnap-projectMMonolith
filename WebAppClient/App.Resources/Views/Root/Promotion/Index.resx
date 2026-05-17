@@ -13,4 +13,5 @@
   <data name="ValidWindowLabel" xml:space="preserve"><value>Valid</value></data>
   <data name="RemoveAction" xml:space="preserve"><value>Remove</value></data>
   <data name="RedeemSuccess" xml:space="preserve"><value>Promotion was added to your wallet.</value></data>
+  <data name="RemoveSuccess" xml:space="preserve"><value>Promotion removed from wallet.</value></data>
 </root>

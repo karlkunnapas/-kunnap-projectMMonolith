@@ -7,7 +7,7 @@
 @if (SignInManager.IsSignedIn(User))
 {
     <li class="app-nav-item">
-        <a asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">@App.Resources.Views.Shared._Layout.Hello @User.Identity?.Name!</a>
+        <a asp-area="Identity" asp-page="/Account/Manage/Index" title="@App.Resources.Views.Shared._Layout.ResourceManager.GetString("ManageLinkTitle")">@App.Resources.Views.Shared._Layout.Hello @User.Identity?.Name!</a>
     </li>
     <li class="app-nav-item">
         <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
@@ -21,7 +21,7 @@ else
         <a asp-area="" asp-controller="Account" asp-action="Register">@App.Resources.Views.Shared._Layout.Register</a>
     </li>
     <li class="app-nav-item">
-        <a asp-area="Company" asp-controller="Account" asp-action="Register">@((new LangStr { ["en"] = "Register company", ["et"] = "Registreeri ettevote" }).Translate())</a>
+        <a asp-area="Company" asp-controller="Account" asp-action="Register">@App.Resources.Views.Account.Register.RegisterCompany</a>
     </li>
     <li class="app-nav-item">
         <a asp-area="" asp-controller="Account" asp-action="Login">@App.Resources.Views.Shared._Layout.Login</a>

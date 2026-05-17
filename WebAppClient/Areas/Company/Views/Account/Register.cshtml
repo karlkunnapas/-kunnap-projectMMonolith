@@ -1,13 +1,13 @@
 @model WebApp.ViewModels.Account.RegisterViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Account.Register.RegisterCompany;
+    var title = App.Resources.Views.Account.Register.RegisterCompany;
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@title</h1>
 
 <form asp-action="Register" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+    <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
 
     <div class="mb-3">
         <label asp-for="FirstName" class="form-label">@App.Resources.Views.Account.Register.FirstName</label>
@@ -34,13 +34,13 @@
     </div>
 
     <div class="mb-3">
-        <label asp-for="CompanyName" class="form-label">Company name</label>
+        <label asp-for="CompanyName" class="form-label">@App.Resources.Views.Account.Register.ResourceManager.GetString("CompanyName")</label>
         <input asp-for="CompanyName" class="form-control" />
         <span asp-validation-for="CompanyName" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="CompanySlug" class="form-label">Company slug</label>
+        <label asp-for="CompanySlug" class="form-label">@App.Resources.Views.Account.Register.ResourceManager.GetString("CompanySlug")</label>
         <input asp-for="CompanySlug" class="form-control" />
         <span asp-validation-for="CompanySlug" class="text-danger"></span>
     </div>
@@ -63,4 +63,3 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }
-

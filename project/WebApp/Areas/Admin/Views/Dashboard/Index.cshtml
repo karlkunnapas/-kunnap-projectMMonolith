@@ -1,6 +1,6 @@
 @model WebApp.Areas.Admin.ViewModels.AdminDashboardViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Admin.Dashboard.Index.Title;
+    var title = App.Resources.Views.Admin.Dashboard.Index.Title;
     var reservationsKpi = new WebApp.ViewModels.Shared.KpiCardViewModel
     {
         Title = App.Resources.Views.Admin.Dashboard.Index.ReservationsInPeriod,

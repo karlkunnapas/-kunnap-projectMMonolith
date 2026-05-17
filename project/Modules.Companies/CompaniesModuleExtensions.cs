@@ -13,6 +13,7 @@ public static class CompaniesModuleExtensions
     {
         services.AddDbContext<CompaniesDbContext>(options =>
             options.UseNpgsql(connectionString));
+        services.AddScoped<ICompaniesUnitOfWork, CompaniesUnitOfWork>();
         services.AddScoped<ICompaniesRepository, CompaniesRepository>();
         services.AddScoped<ICompaniesApplicationService, CompaniesApplicationService>();
         services.AddScoped<ICompaniesModuleApi, CompaniesModuleApi>();

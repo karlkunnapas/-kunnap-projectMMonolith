@@ -187,6 +187,9 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
         var getResponse = await client.GetAsync("/Admin/Promotions/Create");
         var document = await HtmlHelpers.GetDocumentAsync(getResponse);
         var form = Assert.IsAssignableFrom<IHtmlFormElement>(document.QuerySelector("form"));
+        var isActiveInput = Assert.IsAssignableFrom<IHtmlInputElement>(form.QuerySelector("input[type='checkbox'][name='IsActive']"));
+        Assert.Equal("true", isActiveInput.Value);
+        Assert.NotNull(form.QuerySelector("input[type='hidden'][name='IsActive'][value='false']"));
         
         // Extract anti-forgery token
         var antiForgeryInput = form.QuerySelector("input[name='__RequestVerificationToken']") as IHtmlInputElement;
@@ -209,6 +212,18 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
 
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
         Assert.Contains("/Admin/Promotions/Index", post.Headers.Location?.ToString() ?? "");
+
+        using var scope = authFactory.Services.CreateScope();
+        var companiesDb = scope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
+        Assert.True(await companiesDb.Promotions.AnyAsync(p => p.CompanyId == null && p.Code == "NEWPROMO" && p.IsActive));
+
+        var index = await client.GetAsync("/Admin/Promotions/Index");
+        var indexDocument = await HtmlHelpers.GetDocumentAsync(index);
+        var createdRow = Assert.Single(
+            indexDocument.QuerySelectorAll("tbody tr"),
+            row => row.TextContent.Contains("NEWPROMO", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(createdRow.QuerySelector(".badge.bg-success"));
+        Assert.Null(createdRow.QuerySelector(".badge.bg-secondary"));
     }
 
     [Fact]

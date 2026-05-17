@@ -8,10 +8,12 @@ namespace Modules.Companies.Infrastructure;
 internal sealed class CompaniesRepository : ICompaniesRepository
 {
     private readonly CompaniesDbContext _dbContext;
+    private readonly ICompaniesUnitOfWork _unitOfWork;
 
-    public CompaniesRepository(CompaniesDbContext dbContext)
+    public CompaniesRepository(CompaniesDbContext dbContext, ICompaniesUnitOfWork unitOfWork)
     {
         _dbContext = dbContext;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<CompanyTenantDto?> GetCompanyTenantBySlugAsync(string slug, CancellationToken ct = default)
@@ -120,7 +122,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         if (company.IsActive != isActive)
         {
             company.IsActive = isActive;
-            await _dbContext.SaveChangesAsync(ct);
+            await _unitOfWork.SaveChangesAsync(ct);
         }
 
         var activeMembersCount = await _dbContext.AppUserCompanies
@@ -272,7 +274,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             existing.IsActive = true;
             existing.Role = parsedRole;
             existing.JoinedAtUtc = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync(ct);
+            await _unitOfWork.SaveChangesAsync(ct);
             return new UpsertCompanyMembershipResultDto
             {
                 Membership = ToMembershipDto(existing),
@@ -291,7 +293,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         };
 
         _dbContext.AppUserCompanies.Add(membership);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return new UpsertCompanyMembershipResultDto
         {
             Membership = ToMembershipDto(membership),
@@ -312,7 +314,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             ? parsed
             : Domain.ECompanyRole.Employee;
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return ToMembershipDto(membership);
     }
 
@@ -326,7 +328,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         }
 
         membership.IsActive = false;
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return ToMembershipDto(membership);
     }
 
@@ -413,7 +415,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         };
 
         _dbContext.Promotions.Add(promotion);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
         return PromotionOperationResultDto.Ok(ToPromotionDto(promotion));
     }
@@ -437,7 +439,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         promotion.ValidTo = ToUtc(request.ValidToUtc);
         promotion.IsActive = request.IsActive;
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return PromotionOperationResultDto.Ok(ToPromotionDto(promotion));
     }
 
@@ -451,7 +453,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         }
 
         _dbContext.Promotions.Remove(promotion);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -507,7 +509,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         };
 
         _dbContext.Promotions.Add(promotion);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return PromotionOperationResultDto.Ok(ToPromotionDto(promotion));
     }
 
@@ -526,7 +528,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         promotion.ValidTo = ToUtc(request.ValidToUtc);
         promotion.IsActive = request.IsActive;
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return PromotionOperationResultDto.Ok(ToPromotionDto(promotion));
     }
 
@@ -540,7 +542,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         }
 
         _dbContext.Promotions.Remove(promotion);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -613,7 +615,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             IsUsed = false
         });
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return PromotionOperationResultDto.Ok(ToPromotionDto(promotion));
     }
 
@@ -632,7 +634,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         }
 
         userPromotion.IsUsed = true;
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -801,7 +803,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
 
         _dbContext.Companies.Add(company);
         _dbContext.AppUserCompanies.Add(membership);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
         return CreateCompanyWithOwnerMembershipResultDto.Ok(companyId);
     }

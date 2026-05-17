@@ -13,4 +13,5 @@
   <data name="ValidWindowLabel" xml:space="preserve"><value>Kehtiv</value></data>
   <data name="RemoveAction" xml:space="preserve"><value>Eemalda</value></data>
   <data name="RedeemSuccess" xml:space="preserve"><value>Kampaania lisati sinu rahakotti.</value></data>
+  <data name="RemoveSuccess" xml:space="preserve"><value>Kampaania eemaldati rahakotist.</value></data>
 </root>

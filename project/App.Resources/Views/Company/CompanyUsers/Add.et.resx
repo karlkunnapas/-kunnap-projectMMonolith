@@ -9,6 +9,9 @@
   <data name="BackAction" xml:space="preserve"><value>Tagasi kasutajatele</value></data>
   <data name="EmailLabel" xml:space="preserve"><value>E-post</value></data>
   <data name="RoleLabel" xml:space="preserve"><value>Roll</value></data>
+  <data name="OwnerRole" xml:space="preserve"><value>Omanik</value></data>
+  <data name="ManagerRole" xml:space="preserve"><value>Haldur</value></data>
+  <data name="EmployeeRole" xml:space="preserve"><value>Töötaja</value></data>
   <data name="NewUserFieldsHint" xml:space="preserve"><value>Allolevad väljad on kohustuslikud ainult uue kasutajakonto loomisel.</value></data>
   <data name="FirstNameLabel" xml:space="preserve"><value>Eesnimi</value></data>
   <data name="LastNameLabel" xml:space="preserve"><value>Perenimi</value></data>

@@ -1,7 +1,7 @@
 @model WebApp.Areas.Admin.ViewModels.AdminConnectorTypeFormViewModel
 @{
     var isEdit = Model.ConnectorTypeId.HasValue && Model.ConnectorTypeId.Value != Guid.Empty;
-    ViewData["Title"] = isEdit
+    var title = isEdit
         ? App.Resources.Views.Admin.ConnectorTypes.Index.EditTitle
         : App.Resources.Views.Admin.ConnectorTypes.Index.CreateTitle;
 }
@@ -9,7 +9,7 @@
 <div class="home-page reservation-page">
     <section class="home-content">
         <div class="vehicle-header-row">
-            <h2>@ViewData["Title"]</h2>
+            <h2>@title</h2>
         </div>
 
         <div class="station-card">

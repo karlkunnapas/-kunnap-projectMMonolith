@@ -83,11 +83,9 @@ public class ReservationCreateViewModel
 {
     public Guid StationId { get; set; }
 
-    [Display(Name = "StartTime")]
     [Required]
     public DateTime StartTimeUtc { get; set; }
 
-    [Display(Name = "EndTime")]
     [Required]
     public DateTime EndTimeUtc { get; set; }
 

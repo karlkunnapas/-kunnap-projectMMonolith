@@ -126,4 +126,76 @@
   <data name="Settings" xml:space="preserve">
     <value>Seaded</value>
   </data>
+  <data name="ManageTitle" xml:space="preserve"><value>Minu profiil</value></data>
+  <data name="SaveChanges" xml:space="preserve"><value>Salvesta muudatused</value></data>
+  <data name="ChangePassword" xml:space="preserve"><value>Muuda parooli</value></data>
+  <data name="TwoFactorAuthentication" xml:space="preserve"><value>Kaheastmeline autentimine</value></data>
+  <data name="DeleteAccount" xml:space="preserve"><value>Kustuta konto</value></data>
+  <data name="UpdatePassword" xml:space="preserve"><value>Uuenda parooli</value></data>
+  <data name="DeleteAccountWarning" xml:space="preserve"><value>See tegevus kustutab sinu konto jäädavalt.</value></data>
+  <data name="ConfirmPassword" xml:space="preserve"><value>Kinnita parool</value></data>
+  <data name="DeleteMyAccount" xml:space="preserve"><value>Kustuta minu konto</value></data>
+  <data name="RecoveryCodesPrompt" xml:space="preserve"><value>Salvesta need taastekoodid:</value></data>
+  <data name="TwoFactorEnabled" xml:space="preserve"><value>2FA lubatud:</value></data>
+  <data name="RecoveryCodesLeft" xml:space="preserve"><value>Taastekoode jäänud:</value></data>
+  <data name="Yes" xml:space="preserve"><value>Jah</value></data>
+  <data name="No" xml:space="preserve"><value>Ei</value></data>
+  <data name="SetUpAuthenticatorApp" xml:space="preserve"><value>Seadista autentimisrakendus</value></data>
+  <data name="SharedKey" xml:space="preserve"><value>Jagatud võti:</value></data>
+  <data name="AuthenticatorUri" xml:space="preserve"><value>Autentimisrakenduse URI:</value></data>
+  <data name="EnableTwoFactor" xml:space="preserve"><value>Luba 2FA</value></data>
+  <data name="RegenerateRecoveryCodes" xml:space="preserve"><value>Genereeri taastekoodid uuesti</value></data>
+  <data name="DisableTwoFactor" xml:space="preserve"><value>Keela 2FA</value></data>
+  <data name="ProfileUpdated" xml:space="preserve"><value>Profiil uuendati.</value></data>
+  <data name="PasswordUpdated" xml:space="preserve"><value>Parool uuendati.</value></data>
+  <data name="TwoFactorEnabledMessage" xml:space="preserve"><value>Kaheastmeline autentimine lubati.</value></data>
+  <data name="TwoFactorDisabledMessage" xml:space="preserve"><value>Kaheastmeline autentimine keelati.</value></data>
+  <data name="RecoveryCodesRegenerated" xml:space="preserve"><value>Taastekoodid genereeriti uuesti.</value></data>
+  <data name="InvalidCompanySelection" xml:space="preserve"><value>Vigane ettevõtte valik.</value></data>
+  <data name="ManageLinkTitle" xml:space="preserve"><value>Halda</value></data>
+  <data name="ErrorTitle" xml:space="preserve"><value>Viga</value></data>
+  <data name="ErrorHeading" xml:space="preserve"><value>Viga.</value></data>
+  <data name="ErrorMessage" xml:space="preserve"><value>Päringu töötlemisel tekkis viga.</value></data>
+  <data name="RequestId" xml:space="preserve"><value>Päringu ID:</value></data>
+  <data name="DevelopmentMode" xml:space="preserve"><value>Arendusrežiim</value></data>
+  <data name="DevelopmentModeMessage" xml:space="preserve"><value>Arenduskeskkonnale lülitumine kuvab vea kohta rohkem infot.</value></data>
+  <data name="DevelopmentModeWarning" xml:space="preserve"><value>Arenduskeskkonda ei tohiks juurutatud rakendustes lubada.</value></data>
+  <data name="DevelopmentModeHint" xml:space="preserve"><value>Kohalikuks silumiseks määra ASPNETCORE_ENVIRONMENT väärtuseks Development.</value></data>
+  <data name="PrivacyPolicy" xml:space="preserve"><value>Privaatsuspoliitika</value></data>
+  <data name="NoPrivacy" xml:space="preserve"><value>Privaatsust pole!</value></data>
+  <data name="Environment" xml:space="preserve"><value>Keskkond</value></data>
+  <data name="Ip" xml:space="preserve"><value>IP</value></data>
+  <data name="RemoteIp" xml:space="preserve"><value>Kaug-IP:</value></data>
+  <data name="LocalIp" xml:space="preserve"><value>Kohalik IP:</value></data>
+  <data name="Culture" xml:space="preserve"><value>Kultuur</value></data>
+  <data name="CurrentCulture" xml:space="preserve"><value>Praegune kultuur:</value></data>
+  <data name="CurrentUiCulture" xml:space="preserve"><value>Praegune UI kultuur:</value></data>
+  <data name="Claims" xml:space="preserve"><value>Õigused</value></data>
+  <data name="Type" xml:space="preserve"><value>Tüüp</value></data>
+  <data name="Value" xml:space="preserve"><value>Väärtus</value></data>
+  <data name="Headers" xml:space="preserve"><value>Päised</value></data>
+  <data name="Users" xml:space="preserve"><value>Kasutajad</value></data>
+  <data name="Roles" xml:space="preserve"><value>Rollid</value></data>
+  <data name="Add" xml:space="preserve"><value>Lisa</value></data>
+  <data name="Remove" xml:space="preserve"><value>Eemalda</value></data>
+  <data name="ResetPassword" xml:space="preserve"><value>Lähtesta parool</value></data>
+  <data name="PasswordResetLink" xml:space="preserve"><value>Parooli lähtestamise link</value></data>
+  <data name="SysAdmin" xml:space="preserve"><value>Süsteemiadmin</value></data>
+  <data name="SystemAdmin" xml:space="preserve"><value>Süsteemi administraator</value></data>
+  <data name="UnableToCreateStation" xml:space="preserve"><value>Jaama loomine ebaõnnestus.</value></data>
+  <data name="StationUnavailableForReservation" xml:space="preserve"><value>Jaam pole broneerimiseks saadaval.</value></data>
+  <data name="StartTimeMustBeFuture" xml:space="preserve"><value>Algusaeg peab olema tulevikus.</value></data>
+  <data name="TimeSlotUnavailable" xml:space="preserve"><value>Valitud aeg pole enam saadaval.</value></data>
+  <data name="PromotionInvalidOrExpired" xml:space="preserve"><value>Valitud kampaania on vigane või aegunud.</value></data>
+  <data name="PromotionInvalidForStationCompany" xml:space="preserve"><value>Valitud kampaania ei kehti selle jaama ettevõttele.</value></data>
+  <data name="UnableToCreateReservation" xml:space="preserve"><value>Broneeringu loomine ebaõnnestus.</value></data>
+  <data name="UnableToCreateVehicle" xml:space="preserve"><value>Sõiduki loomine ebaõnnestus.</value></data>
+  <data name="UnableToUpdateVehicle" xml:space="preserve"><value>Sõiduki uuendamine ebaõnnestus.</value></data>
+  <data name="ReservationNotActive" xml:space="preserve"><value>Broneering pole aktiivne.</value></data>
+  <data name="ReservationCannotStartNow" xml:space="preserve"><value>Broneeringut ei saa praegu alustada.</value></data>
+  <data name="UnableToStartChargingSession" xml:space="preserve"><value>Laadimissessiooni alustamine ebaõnnestus.</value></data>
+  <data name="PromotionLockedByReservation" xml:space="preserve"><value>Kampaaniakood on broneeringuga lukustatud ja seda ei saa muuta.</value></data>
+  <data name="InvalidPromotionCode" xml:space="preserve"><value>Vigane kampaaniakood.</value></data>
+  <data name="PromotionNotValidForStationCompany" xml:space="preserve"><value>Kampaania ei kehti selle laadimisjaama ettevõttele.</value></data>
+  <data name="UnableToStopChargingSession" xml:space="preserve"><value>Laadimissessiooni lõpetamine ebaõnnestus.</value></data>
 </root>

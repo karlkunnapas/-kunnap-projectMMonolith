@@ -10,8 +10,15 @@
   <data name="LastName" xml:space="preserve"><value>Perenimi</value></data>
   <data name="Email" xml:space="preserve"><value>E-post</value></data>
   <data name="Phone" xml:space="preserve"><value>Telefon</value></data>
+  <data name="CompanyRegistrationTitle" xml:space="preserve"><value>Ettevõtte registreerimine</value></data>
+  <data name="CompanyName" xml:space="preserve"><value>Ettevõtte nimi</value></data>
+  <data name="CompanySlug" xml:space="preserve"><value>Ettevõtte slug</value></data>
   <data name="Password" xml:space="preserve"><value>Parool</value></data>
   <data name="ConfirmPassword" xml:space="preserve"><value>Kinnita parool</value></data>
+  <data name="PasswordLengthError" xml:space="preserve"><value>Parool peab olema vähemalt 6 märki pikk.</value></data>
+  <data name="PasswordMismatchError" xml:space="preserve"><value>Parool ja parooli kinnitus ei kattu.</value></data>
+  <data name="SlugFormatError" xml:space="preserve"><value>Slug võib sisaldada ainult väiketähti, numbreid ja sidekriipse.</value></data>
+  <data name="RememberMe" xml:space="preserve"><value>Mäleta mind?</value></data>
+  <data name="VerificationCode" xml:space="preserve"><value>Kinnituskood</value></data>
   <data name="Submit" xml:space="preserve"><value>Registreeri</value></data>
 </root>
-

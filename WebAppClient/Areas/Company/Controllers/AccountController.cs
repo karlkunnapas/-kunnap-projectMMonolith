@@ -24,15 +24,14 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Register(string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-        return View(new RegisterViewModel());
+        return View(new RegisterViewModel { ReturnUrl = returnUrl });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
+        model.ReturnUrl = returnUrl;
         if (!ModelState.IsValid)
         {
             return View(model);

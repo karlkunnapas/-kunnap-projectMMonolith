@@ -66,7 +66,7 @@ public class PromotionController : Controller
         try
         {
             await _apiClient.DeleteAsync($"api/v1/reservation/promotions/{id}");
-            TempData["PromotionSuccess"] = "Promotion removed from wallet.";
+            TempData["PromotionSuccess"] = App.Resources.Views.Root.Promotion.Index.ResourceManager.GetString("RemoveSuccess");
         }
         catch (ApiException ex)
         {

@@ -35,15 +35,12 @@ public class AddCompanyUserViewModel
     [Required]
     public int Role { get; set; } = 2;
 
-    [Display(Name = "First name")]
     [StringLength(200)]
     public string? FirstName { get; set; }
 
-    [Display(Name = "Last name")]
     [StringLength(200)]
     public string? LastName { get; set; }
 
-    [Display(Name = "Phone")]
     [Phone]
     [StringLength(64)]
     public string? PhoneNumber { get; set; }

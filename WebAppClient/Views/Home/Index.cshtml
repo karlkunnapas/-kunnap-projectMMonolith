@@ -1,7 +1,7 @@
 ﻿@model WebApp.ViewModels.HomeIndexViewModel
 @using System
 @{
-    ViewData["Title"] = App.Resources.Views.Home.Index.Title;
+    var title = App.Resources.Views.Home.Index.Title;
     var hasActiveFilters = !string.IsNullOrWhiteSpace(Model.SelectedStatus)
                            || !string.IsNullOrWhiteSpace(Model.SelectedConnector)
                            || !string.IsNullOrWhiteSpace(Model.LocationQuery)

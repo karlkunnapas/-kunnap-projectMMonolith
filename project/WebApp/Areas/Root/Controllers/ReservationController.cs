@@ -13,6 +13,7 @@ public class ReservationController : Controller
 {
     private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private static string R(string key) => App.Resources.Views.Shared._Layout.ResourceManager.GetString(key) ?? key;
 
     public ReservationController(IChargingModuleApi chargingModuleApi, ICompaniesModuleApi companiesModuleApi)
     {
@@ -107,14 +108,14 @@ public class ReservationController : Controller
         var station = await _chargingModuleApi.GetStationByIdAsync(model.StationId);
         if (station == null || station.Status == Shared.Contracts.Charging.EStationStatus.Maintenance)
         {
-            ModelState.AddModelError(string.Empty, "Station is unavailable for reservation.");
+            ModelState.AddModelError(string.Empty, R("StationUnavailableForReservation"));
             await PopulatePromotionOptionsAsync(model, userId);
             return View(model);
         }
 
         if (model.StartTimeUtc <= DateTime.UtcNow)
         {
-            ModelState.AddModelError(nameof(model.StartTimeUtc), "Start time must be in the future.");
+            ModelState.AddModelError(nameof(model.StartTimeUtc), R("StartTimeMustBeFuture"));
             await PopulatePromotionOptionsAsync(model, userId);
             return View(model);
         }
@@ -125,7 +126,7 @@ public class ReservationController : Controller
             model.EndTimeUtc);
         if (overlaps.Any(x => x.Status is Shared.Contracts.Charging.EReservationStatus.Active or Shared.Contracts.Charging.EReservationStatus.Started))
         {
-            ModelState.AddModelError(string.Empty, "Selected time slot is no longer available.");
+            ModelState.AddModelError(string.Empty, R("TimeSlotUnavailable"));
             await PopulatePromotionOptionsAsync(model, userId);
             return View(model);
         }
@@ -137,14 +138,14 @@ public class ReservationController : Controller
             var userPromotion = await _companiesModuleApi.GetValidUserPromotionByCodeAsync(userId.Value, normalizedCode);
             if (userPromotion == null || userPromotion.IsUsed || userPromotion.Promotion == null)
             {
-                ModelState.AddModelError(nameof(model.PromotionCode), "Selected promotion is invalid or expired.");
+                ModelState.AddModelError(nameof(model.PromotionCode), R("PromotionInvalidOrExpired"));
                 await PopulatePromotionOptionsAsync(model, userId);
                 return View(model);
             }
 
             if (userPromotion.Promotion.CompanyId.HasValue && station.CompanyId != userPromotion.Promotion.CompanyId)
             {
-                ModelState.AddModelError(nameof(model.PromotionCode), "Selected promotion is not valid for this station company.");
+                ModelState.AddModelError(nameof(model.PromotionCode), R("PromotionInvalidForStationCompany"));
                 await PopulatePromotionOptionsAsync(model, userId);
                 return View(model);
             }
@@ -171,7 +172,7 @@ public class ReservationController : Controller
         if (created == null)
         {
             model.EstimatedCost = CalculateEstimatedCost(station, (int)Math.Ceiling((model.EndTimeUtc - model.StartTimeUtc).TotalMinutes), model.EstimatedEnergyKwh);
-            ModelState.AddModelError(string.Empty, "Unable to create reservation.");
+            ModelState.AddModelError(string.Empty, R("UnableToCreateReservation"));
             await PopulatePromotionOptionsAsync(model, userId);
             return View(model);
         }

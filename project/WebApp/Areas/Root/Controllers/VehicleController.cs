@@ -13,6 +13,7 @@ public class VehicleController : Controller
 {
     private readonly IUsersModuleApi _usersModuleApi;
     private readonly IChargingModuleApi _chargingModuleApi;
+    private static string R(string key) => App.Resources.Views.Shared._Layout.ResourceManager.GetString(key) ?? key;
 
     public VehicleController(IUsersModuleApi usersModuleApi, IChargingModuleApi chargingModuleApi)
     {
@@ -81,7 +82,7 @@ public class VehicleController : Controller
         }
         catch
         {
-            ModelState.AddModelError(string.Empty, "Unable to create vehicle.");
+            ModelState.AddModelError(string.Empty, R("UnableToCreateVehicle"));
             await LoadConnectorsAsync(vm, vm.SelectedConnectorIds);
             return View(vm);
         }
@@ -145,7 +146,7 @@ public class VehicleController : Controller
 
         if (result == null)
         {
-            ModelState.AddModelError(string.Empty, "Unable to update vehicle.");
+            ModelState.AddModelError(string.Empty, R("UnableToUpdateVehicle"));
             await LoadConnectorsAsync(vm, vm.SelectedConnectorIds);
             return View(vm);
         }

@@ -1,15 +1,15 @@
 @model WebApp.ViewModels.Account.CompanySelectionViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Account.CompanySelection.Title;
+    var title = App.Resources.Views.Account.CompanySelection.Title;
 }
 
 <div class="home-page reservation-page">
     <section class="home-content">
         <div class="vehicle-header-row">
-            <h2>@ViewData["Title"]</h2>
+            <h2>@title</h2>
         </div>
 
-        @if (!ViewData.ModelState.IsValid)
+        @if (!ViewContext.ModelState.IsValid)
         {
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         }

@@ -104,5 +104,11 @@ namespace App.Resources.Views.Account {
                 return ResourceManager.GetString("Submit", resourceCulture);
             }
         }
+        
+        public static string PasswordLengthError => ResourceManager.GetString("PasswordLengthError", resourceCulture);
+        public static string PasswordMismatchError => ResourceManager.GetString("PasswordMismatchError", resourceCulture);
+        public static string SlugFormatError => ResourceManager.GetString("SlugFormatError", resourceCulture);
+        public static string RememberMe => ResourceManager.GetString("RememberMe", resourceCulture);
+        public static string VerificationCode => ResourceManager.GetString("VerificationCode", resourceCulture);
     }
 }

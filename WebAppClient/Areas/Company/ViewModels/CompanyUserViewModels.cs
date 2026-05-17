@@ -29,15 +29,12 @@ public class AddCompanyUserViewModel
     [Required]
     public ECompanyRole Role { get; set; } = ECompanyRole.Employee;
 
-    [Display(Name = "First name")]
     [StringLength(200)]
     public string? FirstName { get; set; }
 
-    [Display(Name = "Last name")]
     [StringLength(200)]
     public string? LastName { get; set; }
 
-    [Display(Name = "Phone")]
     [Phone]
     [StringLength(64)]
     public string? PhoneNumber { get; set; }

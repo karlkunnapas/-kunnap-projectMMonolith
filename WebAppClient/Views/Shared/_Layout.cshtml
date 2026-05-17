@@ -9,14 +9,14 @@
     var companyRole = EnumParser.ParseCompanyRole(selectedCompanyRole ?? "Employee");
     var canAccessManagerFeatures = companyRole >= ECompanyRole.Manager;
     var canManageUsers = companyRole == ECompanyRole.Owner;
-    var minimalNavigationMode = (ViewData["MinimalNavigationMode"] as bool?) == true;
+    var minimalNavigationMode = Context.Request.Path.StartsWithSegments("/Account/CompanyDeactivated");
 }
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>@ViewData["Title"]</title>
+    <title>@appName</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>

@@ -11,6 +11,6 @@ public class TwoFactorViewModel
     public string AuthenticatorUri { get; set; } = string.Empty;
     public List<string> RecoveryCodes { get; set; } = new();
 
-    [Display(Name = "Verification Code")]
+    [Display(ResourceType = typeof(App.Resources.Views.Account.Register), Name = nameof(App.Resources.Views.Account.Register.VerificationCode))]
     public string VerificationCode { get; set; } = string.Empty;
 }

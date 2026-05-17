@@ -10,10 +10,12 @@ internal sealed class AuditLogMutationRequestedNotificationHandler
     : INotificationHandler<AuditLogMutationRequestedNotification>
 {
     private readonly CompaniesDbContext _dbContext;
+    private readonly ICompaniesUnitOfWork _unitOfWork;
 
-    public AuditLogMutationRequestedNotificationHandler(CompaniesDbContext dbContext)
+    public AuditLogMutationRequestedNotificationHandler(CompaniesDbContext dbContext, ICompaniesUnitOfWork unitOfWork)
     {
         _dbContext = dbContext;
+        _unitOfWork = unitOfWork;
     }
 
     public async ValueTask Handle(AuditLogMutationRequestedNotification notification, CancellationToken cancellationToken)
@@ -43,6 +45,6 @@ internal sealed class AuditLogMutationRequestedNotificationHandler
             ChangesJson = notification.ChangesJson
         });
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

@@ -14,6 +14,8 @@ public class AccountController : Controller
 {
     private readonly IApiClient _apiClient;
     private readonly ILogger<AccountController> _logger;
+    private static string R(string key) =>
+        App.Resources.Views.Shared._Layout.ResourceManager.GetString(key) ?? key;
 
     public AccountController(IApiClient apiClient, ILogger<AccountController> logger)
     {
@@ -25,9 +27,11 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Register(string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-        ViewData["CompanyRegisterUrl"] = Url.Action("Register", "Account", new { area = "Company" });
-        return View(new CustomerRegisterViewModel());
+        return View(new CustomerRegisterViewModel
+        {
+            ReturnUrl = returnUrl,
+            CompanyRegisterUrl = Url.Action("Register", "Account", new { area = "Company" })
+        });
     }
 
     [AllowAnonymous]
@@ -35,8 +39,8 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(CustomerRegisterViewModel model, string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-        ViewData["CompanyRegisterUrl"] = Url.Action("Register", "Account", new { area = "Company" });
+        model.ReturnUrl = returnUrl;
+        model.CompanyRegisterUrl = Url.Action("Register", "Account", new { area = "Company" });
 
         if (!ModelState.IsValid)
         {
@@ -180,7 +184,7 @@ public class AccountController : Controller
                         Role = c.Role
                     })
                     .ToList();
-                ModelState.AddModelError(string.Empty, "Invalid company selection.");
+                ModelState.AddModelError(string.Empty, R("InvalidCompanySelection"));
                 return View(model);
             }
 
@@ -273,7 +277,7 @@ public class AccountController : Controller
                 PhoneNumber = model.PhoneNumber
             });
 
-            TempData["StatusMessage"] = "Profile updated.";
+            TempData["StatusMessage"] = R("ProfileUpdated");
             return RedirectToAction(nameof(Manage));
         }
         catch (ApiException ex)
@@ -307,7 +311,7 @@ public class AccountController : Controller
                 CurrentPassword = model.CurrentPassword,
                 NewPassword = model.NewPassword
             });
-            TempData["StatusMessage"] = "Password updated.";
+            TempData["StatusMessage"] = R("PasswordUpdated");
             return RedirectToAction(nameof(ChangePassword));
         }
         catch (ApiException ex)
@@ -372,7 +376,7 @@ public class AccountController : Controller
                 "api/v1/customeraccount/2fa/enable",
                 new EnableTwoFactorRequestDto { VerificationCode = model.VerificationCode });
 
-            TempData["StatusMessage"] = "Two-factor authentication enabled.";
+            TempData["StatusMessage"] = R("TwoFactorEnabledMessage");
             TempData["RecoveryCodes"] = string.Join('\n', codes.RecoveryCodes);
             return RedirectToAction(nameof(TwoFactorAuthentication));
         }
@@ -391,7 +395,7 @@ public class AccountController : Controller
         try
         {
             await _apiClient.PostAsync("api/v1/customeraccount/2fa/disable");
-            TempData["StatusMessage"] = "Two-factor authentication disabled.";
+            TempData["StatusMessage"] = R("TwoFactorDisabledMessage");
         }
         catch (ApiException ex)
         {
@@ -409,7 +413,7 @@ public class AccountController : Controller
         try
         {
             var codes = await _apiClient.PostAsync<TwoFactorRecoveryCodesResponseDto>("api/v1/customeraccount/2fa/recovery-codes");
-            TempData["StatusMessage"] = "Recovery codes regenerated.";
+            TempData["StatusMessage"] = R("RecoveryCodesRegenerated");
             TempData["RecoveryCodes"] = string.Join('\n', codes.RecoveryCodes);
         }
         catch (ApiException ex)
@@ -476,7 +480,6 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult CompanyDeactivated()
     {
-        ViewData["MinimalNavigationMode"] = true;
         return View();
     }
 

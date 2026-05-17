@@ -8,5 +8,8 @@
   <data name="Heading" xml:space="preserve"><value>Edit member role</value></data>
   <data name="BackAction" xml:space="preserve"><value>Back to users</value></data>
   <data name="RoleLabel" xml:space="preserve"><value>Role</value></data>
+  <data name="OwnerRole" xml:space="preserve"><value>Owner</value></data>
+  <data name="ManagerRole" xml:space="preserve"><value>Manager</value></data>
+  <data name="EmployeeRole" xml:space="preserve"><value>Employee</value></data>
   <data name="SaveAction" xml:space="preserve"><value>Save changes</value></data>
 </root>

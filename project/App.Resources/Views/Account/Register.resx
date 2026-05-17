@@ -19,8 +19,19 @@
   <data name="LastName" xml:space="preserve"><value>Last name</value></data>
   <data name="Email" xml:space="preserve"><value>Email</value></data>
   <data name="Phone" xml:space="preserve"><value>Phone</value></data>
+  <data name="CompanyRegistrationTitle" xml:space="preserve"><value>Company registration</value></data>
+  <data name="CompanyName" xml:space="preserve"><value>Company name</value></data>
+  <data name="CompanySlug" xml:space="preserve"><value>Company slug</value></data>
   <data name="Password" xml:space="preserve"><value>Password</value></data>
   <data name="ConfirmPassword" xml:space="preserve"><value>Confirm password</value></data>
+  <data name="PasswordLengthError" xml:space="preserve"><value>The password must be at least 6 characters long.</value></data>
+  <data name="PasswordMismatchError" xml:space="preserve"><value>The password and confirmation password do not match.</value></data>
+  <data name="SlugFormatError" xml:space="preserve"><value>Slug must be lowercase alphanumeric with hyphens only.</value></data>
+  <data name="RememberMe" xml:space="preserve"><value>Remember me?</value></data>
+  <data name="VerificationCode" xml:space="preserve"><value>Verification Code</value></data>
+  <data name="RegistrationFailed" xml:space="preserve"><value>Registration failed.</value></data>
+  <data name="InvalidLoginAttempt" xml:space="preserve"><value>Invalid login attempt.</value></data>
+  <data name="InvalidCompanySelection" xml:space="preserve"><value>Invalid company selection.</value></data>
+  <data name="AutoLoginFailed" xml:space="preserve"><value>Registration completed but automatic login failed. Please log in manually.</value></data>
   <data name="Submit" xml:space="preserve"><value>Register</value></data>
 </root>
-

@@ -1,9 +1,10 @@
 @model WebApp.ViewModels.Account.ManageViewModel
 @{
-    ViewData["Title"] = "My Profile";
+    var r = App.Resources.Views.Shared._Layout.ResourceManager;
+    var title = r.GetString("ManageTitle");
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@title</h1>
 
 @if (TempData["StatusMessage"] is string statusMessage && !string.IsNullOrWhiteSpace(statusMessage))
 {
@@ -14,36 +15,36 @@
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     <div class="mb-3">
-        <label asp-for="Email" class="form-label"></label>
+        <label asp-for="Email" class="form-label">@App.Resources.Views.Account.Register.Email</label>
         <input asp-for="Email" class="form-control" readonly />
     </div>
 
     <div class="mb-3">
-        <label asp-for="FirstName" class="form-label"></label>
+        <label asp-for="FirstName" class="form-label">@App.Resources.Views.Account.Register.FirstName</label>
         <input asp-for="FirstName" class="form-control" />
         <span asp-validation-for="FirstName" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="LastName" class="form-label"></label>
+        <label asp-for="LastName" class="form-label">@App.Resources.Views.Account.Register.LastName</label>
         <input asp-for="LastName" class="form-control" />
         <span asp-validation-for="LastName" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="PhoneNumber" class="form-label"></label>
+        <label asp-for="PhoneNumber" class="form-label">@App.Resources.Views.Account.Register.Phone</label>
         <input asp-for="PhoneNumber" class="form-control" />
         <span asp-validation-for="PhoneNumber" class="text-danger"></span>
     </div>
 
-    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <button type="submit" class="btn btn-primary">@r.GetString("SaveChanges")</button>
 </form>
 
 <hr />
 <div class="d-flex flex-wrap gap-2">
-    <a class="btn btn-outline-primary" asp-action="ChangePassword">Change Password</a>
-    <a class="btn btn-outline-primary" asp-action="TwoFactorAuthentication">Two-Factor Authentication</a>
-    <a class="btn btn-outline-danger" asp-action="DeleteAccount">Delete Account</a>
+    <a class="btn btn-outline-primary" asp-action="ChangePassword">@r.GetString("ChangePassword")</a>
+    <a class="btn btn-outline-primary" asp-action="TwoFactorAuthentication">@r.GetString("TwoFactorAuthentication")</a>
+    <a class="btn btn-outline-danger" asp-action="DeleteAccount">@r.GetString("DeleteAccount")</a>
 </div>
 
 @section Scripts {

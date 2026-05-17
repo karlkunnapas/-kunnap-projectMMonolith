@@ -1,22 +1,23 @@
 @model WebApp.ViewModels.Account.DeleteAccountViewModel
 @{
-    ViewData["Title"] = "Delete Account";
+    var r = App.Resources.Views.Shared._Layout.ResourceManager;
+    var title = r.GetString("DeleteAccount");
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@title</h1>
 
 <div class="alert alert-danger" role="alert">
-    This action permanently deletes your account.
+    @r.GetString("DeleteAccountWarning")
 </div>
 
 <form asp-action="DeleteAccount" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <div class="mb-3">
-        <label asp-for="Password" class="form-label">Confirm Password</label>
+        <label asp-for="Password" class="form-label">@r.GetString("ConfirmPassword")</label>
         <input asp-for="Password" class="form-control" />
         <span asp-validation-for="Password" class="text-danger"></span>
     </div>
-    <button type="submit" class="btn btn-danger">Delete My Account</button>
+    <button type="submit" class="btn btn-danger">@r.GetString("DeleteMyAccount")</button>
 </form>
 
 @section Scripts {

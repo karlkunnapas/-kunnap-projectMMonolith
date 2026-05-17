@@ -13,6 +13,7 @@ public class StationController : Controller
 {
     private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private static string R(string key) => App.Resources.Views.Shared._Layout.ResourceManager.GetString(key) ?? key;
 
     public StationController(
         IChargingModuleApi chargingModuleApi,
@@ -120,7 +121,7 @@ public class StationController : Controller
         }
         catch (Exception)
         {
-            ModelState.AddModelError(string.Empty, "Unable to create station.");
+            ModelState.AddModelError(string.Empty, R("UnableToCreateStation"));
             await PopulateConnectorOptionsAsync(model, resolvedCompany.Value);
             return View(model);
         }
@@ -303,6 +304,7 @@ public class StationController : Controller
 
         var model = new CompanyStationDetailsViewModel
         {
+            CompanyId = resolvedCompany.Value,
             Id = station.Id,
             Name = station.Name,
             Location = station.Location,
@@ -315,7 +317,6 @@ public class StationController : Controller
             RecentMaintenance = recentMaintenance
         };
 
-        ViewData["CompanyId"] = resolvedCompany.Value;
         return View(model);
     }
 

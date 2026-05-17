@@ -13,6 +13,7 @@ public class ChargingSessionController : Controller
 {
     private readonly IChargingModuleApi _chargingModuleApi;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private static string R(string key) => App.Resources.Views.Shared._Layout.ResourceManager.GetString(key) ?? key;
 
     public ChargingSessionController(
         IChargingModuleApi chargingModuleApi,
@@ -106,12 +107,12 @@ public class ChargingSessionController : Controller
         }
         if (reservation.Status != EReservationStatus.Active)
         {
-            ModelState.AddModelError(string.Empty, "Reservation is not active.");
+            ModelState.AddModelError(string.Empty, R("ReservationNotActive"));
             return View(model);
         }
         if (reservation.StartTimeUtc > DateTime.UtcNow || DateTime.UtcNow >= reservation.EndTimeUtc)
         {
-            ModelState.AddModelError(string.Empty, "Reservation cannot be started at this time.");
+            ModelState.AddModelError(string.Empty, R("ReservationCannotStartNow"));
             return View(model);
         }
         var existingSession = await _chargingModuleApi.GetChargingSessionByReservationIdAsync(reservation.Id);
@@ -142,7 +143,7 @@ public class ChargingSessionController : Controller
 
         if (created == null)
         {
-            ModelState.AddModelError(string.Empty, "Unable to start charging session.");
+            ModelState.AddModelError(string.Empty, R("UnableToStartChargingSession"));
             return View(model);
         }
 
@@ -258,7 +259,7 @@ public class ChargingSessionController : Controller
             var lockCode = lockedPromotion.FirstOrDefault(x => x.PromotionId == reservationPromotionId && !x.IsUsed)?.Promotion?.Code;
             if (!string.Equals(lockCode, model.PromotionCode, StringComparison.OrdinalIgnoreCase))
             {
-                TempData["SessionError"] = "Promotion code is locked by reservation and cannot be changed.";
+                TempData["SessionError"] = R("PromotionLockedByReservation");
                 return RedirectToAction(nameof(Details), new { id = model.Id });
             }
         }
@@ -271,7 +272,7 @@ public class ChargingSessionController : Controller
             var selectedPromotion = await _companiesModuleApi.GetValidUserPromotionByCodeAsync(userId.Value, model.PromotionCode);
             if (selectedPromotion?.Promotion == null || selectedPromotion.IsUsed)
             {
-                TempData["SessionError"] = "Invalid promotion code.";
+                TempData["SessionError"] = R("InvalidPromotionCode");
                 return RedirectToAction(nameof(Details), new { id = model.Id });
             }
 
@@ -279,7 +280,7 @@ public class ChargingSessionController : Controller
             var promotionCompanyId = selectedPromotion.Promotion.CompanyId;
             if (promotionCompanyId.HasValue && stationCompanyId != promotionCompanyId)
             {
-                TempData["SessionError"] = "Promotion is not valid for this charging station company.";
+                TempData["SessionError"] = R("PromotionNotValidForStationCompany");
                 return RedirectToAction(nameof(Details), new { id = model.Id });
             }
 
@@ -308,7 +309,7 @@ public class ChargingSessionController : Controller
             EStationStatus.Available);
         if (!completed)
         {
-            TempData["SessionError"] = "Unable to stop charging session.";
+            TempData["SessionError"] = R("UnableToStopChargingSession");
             return RedirectToAction(nameof(Details), new { id = model.Id });
         }
 

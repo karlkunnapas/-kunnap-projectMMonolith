@@ -1,9 +1,9 @@
 @model WebApp.ViewModels.Account.LoginViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Account.Login.Title;
+    var title = App.Resources.Views.Account.Login.Title;
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@title</h1>
 
 <form asp-action="Login" method="post">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>

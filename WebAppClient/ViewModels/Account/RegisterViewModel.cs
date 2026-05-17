@@ -4,6 +4,8 @@ namespace WebApp.ViewModels.Account;
 
 public class RegisterViewModel
 {
+    public string? ReturnUrl { get; set; }
+
     [Required]
     [StringLength(200)]
     public string FirstName { get; set; } = string.Empty;
@@ -21,12 +23,12 @@ public class RegisterViewModel
     public string PhoneNumber { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(100, MinimumLength = 6, ErrorMessage = "The {0} must be at least {2} characters long.")]
+    [StringLength(100, MinimumLength = 6, ErrorMessageResourceType = typeof(App.Resources.Views.Account.Register), ErrorMessageResourceName = nameof(App.Resources.Views.Account.Register.PasswordLengthError))]
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
     [DataType(DataType.Password)]
-    [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+    [Compare("Password", ErrorMessageResourceType = typeof(App.Resources.Views.Account.Register), ErrorMessageResourceName = nameof(App.Resources.Views.Account.Register.PasswordMismatchError))]
     public string ConfirmPassword { get; set; } = string.Empty;
 
     [Required]
@@ -35,6 +37,6 @@ public class RegisterViewModel
 
     [Required]
     [StringLength(128, MinimumLength = 1)]
-    [RegularExpression("^[a-z0-9-]+$", ErrorMessage = "Slug must be lowercase alphanumeric with hyphens only")]
+    [RegularExpression("^[a-z0-9-]+$", ErrorMessageResourceType = typeof(App.Resources.Views.Account.Register), ErrorMessageResourceName = nameof(App.Resources.Views.Account.Register.SlugFormatError))]
     public string CompanySlug { get; set; } = string.Empty;
 }

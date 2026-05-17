@@ -79,7 +79,7 @@
     <value>Audit Logs</value>
   </data>
   <data name="FindStations" xml:space="preserve">
-    <value>Find Stations</value>
+    <value>Stations list</value>
   </data>
   <data name="MyReservations" xml:space="preserve">
     <value>Reservations</value>
@@ -120,4 +120,60 @@
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
+  <data name="ManageTitle" xml:space="preserve"><value>My Profile</value></data>
+  <data name="SaveChanges" xml:space="preserve"><value>Save Changes</value></data>
+  <data name="ChangePassword" xml:space="preserve"><value>Change Password</value></data>
+  <data name="TwoFactorAuthentication" xml:space="preserve"><value>Two-Factor Authentication</value></data>
+  <data name="DeleteAccount" xml:space="preserve"><value>Delete Account</value></data>
+  <data name="UpdatePassword" xml:space="preserve"><value>Update Password</value></data>
+  <data name="DeleteAccountWarning" xml:space="preserve"><value>This action permanently deletes your account.</value></data>
+  <data name="ConfirmPassword" xml:space="preserve"><value>Confirm Password</value></data>
+  <data name="DeleteMyAccount" xml:space="preserve"><value>Delete My Account</value></data>
+  <data name="RecoveryCodesPrompt" xml:space="preserve"><value>Save these recovery codes:</value></data>
+  <data name="TwoFactorEnabled" xml:space="preserve"><value>2FA Enabled:</value></data>
+  <data name="RecoveryCodesLeft" xml:space="preserve"><value>Recovery Codes Left:</value></data>
+  <data name="Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="No" xml:space="preserve"><value>No</value></data>
+  <data name="SetUpAuthenticatorApp" xml:space="preserve"><value>Set Up Authenticator App</value></data>
+  <data name="SharedKey" xml:space="preserve"><value>Shared Key:</value></data>
+  <data name="AuthenticatorUri" xml:space="preserve"><value>Authenticator URI:</value></data>
+  <data name="EnableTwoFactor" xml:space="preserve"><value>Enable 2FA</value></data>
+  <data name="RegenerateRecoveryCodes" xml:space="preserve"><value>Regenerate Recovery Codes</value></data>
+  <data name="DisableTwoFactor" xml:space="preserve"><value>Disable 2FA</value></data>
+  <data name="ProfileUpdated" xml:space="preserve"><value>Profile updated.</value></data>
+  <data name="PasswordUpdated" xml:space="preserve"><value>Password updated.</value></data>
+  <data name="TwoFactorEnabledMessage" xml:space="preserve"><value>Two-factor authentication enabled.</value></data>
+  <data name="TwoFactorDisabledMessage" xml:space="preserve"><value>Two-factor authentication disabled.</value></data>
+  <data name="RecoveryCodesRegenerated" xml:space="preserve"><value>Recovery codes regenerated.</value></data>
+  <data name="InvalidCompanySelection" xml:space="preserve"><value>Invalid company selection.</value></data>
+  <data name="ManageLinkTitle" xml:space="preserve"><value>Manage</value></data>
+  <data name="ErrorTitle" xml:space="preserve"><value>Error</value></data>
+  <data name="ErrorHeading" xml:space="preserve"><value>Error.</value></data>
+  <data name="ErrorMessage" xml:space="preserve"><value>An error occurred while processing your request.</value></data>
+  <data name="RequestId" xml:space="preserve"><value>Request ID:</value></data>
+  <data name="DevelopmentMode" xml:space="preserve"><value>Development Mode</value></data>
+  <data name="DevelopmentModeMessage" xml:space="preserve"><value>Switching to the Development environment will display more detailed information about the error.</value></data>
+  <data name="DevelopmentModeWarning" xml:space="preserve"><value>The Development environment should not be enabled for deployed applications.</value></data>
+  <data name="DevelopmentModeHint" xml:space="preserve"><value>For local debugging, enable the ASPNETCORE_ENVIRONMENT environment variable with the Development value.</value></data>
+  <data name="PrivacyPolicy" xml:space="preserve"><value>Privacy Policy</value></data>
+  <data name="NoPrivacy" xml:space="preserve"><value>No privacy!</value></data>
+  <data name="Environment" xml:space="preserve"><value>Environment</value></data>
+  <data name="Ip" xml:space="preserve"><value>IP</value></data>
+  <data name="RemoteIp" xml:space="preserve"><value>Remote IP:</value></data>
+  <data name="LocalIp" xml:space="preserve"><value>Local IP:</value></data>
+  <data name="Culture" xml:space="preserve"><value>Culture</value></data>
+  <data name="CurrentCulture" xml:space="preserve"><value>Current culture:</value></data>
+  <data name="CurrentUiCulture" xml:space="preserve"><value>Current UI culture:</value></data>
+  <data name="Claims" xml:space="preserve"><value>Claims</value></data>
+  <data name="Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Value" xml:space="preserve"><value>Value</value></data>
+  <data name="Headers" xml:space="preserve"><value>Headers</value></data>
+  <data name="Users" xml:space="preserve"><value>Users</value></data>
+  <data name="Roles" xml:space="preserve"><value>Roles</value></data>
+  <data name="Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="ResetPassword" xml:space="preserve"><value>Reset password</value></data>
+  <data name="PasswordResetLink" xml:space="preserve"><value>Password reset link</value></data>
+  <data name="SysAdmin" xml:space="preserve"><value>SysAdmin</value></data>
+  <data name="SystemAdmin" xml:space="preserve"><value>System Admin</value></data>
 </root>

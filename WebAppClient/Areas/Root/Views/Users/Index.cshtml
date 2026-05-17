@@ -7,12 +7,13 @@
 @inject RoleManager<AppRole> RoleManager
 
 @{
-    ViewData["Title"] = "Users";
+    var r = App.Resources.Views.Shared._Layout.ResourceManager;
+    var title = r.GetString("Users");
 
-    var allRoles = await RoleManager.Roles.OrderBy(r => r.Name).ToListAsync();
+    var allRoles = await RoleManager.Roles.OrderBy(role => role.Name).ToListAsync();
 }
 
-<h1>Users</h1>
+<h1>@title</h1>
 
 <table class="table">
     <thead>
@@ -20,7 +21,7 @@
         <th>
             @Html.DisplayNameFor(model => model[0].UserName)
         </th>
-        <th>Roles</th>
+        <th>@r.GetString("Roles")</th>
         <th></th>
     </tr>
     </thead>
@@ -38,18 +39,18 @@
                             @role.Name
                             @if (userRoles.Any(r => r == role.Name))
                             {
-                                <a asp-action="RoleRemove" asp-route-userId="@item.Id" asp-route-role="@role">Remove</a>
+                                <a asp-action="RoleRemove" asp-route-userId="@item.Id" asp-route-role="@role">@r.GetString("Remove")</a>
                             }
                             else
                             {
-                                <a asp-action="RoleAdd" asp-route-userId="@item.Id" asp-route-role="@role">Add</a>
+                                <a asp-action="RoleAdd" asp-route-userId="@item.Id" asp-route-role="@role">@r.GetString("Add")</a>
                             }
                         </li>
                     }
                 </ul>
             </td>
             <td>
-                <a asp-action="PasswordLink" asp-route-id="@item.Id">Reset PWD</a>
+                <a asp-action="PasswordLink" asp-route-id="@item.Id">@r.GetString("ResetPassword")</a>
             </td>
         </tr>
     }

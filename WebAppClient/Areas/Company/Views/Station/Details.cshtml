@@ -1,7 +1,7 @@
 @model WebApp.Areas.Company.ViewModels.CompanyStationDetailsViewModel
 @{
-    ViewData["Title"] = App.Resources.Views.Company.Station.Details.Title;
-    var companyId = ViewData["CompanyId"] is Guid value ? value : Guid.Empty;
+    var title = App.Resources.Views.Company.Station.Details.Title;
+    var companyId = Model.CompanyId;
     var statusClass = Model.Status switch
     {
         EStationStatus.Available => "status-ok",

@@ -4,6 +4,9 @@ namespace WebApp.ViewModels.Account;
 
 public class CustomerRegisterViewModel
 {
+    public string? ReturnUrl { get; set; }
+    public string? CompanyRegisterUrl { get; set; }
+
     [Required]
     [StringLength(200)]
     public string FirstName { get; set; } = string.Empty;
@@ -21,12 +24,11 @@ public class CustomerRegisterViewModel
     public string PhoneNumber { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(100, MinimumLength = 6, ErrorMessage = "The {0} must be at least {2} characters long.")]
+    [StringLength(100, MinimumLength = 6, ErrorMessageResourceType = typeof(App.Resources.Views.Account.Register), ErrorMessageResourceName = nameof(App.Resources.Views.Account.Register.PasswordLengthError))]
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
     [DataType(DataType.Password)]
-    [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+    [Compare("Password", ErrorMessageResourceType = typeof(App.Resources.Views.Account.Register), ErrorMessageResourceName = nameof(App.Resources.Views.Account.Register.PasswordMismatchError))]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
-

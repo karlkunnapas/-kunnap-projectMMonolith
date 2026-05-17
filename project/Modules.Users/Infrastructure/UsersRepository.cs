@@ -11,15 +11,18 @@ internal sealed class UsersRepository : IUsersRepository
     private const string CustomerRole = "Customer";
 
     private readonly UsersDbContext _dbContext;
+    private readonly IUsersUnitOfWork _unitOfWork;
     private readonly IPasswordHasher<Domain.AppUser> _passwordHasher;
     private readonly UserManager<Domain.AppUser> _userManager;
 
     public UsersRepository(
         UsersDbContext dbContext,
+        IUsersUnitOfWork unitOfWork,
         IPasswordHasher<Domain.AppUser> passwordHasher,
         UserManager<Domain.AppUser> userManager)
     {
         _dbContext = dbContext;
+        _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _userManager = userManager;
     }
@@ -158,7 +161,7 @@ internal sealed class UsersRepository : IUsersRepository
             });
         }
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
         return (await GetVehicleForUserAsync(vehicle.Id, userId, ct))!;
     }
@@ -189,7 +192,7 @@ internal sealed class UsersRepository : IUsersRepository
             });
         }
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return await GetVehicleForUserAsync(vehicleId, userId, ct);
     }
 
@@ -207,7 +210,7 @@ internal sealed class UsersRepository : IUsersRepository
         _dbContext.VehicleConnectors.RemoveRange(existingLinks);
         _dbContext.Vehicles.Remove(vehicle);
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -233,7 +236,7 @@ internal sealed class UsersRepository : IUsersRepository
             });
         }
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -289,7 +292,7 @@ internal sealed class UsersRepository : IUsersRepository
             ClaimValue = request.LastName.Trim()
         });
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -316,7 +319,7 @@ internal sealed class UsersRepository : IUsersRepository
         user.SecurityStamp = Guid.NewGuid().ToString();
         user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return ChangePasswordResultDto.Ok();
     }
 
@@ -346,7 +349,7 @@ internal sealed class UsersRepository : IUsersRepository
         };
 
         _dbContext.RefreshTokens.Add(refreshToken);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
         return refreshToken.RefreshToken;
     }
@@ -385,7 +388,7 @@ internal sealed class UsersRepository : IUsersRepository
             match.PreviousExpiration = DateTime.UtcNow.AddMinutes(1);
             match.RefreshToken = Guid.NewGuid().ToString();
             match.Expiration = newExpirationUtc;
-            await _dbContext.SaveChangesAsync(ct);
+            await _unitOfWork.SaveChangesAsync(ct);
         }
 
         return RenewRefreshTokenResultDto.Ok(match.RefreshToken);
@@ -413,7 +416,7 @@ internal sealed class UsersRepository : IUsersRepository
             .ToListAsync(ct);
 
         _dbContext.RefreshTokens.RemoveRange(matches);
-        await _dbContext.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return matches.Count;
     }
 

@@ -179,9 +179,9 @@ public class StationController : CompanyBaseController
                 Notes = m.Notes
             }).ToList();
 
-        ViewData["CompanyId"] = company.Value.CompanyId;
         return View(new CompanyStationDetailsViewModel
         {
+            CompanyId = company.Value.CompanyId,
             Id = station.Id,
             Name = localizedNameByStationId.GetValueOrDefault(station.Id, station.Name),
             Location = station.Location,

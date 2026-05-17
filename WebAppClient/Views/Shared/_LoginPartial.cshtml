@@ -1,7 +1,7 @@
 @if (User.Identity?.IsAuthenticated == true)
 {
     <li class="app-nav-item">
-        <a asp-area="" asp-controller="Account" asp-action="Manage" title="Manage">@App.Resources.Views.Shared._Layout.Hello @User.Identity?.Name!</a>
+        <a asp-area="" asp-controller="Account" asp-action="Manage" title="@App.Resources.Views.Shared._Layout.ResourceManager.GetString("ManageLinkTitle")">@App.Resources.Views.Shared._Layout.Hello @User.Identity?.Name!</a>
     </li>
     <li class="app-nav-item">
         <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">

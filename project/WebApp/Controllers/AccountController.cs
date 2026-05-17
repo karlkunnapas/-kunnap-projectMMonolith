@@ -16,6 +16,8 @@ public class AccountController : Controller
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
     private readonly ICompaniesModuleApi _companiesModuleApi;
+    private static string R(string key) =>
+        App.Resources.Views.Account.Register.ResourceManager.GetString(key) ?? key;
 
     public AccountController(
         IUsersModuleApi usersModuleApi,
@@ -33,9 +35,11 @@ public class AccountController : Controller
     [AllowAnonymous]
     public IActionResult Register(string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-        ViewData["CompanyRegisterUrl"] = Url.Action("Register", "Account", new { area = "Company" });
-        return View(new CustomerRegisterViewModel());
+        return View(new CustomerRegisterViewModel
+        {
+            ReturnUrl = returnUrl,
+            CompanyRegisterUrl = Url.Action("Register", "Account", new { area = "Company" })
+        });
     }
 
     // POST: /Account/Register (customer)
@@ -44,8 +48,8 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(CustomerRegisterViewModel model, string? returnUrl = null)
     {
-        ViewData["ReturnUrl"] = returnUrl;
-        ViewData["CompanyRegisterUrl"] = Url.Action("Register", "Account", new { area = "Company" });
+        model.ReturnUrl = returnUrl;
+        model.CompanyRegisterUrl = Url.Action("Register", "Account", new { area = "Company" });
 
         if (!ModelState.IsValid)
         {
@@ -63,7 +67,7 @@ public class AccountController : Controller
 
         if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Registration failed.");
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? R("RegistrationFailed"));
             return View(model);
         }
 
@@ -101,11 +105,7 @@ public class AccountController : Controller
         {
             ModelState.AddModelError(
                 string.Empty,
-                (new LangStr
-                {
-                    ["en"] = "Invalid login attempt.",
-                    ["et"] = "Vigane sisselogimise katse."
-                }).Translate() ?? "Invalid login attempt.");
+                R("InvalidLoginAttempt"));
             return View(model);
         }
 
@@ -239,7 +239,7 @@ public class AccountController : Controller
                 Role = c.Role
             }).ToList();
             
-            ModelState.AddModelError(string.Empty, "Invalid company selection.");
+            ModelState.AddModelError(string.Empty, R("InvalidCompanySelection"));
             return View(model);
         }
 
@@ -337,7 +337,6 @@ public class AccountController : Controller
     [Authorize]
     public IActionResult CompanyDeactivated()
     {
-        ViewData["MinimalNavigationMode"] = true;
         return View();
     }
 

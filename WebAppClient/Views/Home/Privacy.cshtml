@@ -2,37 +2,38 @@
 @using Microsoft.AspNetCore.Hosting
 @inject IWebHostEnvironment WebHostEnvironment
 @{
-    ViewData["Title"] = "Privacy Policy";
+    var r = App.Resources.Views.Shared._Layout.ResourceManager;
+    var title = r.GetString("PrivacyPolicy");
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@title</h1>
 
 
-<p>No privacy!</p>
+<p>@r.GetString("NoPrivacy")</p>
 
 
-<h3>Env - @(WebHostEnvironment.EnvironmentName)</h3>
+<h3>@r.GetString("Environment") - @(WebHostEnvironment.EnvironmentName)</h3>
 
-<h3>IP</h3>
+<h3>@r.GetString("Ip")</h3>
 <ul>
-    <li>Remote ip: @Context.Connection.RemoteIpAddress</li>
-    <li>Local ip: @Context.Connection.LocalIpAddress</li>
+    <li>@r.GetString("RemoteIp") @Context.Connection.RemoteIpAddress</li>
+    <li>@r.GetString("LocalIp") @Context.Connection.LocalIpAddress</li>
 </ul>
 
 
-<h3>Culture</h3>
+<h3>@r.GetString("Culture")</h3>
 <ul>
-    <li>CurrentCulture : @Thread.CurrentThread.CurrentCulture.Name</li>
-    <li>CurrentUICulture ip: @Thread.CurrentThread.CurrentUICulture.Name</li>
+    <li>@r.GetString("CurrentCulture") @Thread.CurrentThread.CurrentCulture.Name</li>
+    <li>@r.GetString("CurrentUiCulture") @Thread.CurrentThread.CurrentUICulture.Name</li>
 </ul>
 
 
-<h3>Claims</h3>
+<h3>@r.GetString("Claims")</h3>
 <table class="table">
 
     <thead>
     <tr>
-        <th>Type</th>
-        <th>Value</th>
+        <th>@r.GetString("Type")</th>
+        <th>@r.GetString("Value")</th>
     </tr>
     </thead>
 
@@ -52,7 +53,7 @@
 </table>
 
 
-<h3>Headers</h3>
+<h3>@r.GetString("Headers")</h3>
 <ul>
     @foreach (var header in Context.Request.Headers)
     {

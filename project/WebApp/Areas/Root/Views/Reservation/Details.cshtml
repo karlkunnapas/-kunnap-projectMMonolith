@@ -1,7 +1,7 @@
 @model WebApp.Areas.Root.ViewModels.ReservationDetailViewModel
 @using ReservationStatus = Shared.Contracts.Charging.EReservationStatus
 @{
-    ViewData["Title"] = App.Resources.Views.Root.Reservation.Details.Title;
+    var title = App.Resources.Views.Root.Reservation.Details.Title;
 
     var statusClass = Model.Status switch
     {
