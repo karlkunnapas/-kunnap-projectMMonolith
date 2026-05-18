@@ -134,6 +134,22 @@ public class StationController : CompanyBaseController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Activate(Guid companyId, Guid id)
+    {
+        var company = await ResolveCompanyAsync(companyId);
+        if (company == null || !HasManagerAccess(company.Value.Role))
+        {
+            return Forbid();
+        }
+
+        await ApiClient.PatchAsync<CompanyStationResponseDto>(
+            $"api/v1/company/{company.Value.CompanyId}/station/{id}/activation",
+            new StationActivationUpdateRequestDto { IsActive = true });
+        return RedirectToAction(nameof(Index), new { companyId = company.Value.CompanyId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> SetStatus(Guid companyId, Guid id, WebAppClient.Enums.EStationStatus status)
     {
         var company = await ResolveCompanyAsync(companyId);

@@ -67,7 +67,7 @@ public class StationController : Controller
             return Forbid();
         }
 
-        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
         return View(new CompanyStationFormViewModel
         {
             CompanyId = resolvedCompany.Value,
@@ -145,7 +145,7 @@ public class StationController : Controller
         }
 
         var assignedConnectorIds = await _chargingModuleApi.GetStationAssignedConnectorIdsAsync(id);
-        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
         return View(new CompanyStationFormViewModel
         {
             Id = station.Id,
@@ -233,6 +233,31 @@ public class StationController : Controller
 
         var deleted = await _chargingModuleApi.DeleteCompanyStationAsync(id, resolvedCompany.Value);
         if (!deleted)
+        {
+            return Forbid();
+        }
+
+        return RedirectToAction(nameof(Index), new { companyId = resolvedCompany.Value });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Activate(Guid companyId, Guid id)
+    {
+        var resolvedCompany = await ResolveCompanyAsync(companyId);
+        if (resolvedCompany == null)
+        {
+            return Forbid();
+        }
+
+        var userId = ResolveCurrentUserId();
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var updated = await _chargingModuleApi.SetCompanyStationActivationAsync(id, resolvedCompany.Value, true);
+        if (updated == null)
         {
             return Forbid();
         }
@@ -333,7 +358,7 @@ public class StationController : Controller
             .Distinct()
             .ToList();
 
-        var availableConnectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        var availableConnectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
         model.AvailableConnectors = availableConnectors
             .Select(connector => new StationConnectorViewModel
             {

@@ -294,9 +294,32 @@ internal sealed class ChargingRepository : IChargingRepository
             return false;
         }
 
-        _connectorRepository.Remove(connector);
+        if (!connector.IsActive)
+        {
+            return true;
+        }
+
+        connector.IsActive = false;
         await _unitOfWork.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<ConnectorTypeDto?> SetConnectorTypeActivationAsync(Guid connectorTypeId, bool isActive, CancellationToken ct = default)
+    {
+        var connector = await _connectorRepository.Query()
+            .FirstOrDefaultAsync(c => c.Id == connectorTypeId, ct);
+        if (connector == null)
+        {
+            return null;
+        }
+
+        if (connector.IsActive != isActive)
+        {
+            connector.IsActive = isActive;
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+
+        return MapConnectorType(connector);
     }
 
     public async Task<ChargingStationDto> CreateCompanyStationAsync(UpsertCompanyStationDto request, CancellationToken ct = default)
@@ -352,27 +375,44 @@ internal sealed class ChargingRepository : IChargingRepository
     public async Task<bool> DeleteCompanyStationAsync(Guid stationId, Guid companyId, CancellationToken ct = default)
     {
         var station = await _stationRepository.Query()
-            .Include(s => s.Reservations)
-            .Include(s => s.ChargingSessions)
-            .Include(s => s.MaintenanceIssues)
             .FirstOrDefaultAsync(s => s.Id == stationId && s.CompanyId == companyId, ct);
         if (station == null)
         {
             return false;
         }
 
-        if ((station.Reservations?.Any() ?? false) || (station.ChargingSessions?.Any() ?? false) || (station.MaintenanceIssues?.Any() ?? false))
+        if (!station.IsActive)
         {
-            return false;
+            return true;
         }
 
-        var links = await _stationConnectorRepository.Query()
-            .Where(link => link.ChargingStationId == stationId)
-            .ToListAsync(ct);
-        _stationConnectorRepository.RemoveRange(links);
-        _stationRepository.Remove(station);
+        station.IsActive = false;
         await _unitOfWork.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<ChargingStationDto?> SetCompanyStationActivationAsync(Guid stationId, Guid companyId, bool isActive, CancellationToken ct = default)
+    {
+        var station = await _stationRepository.Query()
+            .FirstOrDefaultAsync(s => s.Id == stationId && s.CompanyId == companyId, ct);
+        if (station == null)
+        {
+            return null;
+        }
+
+        if (station.IsActive != isActive)
+        {
+            station.IsActive = isActive;
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+
+        var updated = await _stationRepository.Query()
+            .AsNoTracking()
+            .Include(s => s.ChargingStationConnectors!)
+            .ThenInclude(link => link.Connector)
+            .FirstOrDefaultAsync(s => s.Id == stationId && s.CompanyId == companyId, ct);
+
+        return updated == null ? null : MapStation(updated);
     }
 
     public async Task<IReadOnlyCollection<Guid>> GetStationAssignedConnectorIdsAsync(Guid stationId, CancellationToken ct = default)
@@ -764,7 +804,7 @@ internal sealed class ChargingRepository : IChargingRepository
             IsActive = station.IsActive,
             CompanyId = station.CompanyId,
             Connectors = (station.ChargingStationConnectors ?? Array.Empty<Domain.ChargingStationConnector>())
-                .Where(link => link.Connector != null)
+                .Where(link => link.Connector != null && link.Connector.IsActive)
                 .Select(link => new ConnectorDto
                 {
                     Id = link.ConnectorId,

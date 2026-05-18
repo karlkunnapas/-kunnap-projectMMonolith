@@ -74,6 +74,8 @@ internal sealed class ChargingApplicationService : IChargingApplicationService
         => (await _chargingRepository.UpdateCompanyStationAsync(ChargingContractMapper.ToDto(request), ct)) is { } dto ? ChargingContractMapper.ToContract(dto) : null;
 
     public Task<bool> DeleteCompanyStationAsync(Guid stationId, Guid companyId, CancellationToken ct = default) => _chargingRepository.DeleteCompanyStationAsync(stationId, companyId, ct);
+    public async Task<ChargingStationContract?> SetCompanyStationActivationAsync(Guid stationId, Guid companyId, bool isActive, CancellationToken ct = default)
+        => (await _chargingRepository.SetCompanyStationActivationAsync(stationId, companyId, isActive, ct)) is { } dto ? ChargingContractMapper.ToContract(dto) : null;
 
     public Task<IReadOnlyCollection<Guid>> GetStationAssignedConnectorIdsAsync(Guid stationId, CancellationToken ct = default) => _chargingRepository.GetStationAssignedConnectorIdsAsync(stationId, ct);
 
@@ -92,6 +94,8 @@ internal sealed class ChargingApplicationService : IChargingApplicationService
         => (await _chargingRepository.UpdateConnectorTypeAsync(connectorTypeId, nameEn, nameEt, isActive, ct)) is { } dto ? ChargingContractMapper.ToContract(dto) : null;
 
     public Task<bool> DeleteConnectorTypeAsync(Guid connectorTypeId, CancellationToken ct = default) => _chargingRepository.DeleteConnectorTypeAsync(connectorTypeId, ct);
+    public async Task<ConnectorTypeContract?> SetConnectorTypeActivationAsync(Guid connectorTypeId, bool isActive, CancellationToken ct = default)
+        => (await _chargingRepository.SetConnectorTypeActivationAsync(connectorTypeId, isActive, ct)) is { } dto ? ChargingContractMapper.ToContract(dto) : null;
 
     public async Task<IReadOnlyCollection<ReservationContract>> GetOverlappingReservationsAsync(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, Guid? excludeReservationId = null, CancellationToken ct = default)
         => (await _chargingRepository.GetOverlappingReservationsAsync(stationId, startTimeUtc, endTimeUtc, excludeReservationId, ct)).Select(ChargingContractMapper.ToContract).ToList();

@@ -119,4 +119,34 @@ public class ConnectorTypesController(IChargingModuleApi chargingModuleApi) : Co
         TempData["SuccessMessage"] = App.Resources.Views.Admin.ConnectorTypes.Index.ConnectorTypeDeleted;
         return RedirectToAction("Index");
     }
+
+    [HttpPost("Deactivate/{id}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Deactivate(Guid id)
+    {
+        var updated = await chargingModuleApi.SetConnectorTypeActivationAsync(id, isActive: false);
+        if (updated == null)
+        {
+            TempData["ErrorMessage"] = "Failed to deactivate connector type.";
+            return RedirectToAction("Index");
+        }
+
+        TempData["SuccessMessage"] = "Connector type deactivated.";
+        return RedirectToAction("Index");
+    }
+
+    [HttpPost("Activate/{id}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Activate(Guid id)
+    {
+        var updated = await chargingModuleApi.SetConnectorTypeActivationAsync(id, isActive: true);
+        if (updated == null)
+        {
+            TempData["ErrorMessage"] = "Failed to activate connector type.";
+            return RedirectToAction("Index");
+        }
+
+        TempData["SuccessMessage"] = "Connector type activated.";
+        return RedirectToAction("Index");
+    }
 }

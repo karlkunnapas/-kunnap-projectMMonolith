@@ -17,6 +17,7 @@ public interface IChargingModuleApi
     Task<ChargingStationContract> CreateCompanyStationAsync(UpsertCompanyStationContract request, CancellationToken ct = default);
     Task<ChargingStationContract?> UpdateCompanyStationAsync(UpsertCompanyStationContract request, CancellationToken ct = default);
     Task<bool> DeleteCompanyStationAsync(Guid stationId, Guid companyId, CancellationToken ct = default);
+    Task<ChargingStationContract?> SetCompanyStationActivationAsync(Guid stationId, Guid companyId, bool isActive, CancellationToken ct = default);
     Task<IReadOnlyCollection<Guid>> GetStationAssignedConnectorIdsAsync(Guid stationId, CancellationToken ct = default);
     Task SetStationConnectorsAsync(Guid stationId, IReadOnlyCollection<Guid> connectorIds, CancellationToken ct = default);
 
@@ -25,6 +26,7 @@ public interface IChargingModuleApi
     Task<ConnectorTypeContract> CreateConnectorTypeAsync(string nameEn, string nameEt, bool isActive, CancellationToken ct = default);
     Task<ConnectorTypeContract?> UpdateConnectorTypeAsync(Guid connectorTypeId, string nameEn, string nameEt, bool isActive, CancellationToken ct = default);
     Task<bool> DeleteConnectorTypeAsync(Guid connectorTypeId, CancellationToken ct = default);
+    Task<ConnectorTypeContract?> SetConnectorTypeActivationAsync(Guid connectorTypeId, bool isActive, CancellationToken ct = default);
     Task<IReadOnlyCollection<ReservationContract>> GetOverlappingReservationsAsync(
         Guid stationId,
         DateTime startTimeUtc,

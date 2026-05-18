@@ -65,10 +65,20 @@
                                        asp-route-id="@item.ConnectorTypeId">
                                         @App.Resources.Views.Admin.ConnectorTypes.Index.Edit
                                     </a>
-                                    <form asp-area="Admin" asp-controller="ConnectorTypes" asp-action="Delete" asp-route-id="@item.ConnectorTypeId" method="post" style="display:inline;">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="station-button station-button-danger">@App.Resources.Views.Admin.ConnectorTypes.Index.Delete</button>
-                                    </form>
+                                    @if (item.IsActive)
+                                    {
+                                        <form asp-area="Admin" asp-controller="ConnectorTypes" asp-action="Deactivate" asp-route-id="@item.ConnectorTypeId" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="station-button station-button-danger">Deactivate</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-area="Admin" asp-controller="ConnectorTypes" asp-action="Activate" asp-route-id="@item.ConnectorTypeId" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="station-button">Activate</button>
+                                        </form>
+                                    }
                                 </div>
                             </div>
                         }

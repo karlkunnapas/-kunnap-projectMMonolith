@@ -85,12 +85,15 @@
                                         <a asp-action="Edit" asp-route-id="@promo.PromotionId" class="btn btn-outline-primary">
                                             <span class="bi bi-pencil"></span> @r.GetString("EditLabel")
                                         </a>
-                                        <form asp-action="Delete" asp-route-id="@promo.PromotionId" method="post" style="display:inline;" onsubmit="return confirm('@App.Resources.Views.Admin.Promotions.Index.DeleteConfirm');">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-outline-danger">
-                                                <span class="bi bi-trash"></span> @r.GetString("DeleteLabel")
-                                            </button>
-                                        </form>
+                                        @if (promo.CanDelete)
+                                        {
+                                            <form asp-action="Delete" asp-route-id="@promo.PromotionId" method="post" style="display:inline;" onsubmit="return confirm('@App.Resources.Views.Admin.Promotions.Index.DeleteConfirm');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-outline-danger">
+                                                    <span class="bi bi-trash"></span> @r.GetString("DeleteLabel")
+                                                </button>
+                                            </form>
+                                        }
                                     </div>
                                 </td>
                             </tr>

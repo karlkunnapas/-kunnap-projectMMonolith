@@ -174,7 +174,8 @@ public static class ApiDtoFactory
         DiscountValue = dto.DiscountValue,
         ValidFromUtc = dto.ValidFromUtc,
         ValidToUtc = dto.ValidToUtc,
-        IsActive = dto.IsActive
+        IsActive = dto.IsActive,
+        CanDelete = dto.CanDelete
     };
 
     private static decimal CalculateEnergyEstimateKwh(int durationMinutes, decimal? stationMaxPower)

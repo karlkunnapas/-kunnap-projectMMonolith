@@ -10,6 +10,11 @@
             <a class="station-button" asp-action="Create" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Promotion.Index.CreateAction</a>
         </div>
 
+        @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">@errorMessage</div>
+        }
+
         @if (!Model.Promotions.Any())
         {
             <div class="station-empty">@App.Resources.Views.Company.Promotion.Index.NoPromotions</div>
@@ -33,12 +38,15 @@
                     </div>
                     <div class="station-actions vehicle-actions">
                         <a class="filter-chip" asp-action="Edit" asp-route-id="@promotion.Id" asp-route-companyId="@Model.CompanyId">@App.Resources.Views.Company.Promotion.Index.EditAction</a>
-                        <form asp-action="Delete" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="companyId" value="@Model.CompanyId" />
-                            <input type="hidden" name="id" value="@promotion.Id" />
-                            <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Company.Promotion.Index.DeleteAction</button>
-                        </form>
+                        @if (promotion.CanDelete)
+                        {
+                            <form asp-action="Delete" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="companyId" value="@Model.CompanyId" />
+                                <input type="hidden" name="id" value="@promotion.Id" />
+                                <button type="submit" class="filter-chip filter-chip-danger">@App.Resources.Views.Company.Promotion.Index.DeleteAction</button>
+                            </form>
+                        }
                     </div>
                 </div>
             }

@@ -13,6 +13,7 @@ public class ApiClient : IApiClient
 {
     private const string JwtSessionKey = "ApiJwt";
     private const string RefreshTokenSessionKey = "ApiRefreshToken";
+    private static readonly SemaphoreSlim RefreshLock = new(1, 1);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -144,13 +145,14 @@ public class ApiClient : IApiClient
     private async Task<HttpResponseMessage> SendWithRefreshAsync(HttpRequestMessage originalRequest)
     {
         var client = _httpClientFactory.CreateClient("ApiClient");
+        var jwtBeforeAttempt = GetJwt();
         var firstAttempt = await SendCoreAsync(client, originalRequest);
         if (firstAttempt.StatusCode != System.Net.HttpStatusCode.Unauthorized)
         {
             return firstAttempt;
         }
 
-        var refreshed = await TryRefreshTokenAsync();
+        var refreshed = await TryRefreshTokenAsync(jwtBeforeAttempt);
         if (!refreshed)
         {
             return firstAttempt;
@@ -172,17 +174,26 @@ public class ApiClient : IApiClient
         return await client.SendAsync(request);
     }
 
-    private async Task<bool> TryRefreshTokenAsync()
+    private async Task<bool> TryRefreshTokenAsync(string? jwtUsedForFailedRequest)
     {
-        var jwt = GetJwt();
-        var refreshToken = GetRefreshToken();
-        if (string.IsNullOrWhiteSpace(jwt) || string.IsNullOrWhiteSpace(refreshToken))
-        {
-            return false;
-        }
-
+        await RefreshLock.WaitAsync();
         try
         {
+            var currentJwt = GetJwt();
+            // Another concurrent request may have refreshed tokens while this request was waiting.
+            if (!string.IsNullOrWhiteSpace(currentJwt) &&
+                !string.Equals(currentJwt, jwtUsedForFailedRequest, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            var jwt = GetJwt();
+            var refreshToken = GetRefreshToken();
+            if (string.IsNullOrWhiteSpace(jwt) || string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return false;
+            }
+
             var client = _httpClientFactory.CreateClient("ApiClient");
             var request = new RefreshTokenRequestDto { Jwt = jwt, RefreshToken = refreshToken };
             using var response = await client.PostAsync("api/v1/account/renewrefreshtoken", JsonContent(request));
@@ -212,6 +223,10 @@ public class ApiClient : IApiClient
             ClearTokens();
             await SignOutCookieAsync();
             return false;
+        }
+        finally
+        {
+            RefreshLock.Release();
         }
     }
 
@@ -297,8 +312,14 @@ public class ApiClient : IApiClient
 
         if (request.Content != null)
         {
-            var content = await request.Content.ReadAsStringAsync();
-            clone.Content = new StringContent(content, Encoding.UTF8, request.Content.Headers.ContentType?.MediaType ?? "application/json");
+            var contentBytes = await request.Content.ReadAsByteArrayAsync();
+            var contentClone = new ByteArrayContent(contentBytes);
+            foreach (var header in request.Content.Headers)
+            {
+                contentClone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            clone.Content = contentClone;
         }
 
         return clone;

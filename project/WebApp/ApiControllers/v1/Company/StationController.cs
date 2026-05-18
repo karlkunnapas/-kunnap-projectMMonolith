@@ -94,7 +94,7 @@ public class StationController : ControllerBase
             return Forbid();
         }
 
-        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: true);
+        var connectors = await _chargingModuleApi.GetConnectorsAsync(includeInactive: false);
         if (stationId.HasValue)
         {
             var station = await _chargingModuleApi.GetCompanyStationByIdAsync(stationId.Value, companyId);
@@ -237,6 +237,30 @@ public class StationController : ControllerBase
         }
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Activate or deactivate a station.
+    /// </summary>
+    [HttpPatch("{id:guid}/activation")]
+    [ProducesResponseType(typeof(CompanyStationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(Message), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CompanyStationResponse>> UpdateActivation(Guid companyId, Guid id, [FromBody] StationActivationUpdate request)
+    {
+        var userId = User.UserId();
+        if (!await _companiesModuleApi.HasCompanyRoleAsync(companyId, userId, "Manager"))
+        {
+            return Forbid();
+        }
+
+        var updated = await _chargingModuleApi.SetCompanyStationActivationAsync(id, companyId, request.IsActive);
+        if (updated == null)
+        {
+            return BadRequest(new Message("Station not found."));
+        }
+
+        return Ok(ToCompanyStationResponse(updated, null));
     }
 
     /// <summary>

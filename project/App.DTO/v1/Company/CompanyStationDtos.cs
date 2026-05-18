@@ -67,3 +67,9 @@ public class StationStatusUpdate
     [Required]
     public int Status { get; set; }
 }
+
+public class StationActivationUpdate
+{
+    [Required]
+    public bool IsActive { get; set; }
+}

@@ -8,6 +8,7 @@ public sealed class CompanyPromotionContract
     public DateTime ValidFromUtc { get; set; }
     public DateTime ValidToUtc { get; set; }
     public bool IsActive { get; set; }
+    public bool CanDelete { get; set; } = true;
     public Guid? CompanyId { get; set; }
 }
 

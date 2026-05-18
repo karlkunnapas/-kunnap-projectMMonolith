@@ -11,17 +11,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="Areas/Admin/**/*.cs" />
         <Compile Remove="Areas/Root/Controllers/UsersController.cs" />
         <Compile Remove="Areas/Root/ViewModels/PasswordLinkViewModel.cs" />
         <Compile Remove="App.Resources/obj/**/*.cs" />
     </ItemGroup>
 
     <ItemGroup>
-        <Content Remove="Areas/Admin/**" />
         <Content Remove="Areas/Root/Views/Users/**" />
         <Content Remove="App.Resources/obj/**" />
-        <None Remove="Areas/Admin/**" />
         <EmbeddedResource Remove="App.Resources/obj/**" />
     </ItemGroup>
 

@@ -361,6 +361,11 @@ public class StationStatusUpdateRequestDto
     public int Status { get; set; }
 }
 
+public class StationActivationUpdateRequestDto
+{
+    public bool IsActive { get; set; }
+}
+
 public class MaintenanceIssueResponseDto
 {
     public Guid Id { get; set; }
@@ -403,6 +408,7 @@ public class PromotionResponseDto
     public DateTime ValidFromUtc { get; set; }
     public DateTime ValidToUtc { get; set; }
     public bool IsActive { get; set; }
+    public bool CanDelete { get; set; }
 }
 
 public class PromotionUpsertRequestDto

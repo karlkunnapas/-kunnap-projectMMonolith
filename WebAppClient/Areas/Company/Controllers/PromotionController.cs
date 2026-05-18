@@ -150,7 +150,15 @@ public class PromotionController : CompanyBaseController
             return Forbid();
         }
 
-        await ApiClient.DeleteAsync($"api/v1/company/{company.Value.CompanyId}/promotion/{id}");
+        try
+        {
+            await ApiClient.DeleteAsync($"api/v1/company/{company.Value.CompanyId}/promotion/{id}");
+        }
+        catch (ApiException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+
         return RedirectToAction(nameof(Index), new { companyId = company.Value.CompanyId });
     }
 
@@ -163,7 +171,8 @@ public class PromotionController : CompanyBaseController
             DiscountValue = dto.DiscountValue,
             ValidFromUtc = dto.ValidFromUtc,
             ValidToUtc = dto.ValidToUtc,
-            IsActive = dto.IsActive
+            IsActive = dto.IsActive,
+            CanDelete = dto.CanDelete
         };
     }
 }

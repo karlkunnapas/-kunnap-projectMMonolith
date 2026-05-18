@@ -26,7 +26,8 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
             ValidToUtc = p.ValidToUtc,
             IsActive = p.IsActive,
             CompanyName = R("SystemLevel"),
-            IsSystemLevel = true
+            IsSystemLevel = true,
+            CanDelete = p.CanDelete
         }).ToList();
         var companyItems = new List<AdminPromotionListItemViewModel>();
         var companies = await companiesModuleApi.GetCompaniesForAdminAsync();
@@ -42,7 +43,8 @@ public class PromotionsController(ICompaniesModuleApi companiesModuleApi) : Cont
                 ValidToUtc = p.ValidToUtc,
                 IsActive = p.IsActive,
                 CompanyName = company.CompanyName,
-                IsSystemLevel = false
+                IsSystemLevel = false,
+                CanDelete = p.CanDelete
             }));
         }
         var items = systemItems.Concat(companyItems).ToList();
@@ -215,6 +217,7 @@ public class AdminPromotionListItemViewModel
     public bool IsActive { get; set; }
     public string CompanyName { get; set; } = App.Resources.Views.Admin.Promotions.Index.ResourceManager.GetString("SystemLevel") ?? "System Level";
     public bool IsSystemLevel { get; set; }
+    public bool CanDelete { get; set; }
 }
 
 public class AdminPromotionFormViewModel

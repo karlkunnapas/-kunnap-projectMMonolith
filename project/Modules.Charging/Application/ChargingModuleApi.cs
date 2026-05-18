@@ -26,6 +26,7 @@ internal sealed class ChargingModuleApi : IChargingModuleApi
     public Task<ChargingStationContract> CreateCompanyStationAsync(UpsertCompanyStationContract request, CancellationToken ct = default) => _service.CreateCompanyStationAsync(request, ct);
     public Task<ChargingStationContract?> UpdateCompanyStationAsync(UpsertCompanyStationContract request, CancellationToken ct = default) => _service.UpdateCompanyStationAsync(request, ct);
     public Task<bool> DeleteCompanyStationAsync(Guid stationId, Guid companyId, CancellationToken ct = default) => _service.DeleteCompanyStationAsync(stationId, companyId, ct);
+    public Task<ChargingStationContract?> SetCompanyStationActivationAsync(Guid stationId, Guid companyId, bool isActive, CancellationToken ct = default) => _service.SetCompanyStationActivationAsync(stationId, companyId, isActive, ct);
     public Task<IReadOnlyCollection<Guid>> GetStationAssignedConnectorIdsAsync(Guid stationId, CancellationToken ct = default) => _service.GetStationAssignedConnectorIdsAsync(stationId, ct);
     public Task SetStationConnectorsAsync(Guid stationId, IReadOnlyCollection<Guid> connectorIds, CancellationToken ct = default) => _service.SetStationConnectorsAsync(stationId, connectorIds, ct);
     public Task<IReadOnlyCollection<ConnectorContract>> GetConnectorsAsync(bool includeInactive = false, CancellationToken ct = default) => _service.GetConnectorsAsync(includeInactive, ct);
@@ -33,6 +34,7 @@ internal sealed class ChargingModuleApi : IChargingModuleApi
     public Task<ConnectorTypeContract> CreateConnectorTypeAsync(string nameEn, string nameEt, bool isActive, CancellationToken ct = default) => _service.CreateConnectorTypeAsync(nameEn, nameEt, isActive, ct);
     public Task<ConnectorTypeContract?> UpdateConnectorTypeAsync(Guid connectorTypeId, string nameEn, string nameEt, bool isActive, CancellationToken ct = default) => _service.UpdateConnectorTypeAsync(connectorTypeId, nameEn, nameEt, isActive, ct);
     public Task<bool> DeleteConnectorTypeAsync(Guid connectorTypeId, CancellationToken ct = default) => _service.DeleteConnectorTypeAsync(connectorTypeId, ct);
+    public Task<ConnectorTypeContract?> SetConnectorTypeActivationAsync(Guid connectorTypeId, bool isActive, CancellationToken ct = default) => _service.SetConnectorTypeActivationAsync(connectorTypeId, isActive, ct);
     public Task<IReadOnlyCollection<ReservationContract>> GetOverlappingReservationsAsync(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, Guid? excludeReservationId = null, CancellationToken ct = default) => _service.GetOverlappingReservationsAsync(stationId, startTimeUtc, endTimeUtc, excludeReservationId, ct);
     public Task<IReadOnlyCollection<ReservationContract>> GetStationReservationsAsync(Guid stationId, CancellationToken ct = default) => _service.GetStationReservationsAsync(stationId, ct);
     public Task<IReadOnlyCollection<ReservationContract>> GetUserReservationsAsync(Guid userId, CancellationToken ct = default) => _service.GetUserReservationsAsync(userId, ct);

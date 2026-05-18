@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Modules.Companies.Application.DTO;
 using Shared.Contracts;
+using System.Data;
 using System.Text.Json;
 
 namespace Modules.Companies.Infrastructure;
@@ -363,7 +364,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
 
     public async Task<IReadOnlyCollection<CompanyPromotionDto>> GetCompanyPromotionsAsync(Guid companyId, CancellationToken ct = default)
     {
-        return await _dbContext.Promotions
+        var promotions = await _dbContext.Promotions
             .AsNoTracking()
             .Where(x => x.CompanyId == companyId)
             .OrderBy(x => x.Code)
@@ -378,11 +379,14 @@ internal sealed class CompaniesRepository : ICompaniesRepository
                 CompanyId = x.CompanyId
             })
             .ToListAsync(ct);
+
+        await SetCanDeleteAsync(promotions, ct);
+        return promotions;
     }
 
     public async Task<CompanyPromotionDto?> GetCompanyPromotionAsync(Guid companyId, Guid promotionId, CancellationToken ct = default)
     {
-        return await _dbContext.Promotions
+        var promotion = await _dbContext.Promotions
             .AsNoTracking()
             .Where(x => x.CompanyId == companyId && x.Id == promotionId)
             .Select(x => new CompanyPromotionDto
@@ -396,6 +400,13 @@ internal sealed class CompaniesRepository : ICompaniesRepository
                 CompanyId = x.CompanyId
             })
             .FirstOrDefaultAsync(ct);
+
+        if (promotion != null)
+        {
+            promotion.CanDelete = !await HasRelatedEntitiesAsync(promotion.Id, ct);
+        }
+
+        return promotion;
     }
 
     public async Task<PromotionOperationResultDto> CreateCompanyPromotionAsync(
@@ -452,6 +463,11 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             return false;
         }
 
+        if (await HasRelatedEntitiesAsync(promotionId, ct))
+        {
+            return false;
+        }
+
         _dbContext.Promotions.Remove(promotion);
         await _unitOfWork.SaveChangesAsync(ct);
         return true;
@@ -459,7 +475,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
 
     public async Task<IReadOnlyCollection<CompanyPromotionDto>> GetSystemPromotionsAsync(CancellationToken ct = default)
     {
-        return await _dbContext.Promotions
+        var promotions = await _dbContext.Promotions
             .AsNoTracking()
             .Where(x => x.CompanyId == null)
             .OrderByDescending(x => x.ValidTo)
@@ -475,11 +491,14 @@ internal sealed class CompaniesRepository : ICompaniesRepository
                 CompanyId = x.CompanyId
             })
             .ToListAsync(ct);
+
+        await SetCanDeleteAsync(promotions, ct);
+        return promotions;
     }
 
     public async Task<CompanyPromotionDto?> GetSystemPromotionAsync(Guid promotionId, CancellationToken ct = default)
     {
-        return await _dbContext.Promotions
+        var promotion = await _dbContext.Promotions
             .AsNoTracking()
             .Where(x => x.CompanyId == null && x.Id == promotionId)
             .Select(x => new CompanyPromotionDto
@@ -493,6 +512,13 @@ internal sealed class CompaniesRepository : ICompaniesRepository
                 CompanyId = x.CompanyId
             })
             .FirstOrDefaultAsync(ct);
+
+        if (promotion != null)
+        {
+            promotion.CanDelete = !await HasRelatedEntitiesAsync(promotion.Id, ct);
+        }
+
+        return promotion;
     }
 
     public async Task<PromotionOperationResultDto> CreateSystemPromotionAsync(UpsertCompanyPromotionDto request, CancellationToken ct = default)
@@ -537,6 +563,11 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         var promotion = await _dbContext.Promotions
             .FirstOrDefaultAsync(x => x.CompanyId == null && x.Id == promotionId, ct);
         if (promotion == null)
+        {
+            return false;
+        }
+
+        if (await HasRelatedEntitiesAsync(promotionId, ct))
         {
             return false;
         }
@@ -823,6 +854,86 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         IsActive = x.IsActive,
         CompanyId = x.CompanyId
     };
+
+    private async Task SetCanDeleteAsync(List<CompanyPromotionDto> promotions, CancellationToken ct)
+    {
+        if (promotions.Count == 0)
+        {
+            return;
+        }
+
+        var inUseIds = await GetInUsePromotionIdsAsync(promotions.Select(p => p.Id).ToArray(), ct);
+        foreach (var promotion in promotions)
+        {
+            promotion.CanDelete = !inUseIds.Contains(promotion.Id);
+        }
+    }
+
+    private async Task<bool> HasRelatedEntitiesAsync(Guid promotionId, CancellationToken ct)
+    {
+        var inUseIds = await GetInUsePromotionIdsAsync(new[] { promotionId }, ct);
+        return inUseIds.Contains(promotionId);
+    }
+
+    private async Task<HashSet<Guid>> GetInUsePromotionIdsAsync(Guid[] promotionIds, CancellationToken ct)
+    {
+        var ids = promotionIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+        if (ids.Length == 0)
+        {
+            return new HashSet<Guid>();
+        }
+
+        var inUseIds = await _dbContext.UserPromotions
+            .AsNoTracking()
+            .Where(up => ids.Contains(up.PromotionId))
+            .Select(up => up.PromotionId)
+            .Distinct()
+            .ToHashSetAsync(ct);
+
+        await using var command = _dbContext.Database.GetDbConnection().CreateCommand();
+        command.CommandText = """
+            SELECT DISTINCT "PromotionId"
+            FROM "Reservations"
+            WHERE "PromotionId" IS NOT NULL AND "PromotionId" = ANY(@promotionIds)
+            UNION
+            SELECT DISTINCT "PromotionId"
+            FROM "ChargingSessions"
+            WHERE "PromotionId" IS NOT NULL AND "PromotionId" = ANY(@promotionIds)
+            """;
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "promotionIds";
+        parameter.Value = ids;
+        command.Parameters.Add(parameter);
+
+        var connection = command.Connection!;
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+        if (shouldCloseConnection)
+        {
+            await connection.OpenAsync(ct);
+        }
+
+        try
+        {
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                if (!reader.IsDBNull(0))
+                {
+                    inUseIds.Add(reader.GetGuid(0));
+                }
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        return inUseIds;
+    }
 
     private static string NormalizeCode(string code)
     {

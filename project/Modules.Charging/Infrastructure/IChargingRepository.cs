@@ -19,6 +19,7 @@ internal interface IChargingRepository
     Task<ChargingStationDto> CreateCompanyStationAsync(UpsertCompanyStationDto request, CancellationToken ct = default);
     Task<ChargingStationDto?> UpdateCompanyStationAsync(UpsertCompanyStationDto request, CancellationToken ct = default);
     Task<bool> DeleteCompanyStationAsync(Guid stationId, Guid companyId, CancellationToken ct = default);
+    Task<ChargingStationDto?> SetCompanyStationActivationAsync(Guid stationId, Guid companyId, bool isActive, CancellationToken ct = default);
     Task<IReadOnlyCollection<Guid>> GetStationAssignedConnectorIdsAsync(Guid stationId, CancellationToken ct = default);
     Task SetStationConnectorsAsync(Guid stationId, IReadOnlyCollection<Guid> connectorIds, CancellationToken ct = default);
     Task<IReadOnlyCollection<ConnectorDto>> GetConnectorsAsync(bool includeInactive = false, CancellationToken ct = default);
@@ -26,6 +27,7 @@ internal interface IChargingRepository
     Task<ConnectorTypeDto> CreateConnectorTypeAsync(string nameEn, string nameEt, bool isActive, CancellationToken ct = default);
     Task<ConnectorTypeDto?> UpdateConnectorTypeAsync(Guid connectorTypeId, string nameEn, string nameEt, bool isActive, CancellationToken ct = default);
     Task<bool> DeleteConnectorTypeAsync(Guid connectorTypeId, CancellationToken ct = default);
+    Task<ConnectorTypeDto?> SetConnectorTypeActivationAsync(Guid connectorTypeId, bool isActive, CancellationToken ct = default);
     Task<IReadOnlyCollection<ReservationDto>> GetOverlappingReservationsAsync(Guid stationId, DateTime startTimeUtc, DateTime endTimeUtc, Guid? excludeReservationId = null, CancellationToken ct = default);
     Task<IReadOnlyCollection<ReservationDto>> GetStationReservationsAsync(Guid stationId, CancellationToken ct = default);
     Task<IReadOnlyCollection<ReservationDto>> GetUserReservationsAsync(Guid userId, CancellationToken ct = default);
