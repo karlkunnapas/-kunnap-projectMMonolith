@@ -13,6 +13,6 @@ RUN dotnet publish "WebAppClient.csproj" -c Release -o /app/out --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:latest AS runtime
 WORKDIR /app
-EXPOSE 8080
+EXPOSE 8084
 COPY --from=build /app/out ./
 ENTRYPOINT ["dotnet", "WebAppClient.dll"]

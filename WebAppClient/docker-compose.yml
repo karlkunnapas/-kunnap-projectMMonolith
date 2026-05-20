@@ -1,13 +1,17 @@
 services:
   webappclient:
+    container_name: chargepanel-modular-monolith-webappclient
     build:
       context: ../WebAppClient
       dockerfile: Dockerfile
     restart: unless-stopped
+    depends_on:
+      chargepanel-modular-monolith-webapp:
+        condition: service_started
     ports:
-      - "8082:8080"
+      - "8084:8084"
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
-      ASPNETCORE_URLS: "http://+:8080"
-      ApiBaseUrl: "http://aspnet:8080/"
+      ASPNETCORE_URLS: "http://+:8084"
+      ApiBaseUrl: "https://kunnap-chargepanel-monolith.proxy.itcollege.ee/"
       TZ: "Europe/Tallinn"
