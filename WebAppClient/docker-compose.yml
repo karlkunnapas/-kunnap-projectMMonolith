@@ -13,5 +13,5 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:8084"
-      ApiBaseUrl: "https://kunnap-chargepanel-monolith.proxy.itcollege.ee/"
+      ApiBaseUrl: "http://chargepanel-modular-monolith-webapp:8083/"
       TZ: "Europe/Tallinn"
