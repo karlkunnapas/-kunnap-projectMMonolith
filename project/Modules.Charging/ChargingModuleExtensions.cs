@@ -4,6 +4,7 @@ using Modules.Charging.Application;
 using Modules.Charging.Application.Services;
 using Modules.Charging.Infrastructure;
 using Modules.Charging.Infrastructure.Repositories;
+using Modules.Charging.Infrastructure.Seeding;
 using Shared.Contracts.Charging;
 
 namespace Modules.Charging;
@@ -13,7 +14,9 @@ public static class ChargingModuleExtensions
     public static IServiceCollection AddChargingModule(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<ChargingDbContext>(options => options
-            .UseNpgsql(connectionString)
+            .UseNpgsql(
+                connectionString,
+                npgsql => npgsql.MigrationsHistoryTable("__migrations", "charging"))
             .EnableDetailedErrors()
             .EnableSensitiveDataLogging());
 
@@ -28,5 +31,22 @@ public static class ChargingModuleExtensions
         services.AddScoped<IChargingApplicationService, ChargingApplicationService>();
         services.AddScoped<IChargingModuleApi, ChargingModuleApi>();
         return services;
+    }
+
+    public static async Task MigrateChargingModuleAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        await db.Database.MigrateAsync(ct);
+    }
+
+    public static async Task SeedChargingModuleAsync(
+        this IServiceProvider serviceProvider,
+        Guid companyId,
+        CancellationToken ct = default)
+    {
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ChargingDbContext>();
+        await ChargingModuleDataSeeder.SeedDataAsync(db, companyId, ct);
     }
 }

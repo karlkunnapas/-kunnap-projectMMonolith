@@ -11,8 +11,8 @@ namespace Modules.Charging.Infrastructure;
 
 internal sealed class ChargingDbContext : DbContext
 {
-    private readonly IMediator _mediator;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IMediator? _mediator;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
 
     public DbSet<ChargingStation> ChargingStations { get; set; } = default!;
     public DbSet<Reservation> Reservations { get; set; } = default!;
@@ -20,6 +20,11 @@ internal sealed class ChargingDbContext : DbContext
     public DbSet<Maintenance> Maintenances { get; set; } = default!;
     public DbSet<Connector> Connectors { get; set; } = default!;
     public DbSet<ChargingStationConnector> ChargingStationConnectors { get; set; } = default!;
+
+    public ChargingDbContext(DbContextOptions<ChargingDbContext> options)
+        : base(options)
+    {
+    }
 
     public ChargingDbContext(
         DbContextOptions<ChargingDbContext> options,
@@ -33,7 +38,9 @@ internal sealed class ChargingDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var pendingAudits = await BuildAuditEventsAsync(cancellationToken);
+        var pendingAudits = _mediator is null
+            ? new List<AuditEnvelope>()
+            : await BuildAuditEventsAsync(cancellationToken);
         var result = await base.SaveChangesAsync(cancellationToken);
         await PublishAuditEventsAsync(pendingAudits, cancellationToken);
         return result;
@@ -116,6 +123,16 @@ internal sealed class ChargingDbContext : DbContext
         builder.Entity<ChargingSession>().HasIndex(x => x.ChargingStationId);
         builder.Entity<Maintenance>().HasIndex(x => x.ChargingStationId);
         builder.Entity<Maintenance>().HasIndex(x => x.Status);
+
+        DisableCascadeDeletes(builder);
+    }
+
+    private static void DisableCascadeDeletes(ModelBuilder builder)
+    {
+        foreach (var relationship in builder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            relationship.DeleteBehavior = DeleteBehavior.Restrict;
+        }
     }
 
     private async Task<List<AuditEnvelope>> BuildAuditEventsAsync(CancellationToken ct)
@@ -221,6 +238,11 @@ internal sealed class ChargingDbContext : DbContext
     {
         foreach (var audit in events)
         {
+            if (_mediator is null)
+            {
+                return;
+            }
+
             await _mediator.Publish(new AuditLogMutationRequestedNotification
             {
                 CompanyId = audit.CompanyId,
@@ -236,7 +258,7 @@ internal sealed class ChargingDbContext : DbContext
 
     private string ResolveActorUserName()
     {
-        var user = _httpContextAccessor.HttpContext?.User;
+        var user = _httpContextAccessor?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true)
         {
             return "system";

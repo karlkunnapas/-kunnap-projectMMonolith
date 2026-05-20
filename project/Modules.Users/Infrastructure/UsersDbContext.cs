@@ -12,13 +12,18 @@ namespace Modules.Users.Infrastructure;
 
 internal sealed class UsersDbContext : IdentityDbContext<AppUser, AppRole, Guid>, IDataProtectionKeyContext
 {
-    private readonly IMediator _mediator;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IMediator? _mediator;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
 
     public DbSet<AppRefreshToken> RefreshTokens { get; set; } = default!;
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = default!;
     public DbSet<Vehicle> Vehicles { get; set; } = default!;
     public DbSet<VehicleConnector> VehicleConnectors { get; set; } = default!;
+
+    public UsersDbContext(DbContextOptions<UsersDbContext> options)
+        : base(options)
+    {
+    }
 
     public UsersDbContext(
         DbContextOptions<UsersDbContext> options,
@@ -32,11 +37,13 @@ internal sealed class UsersDbContext : IdentityDbContext<AppUser, AppRole, Guid>
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var auditEvents = await BuildAuditEventsAsync(cancellationToken);
+        var auditEvents = _mediator is null
+            ? new List<AuditLogMutationRequestedNotification>()
+            : await BuildAuditEventsAsync(cancellationToken);
         var result = await base.SaveChangesAsync(cancellationToken);
         foreach (var e in auditEvents)
         {
-            await _mediator.Publish(e, cancellationToken);
+            await _mediator!.Publish(e, cancellationToken);
         }
 
         return result;
@@ -73,6 +80,16 @@ internal sealed class UsersDbContext : IdentityDbContext<AppUser, AppRole, Guid>
             .WithMany()
             .HasForeignKey(rt => rt.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        DisableCascadeDeletes(builder);
+    }
+
+    private static void DisableCascadeDeletes(ModelBuilder builder)
+    {
+        foreach (var relationship in builder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            relationship.DeleteBehavior = DeleteBehavior.Restrict;
+        }
     }
 
     private async Task<List<AuditLogMutationRequestedNotification>> BuildAuditEventsAsync(CancellationToken ct)
@@ -130,7 +147,7 @@ internal sealed class UsersDbContext : IdentityDbContext<AppUser, AppRole, Guid>
 
     private Task<Guid?> ResolveRequestCompanyIdAsync(CancellationToken ct)
     {
-        var routeValues = _httpContextAccessor.HttpContext?.Request.RouteValues;
+        var routeValues = _httpContextAccessor?.HttpContext?.Request.RouteValues;
         if (routeValues != null && routeValues.TryGetValue("companyId", out var rawCompanyId)
             && rawCompanyId != null
             && Guid.TryParse(rawCompanyId.ToString(), out var companyIdFromRoute))
@@ -138,13 +155,13 @@ internal sealed class UsersDbContext : IdentityDbContext<AppUser, AppRole, Guid>
             return Task.FromResult<Guid?>(companyIdFromRoute);
         }
 
-        var queryCompanyId = _httpContextAccessor.HttpContext?.Request.Query["companyId"].FirstOrDefault();
+        var queryCompanyId = _httpContextAccessor?.HttpContext?.Request.Query["companyId"].FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(queryCompanyId) && Guid.TryParse(queryCompanyId, out var companyIdFromQuery))
         {
             return Task.FromResult<Guid?>(companyIdFromQuery);
         }
 
-        if (_httpContextAccessor.HttpContext?.Items.TryGetValue("CompanyId", out var itemCompanyId) == true
+        if (_httpContextAccessor?.HttpContext?.Items.TryGetValue("CompanyId", out var itemCompanyId) == true
             && itemCompanyId != null
             && Guid.TryParse(itemCompanyId.ToString(), out var companyIdFromItems))
         {
@@ -156,7 +173,7 @@ internal sealed class UsersDbContext : IdentityDbContext<AppUser, AppRole, Guid>
 
     private string ResolveActorUserName()
     {
-        var user = _httpContextAccessor.HttpContext?.User;
+        var user = _httpContextAccessor?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true)
         {
             return "system";

@@ -145,7 +145,8 @@ public class IntegrationTestAdminPanel : IClassFixture<CustomWebApplicationFacto
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Company Promotions", html, StringComparison.OrdinalIgnoreCase);
+        var document = await HtmlHelpers.GetDocumentAsync(response);
+        Assert.NotNull(document.QuerySelector("[data-testid='company-promotions-section']"));
         Assert.Contains("COMPANYPROMO", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Integration Company", html, StringComparison.OrdinalIgnoreCase);
     }

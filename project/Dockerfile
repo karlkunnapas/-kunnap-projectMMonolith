@@ -4,10 +4,7 @@ WORKDIR /app
 # copy csproj and restore as distinct layers
 COPY project.sln .
 COPY Directory.Build.props .
-COPY App.BLL/*.csproj ./App.BLL/
-COPY App.DAL.EF/*.csproj ./App.DAL.EF/
 COPY App.DTO/*.csproj ./App.DTO/
-COPY App.Domain/*.csproj ./App.Domain/
 COPY App.Helpers/*.csproj ./App.Helpers/
 COPY App.Resources/*.csproj ./App.Resources/
 COPY Base.Resources/*.csproj ./Base.Resources/

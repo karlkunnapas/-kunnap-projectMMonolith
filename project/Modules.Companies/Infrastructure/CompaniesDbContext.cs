@@ -9,7 +9,11 @@ namespace Modules.Companies.Infrastructure;
 
 internal sealed class CompaniesDbContext : DbContext
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+
+    public CompaniesDbContext(DbContextOptions<CompaniesDbContext> options) : base(options)
+    {
+    }
 
     public CompaniesDbContext(DbContextOptions<CompaniesDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
     {
@@ -85,6 +89,16 @@ internal sealed class CompaniesDbContext : DbContext
 
         builder.Entity<AuditLog>()
             .HasIndex(x => new { x.CompanyId, x.EntityName, x.EntityId });
+
+        DisableCascadeDeletes(builder);
+    }
+
+    private static void DisableCascadeDeletes(ModelBuilder builder)
+    {
+        foreach (var relationship in builder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            relationship.DeleteBehavior = DeleteBehavior.Restrict;
+        }
     }
 
     private async Task<List<AuditLog>> BuildAutomaticAuditEntriesAsync(CancellationToken ct)
@@ -171,7 +185,7 @@ internal sealed class CompaniesDbContext : DbContext
 
     private string ResolveActorUserName()
     {
-        var user = _httpContextAccessor.HttpContext?.User;
+        var user = _httpContextAccessor?.HttpContext?.User;
         if (user?.Identity?.IsAuthenticated != true)
         {
             return "system";

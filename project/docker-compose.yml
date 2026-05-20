@@ -15,7 +15,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:8083"
-      ConnectionStrings__DefaultConnection: "Host=chargepanel-modular-monolith-postgres;Port=5432;Database=chargepanel_modular_monolith;Username=postgres;Password=postgres"
+      ConnectionStrings__DefaultConnection: "Host=chargepanel-modular-monolith-postgres;Port=5432;Database=monolith-project;Username=postgres;Password=postgres"
 
 
   chargepanel-modular-monolith-postgres:
@@ -25,11 +25,11 @@ services:
     image: ghcr.io/baosystems/postgis:18
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=chargepanel_modular_monolith
+      - POSTGRES_DB=monolith-project
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U postgres -d chargepanel_modular_monolith"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U postgres -d monolith-project"]
       interval: 5s
       timeout: 5s
       retries: 30

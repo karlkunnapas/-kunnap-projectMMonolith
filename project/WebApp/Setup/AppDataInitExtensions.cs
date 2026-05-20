@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Modules.Charging;
 using Modules.Charging.Infrastructure;
-using Modules.Charging.Infrastructure.Seeding;
+using Modules.Companies;
 using Modules.Companies.Infrastructure;
-using Modules.Companies.Infrastructure.Seeding;
+using Modules.Users;
 using Modules.Users.Domain;
 using Modules.Users.Infrastructure;
-using Modules.Users.Infrastructure.Seeding;
 
 namespace WebApp.Setup;
 
@@ -26,8 +26,6 @@ public static class AppDataInitExtensions
         var logger = serviceScope.ServiceProvider.GetRequiredService<ILogger<IApplicationBuilder>>();
 
         using var usersDb = serviceScope.ServiceProvider.GetRequiredService<UsersDbContext>();
-        using var companiesDb = serviceScope.ServiceProvider.GetRequiredService<CompaniesDbContext>();
-        using var chargingDb = serviceScope.ServiceProvider.GetRequiredService<ChargingDbContext>();
 
         if (usersDb.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL")
         {
@@ -37,7 +35,6 @@ public static class AppDataInitExtensions
         WaitDbConnection(usersDb, logger);
 
         using var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        using var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
 
         var configuration = app.Configuration;
 
@@ -50,15 +47,21 @@ public static class AppDataInitExtensions
         if (configuration.GetValue<bool>("DataInitialization:MigrateDatabase"))
         {
             logger.LogInformation("MigrateDatabase");
-            usersDb.Database.Migrate();
-            companiesDb.Database.Migrate();
-            chargingDb.Database.Migrate();
+            app.Services.MigrateUsersModuleAsync()
+                .GetAwaiter()
+                .GetResult();
+            app.Services.MigrateCompaniesModuleAsync()
+                .GetAwaiter()
+                .GetResult();
+            app.Services.MigrateChargingModuleAsync()
+                .GetAwaiter()
+                .GetResult();
         }
 
         if (configuration.GetValue<bool>("DataInitialization:SeedIdentity"))
         {
             logger.LogInformation("SeedIdentity");
-            UsersIdentitySeeder.SeedIdentityAsync(userManager, roleManager)
+            app.Services.SeedUsersModuleAsync()
                 .GetAwaiter()
                 .GetResult();
         }
@@ -66,22 +69,22 @@ public static class AppDataInitExtensions
         if (configuration.GetValue<bool>("DataInitialization:SeedData"))
         {
             logger.LogInformation("SeedData");
-            var owner = userManager.FindByEmailAsync(CompaniesModuleDataSeeder.SeedCompanyOwnerEmail)
+            var owner = userManager.FindByEmailAsync(CompaniesModuleExtensions.SeedCompanyOwnerEmail)
                 .GetAwaiter().GetResult();
 
             if (owner == null)
             {
                 throw new ApplicationException(
-                    $"Seed owner user '{CompaniesModuleDataSeeder.SeedCompanyOwnerEmail}' was not found.");
+                    $"Seed owner user '{CompaniesModuleExtensions.SeedCompanyOwnerEmail}' was not found.");
             }
 
-            var companyId = CompaniesModuleDataSeeder
-                .SeedCompanyAndOwnerMembershipAsync(companiesDb, owner.Id)
+            var companyId = app.Services
+                .SeedCompaniesModuleAsync(owner.Id)
                 .GetAwaiter()
                 .GetResult();
 
-            ChargingModuleDataSeeder
-                .SeedDataAsync(chargingDb, companyId)
+            app.Services
+                .SeedChargingModuleAsync(companyId)
                 .GetAwaiter()
                 .GetResult();
         }

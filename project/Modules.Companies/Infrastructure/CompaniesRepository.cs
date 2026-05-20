@@ -891,20 +891,7 @@ internal sealed class CompaniesRepository : ICompaniesRepository
             .ToHashSetAsync(ct);
 
         await using var command = _dbContext.Database.GetDbConnection().CreateCommand();
-        command.CommandText = """
-            SELECT DISTINCT "PromotionId"
-            FROM "Reservations"
-            WHERE "PromotionId" IS NOT NULL AND "PromotionId" = ANY(@promotionIds)
-            UNION
-            SELECT DISTINCT "PromotionId"
-            FROM "ChargingSessions"
-            WHERE "PromotionId" IS NOT NULL AND "PromotionId" = ANY(@promotionIds)
-            """;
-
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = "promotionIds";
-        parameter.Value = ids;
-        command.Parameters.Add(parameter);
+        ConfigurePromotionUsageCommand(command, ids);
 
         var connection = command.Connection!;
         var shouldCloseConnection = connection.State != ConnectionState.Open;
@@ -933,6 +920,51 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         }
 
         return inUseIds;
+    }
+
+    private static void ConfigurePromotionUsageCommand(IDbCommand command, Guid[] ids)
+    {
+        if (command.GetType().Namespace?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            command.CommandText = """
+                SELECT DISTINCT "PromotionId"
+                FROM "Reservations"
+                WHERE "PromotionId" IS NOT NULL AND "PromotionId" = ANY(@promotionIds)
+                UNION
+                SELECT DISTINCT "PromotionId"
+                FROM "ChargingSessions"
+                WHERE "PromotionId" IS NOT NULL AND "PromotionId" = ANY(@promotionIds)
+                """;
+
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "promotionIds";
+            parameter.Value = ids;
+            command.Parameters.Add(parameter);
+            return;
+        }
+
+        var parameterNames = new List<string>(ids.Length);
+        for (var i = 0; i < ids.Length; i++)
+        {
+            var parameterName = $"@promotionId{i}";
+            parameterNames.Add(parameterName);
+
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = parameterName;
+            parameter.Value = ids[i];
+            command.Parameters.Add(parameter);
+        }
+
+        var inClause = string.Join(", ", parameterNames);
+        command.CommandText = $"""
+            SELECT DISTINCT "PromotionId"
+            FROM "Reservations"
+            WHERE "PromotionId" IS NOT NULL AND "PromotionId" IN ({inClause})
+            UNION
+            SELECT DISTINCT "PromotionId"
+            FROM "ChargingSessions"
+            WHERE "PromotionId" IS NOT NULL AND "PromotionId" IN ({inClause})
+            """;
     }
 
     private static string NormalizeCode(string code)
