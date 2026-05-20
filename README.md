@@ -8,6 +8,6 @@ School email: kunnap@taltech.ee
 
 Uni-id: kunnap
 
-Back-end with Swagger deployed at: https://kunnap-chargers.proxy.itcollege.ee/
+Back-end with Swagger deployed at: https://kunnap-chargepanel-monolith.proxy.itcollege.ee/
 
-Front-end deployed at: https://kunnap-chargersclient.proxy.itcollege.ee/
+Front-end deployed at: https://kunnap-chargehub-monolith.proxy.itcollege.ee/
