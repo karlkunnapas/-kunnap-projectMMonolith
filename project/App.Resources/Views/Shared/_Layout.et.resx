@@ -79,7 +79,7 @@
     <value>Hooldused</value>
   </data>
   <data name="AdminSystemPromotions" xml:space="preserve">
-    <value>Süsteemi promocoodi</value>
+    <value>Süsteemi promokoodid</value>
   </data>
   <data name="AdminAuditLogs" xml:space="preserve">
     <value>Auditilogid</value>
