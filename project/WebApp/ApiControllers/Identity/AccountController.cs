@@ -167,7 +167,6 @@ public class AccountController : ControllerBase
     [Consumes("application/json")]
     [ProducesResponseType(typeof(JWTResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(App.Dto.v1.Message), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [HttpPost]
     public async Task<ActionResult<JWTResponse>> RenewRefreshToken(
         [FromBody]

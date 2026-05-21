@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Asp.Versioning.ApiExplorer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
@@ -47,7 +48,68 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         });
 
         options.OperationFilter<AuthorizeOperationFilter>();
+        options.DocumentFilter<RemoveProblemDetailsDocumentFilter>();
 
         
+    }
+}
+
+public class RemoveProblemDetailsDocumentFilter : IDocumentFilter
+{
+    private static readonly string ProblemDetailsSchemaId = typeof(ProblemDetails).FullName!;
+
+    public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
+    {
+        swaggerDoc.Components?.Schemas?.Remove(ProblemDetailsSchemaId);
+
+        if (swaggerDoc.Paths == null)
+        {
+            return;
+        }
+
+        foreach (var path in swaggerDoc.Paths.Values)
+        {
+            if (path.Operations == null)
+            {
+                continue;
+            }
+
+            foreach (var operation in path.Operations.Values)
+            {
+                if (operation.Responses == null)
+                {
+                    continue;
+                }
+
+                foreach (var response in operation.Responses.Values)
+                {
+                    RemoveProblemDetailsContent(response);
+                }
+            }
+        }
+    }
+
+    private static void RemoveProblemDetailsContent(IOpenApiResponse response)
+    {
+        if (response.Content == null || response.Content.Count == 0)
+        {
+            return;
+        }
+
+        var contentTypesToRemove = response.Content
+            .Where(content => ReferencesProblemDetails(content.Value.Schema))
+            .Select(content => content.Key)
+            .ToList();
+
+        foreach (var contentType in contentTypesToRemove)
+        {
+            response.Content.Remove(contentType);
+        }
+    }
+
+    private static bool ReferencesProblemDetails(IOpenApiSchema? schema)
+    {
+        return schema is OpenApiSchemaReference schemaReference
+               && schemaReference.Reference.Id == ProblemDetailsSchemaId;
     }
 }
