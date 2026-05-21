@@ -1,246 +1,65 @@
-classDiagram
-    class IBaseEntity {
-        +Guid Id
-    }
+flowchart TB
+    subgraph Entry["Entry points"]
+        Browser["Browser / User"]
+        Client["WebAppClient<br/>Razor MVC front-end<br/>Port 8084"]
+        Backend["WebApp<br/>MVC + REST API host<br/>Port 8083"]
+    end
 
-    class BaseEntity {
-        +Guid Id
-    }
+    subgraph WebLayer["Web layer"]
+        Controllers["MVC + API Controllers"]
+        AppDto["App.DTO<br/>Versioned public API DTOs"]
+        Swagger["Swagger / OpenAPI<br/>DTO schemas only"]
+        Resources["App.Resources<br/>Localization"]
+        Tenant["TenantResolutionMiddleware<br/>TenantContext"]
+    end
 
-    class LangStr {
-        +Guid Id
-    }
+    subgraph Boundary["Module boundary rules"]
+        SharedContracts["Shared.Contracts<br/>Public module contracts and mediator messages"]
+        BoundaryRule["Modules do not reference each other's DbContext, repositories, or domain internals.<br/>Cross-module relationships use IDs, module APIs, contracts, and mediator messages."]
+        AuditEvent["AuditLogMutationRequested<br/>Users/Charging publish; Companies handles"]
+    end
 
-    class AppUser {
-        +Guid Id
-        +string UserName
-        +string Email
-        +string PhoneNumber
-        +ICollection~AppRefreshToken~ RefreshTokens
-    }
+    subgraph FeatureModules["Feature modules"]
+        Users["Modules.Users<br/>API: IUsersModuleApi<br/>Application: identity, profile, vehicles, tokens<br/>Domain: AppUser, AppRole, RefreshToken, Vehicle<br/>Infrastructure: UsersDbContext, UsersRepository, Users migrations"]
+        Companies["Modules.Companies<br/>API: ICompaniesModuleApi<br/>Application: companies, memberships, promotions, audit<br/>Domain: Company, AppUserCompany, Promotion, UserPromotion, AuditLog<br/>Infrastructure: CompaniesDbContext, CompaniesRepository, Companies migrations"]
+        Charging["Modules.Charging<br/>API: IChargingModuleApi<br/>Application: stations, connectors, reservations, sessions, maintenance, dashboard<br/>Domain: ChargingStation, Connector, Reservation, ChargingSession, Maintenance<br/>Infrastructure: ChargingDbContext, repositories, Charging migrations"]
+    end
 
-    class AppRole {
-        +Guid Id
-        +string Name
-    }
+    subgraph Database["PostgreSQL database: monolith-project"]
+        UsersTables["Users-owned tables<br/>AspNetUsers, AspNetRoles, RefreshTokens, Vehicles, VehicleConnectors, DataProtectionKeys"]
+        CompaniesTables["Companies-owned tables<br/>Companies, AppUserCompanies, Promotions, UserPromotions, AuditLogs"]
+        ChargingTables["Charging-owned tables<br/>ChargingStations, Connectors, ChargingStationConnectors, Reservations, ChargingSessions, Maintenances"]
+    end
 
-    class AppRefreshToken {
-        +Guid Id
-        +string RefreshToken
-        +DateTime Expiration
-        +string PreviousRefreshToken
-        +DateTime PreviousExpiration
-        +Guid UserId
-    }
+    Browser --> Client
+    Browser --> Backend
+    Client -- "server-side API calls" --> Backend
+    Backend --> Controllers
+    Controllers --> AppDto
+    Controllers --> Swagger
+    Controllers --> Resources
+    Controllers --> Tenant
 
-    class Company {
-        +Guid Id
-        +LangStr Name
-        +string ContactEmail
-        +string ContactPhone
-        +string Slug
-        +bool IsActive
-    }
+    Controllers --> SharedContracts
+    SharedContracts --> Users
+    SharedContracts --> Companies
+    SharedContracts --> Charging
+    SharedContracts --> BoundaryRule
+    SharedContracts --> AuditEvent
+    AuditEvent --> Companies
 
-    class AuditLog {
-        +Guid Id
-        +Guid CompanyId
-        +string UserName
-        +string EntityName
-        +Guid EntityId
-        +string Action
-        +DateTime AtUtc
-        +string ChangesJson
-    }
+    Users --> UsersTables
+    Companies --> CompaniesTables
+    Charging --> ChargingTables
 
-    class ChargingStation {
-        +Guid Id
-        +LangStr Name
-        +string Location
-        +EStationStatus Status
-        +decimal PricePerKwh
-        +decimal MaxPower
-        +bool IsActive
-        +Guid CompanyId
-    }
+    classDef host fill:#e8f1ff,stroke:#2563eb,stroke-width:2px,color:#111827
+    classDef web fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+    classDef shared fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#7c2d12
+    classDef module fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#064e3b
+    classDef data fill:#f8fafc,stroke:#475569,stroke-width:2px,color:#0f172a
 
-    class Connector {
-        +Guid Id
-        +LangStr Name
-        +bool IsActive
-    }
-
-    class Vehicle {
-        +Guid Id
-        +Guid UserId
-        +string Make
-        +string Model
-        +decimal BatteryCapacity
-    }
-
-    class Reservation {
-        +Guid Id
-        +Guid UserId
-        +Guid ChargingStationId
-        +DateTime StartTime
-        +DateTime EndTime
-        +DateTime ExpiresAtUtc
-        +DateTime CancelledAtUtc
-        +decimal EstimatedCost
-        +EReservationStatus Status
-        +Guid PromotionId
-    }
-
-    class ChargingSession {
-        +Guid Id
-        +Guid UserId
-        +Guid ChargingStationId
-        +Guid ReservationId
-        +Guid PromotionId
-        +DateTime StartTime
-        +DateTime EndTime
-        +decimal EnergyConsumed
-        +decimal Cost
-    }
-
-    class Maintenance {
-        +Guid Id
-        +Guid ChargingStationId
-        +Guid ReportedByUserId
-        +string IssueDescription
-        +EMaintenanceStatus Status
-        +DateTime ReportedAt
-        +DateTime ResolvedAt
-        +Guid AssignedToUserId
-        +string Notes
-    }
-
-    class Promotion {
-        +Guid Id
-        +string Code
-        +decimal DiscountValue
-        +DateTime ValidFrom
-        +DateTime ValidTo
-        +bool IsActive
-        +Guid CompanyId
-    }
-
-    class AppUserCompany {
-        +Guid Id
-        +Guid AppUserId
-        +Guid CompanyId
-        +ECompanyRole Role
-        +bool IsActive
-        +DateTime JoinedAtUtc
-    }
-
-    class AppUserRole {
-        +Guid Id
-        +Guid AppUserId
-        +Guid AppRoleId
-    }
-
-    class ChargingStationConnector {
-        +Guid Id
-        +Guid ChargingStationId
-        +Guid ConnectorId
-    }
-
-    class VehicleConnector {
-        +Guid Id
-        +Guid VehicleId
-        +Guid ConnectorId
-    }
-
-    class UserPromotion {
-        +Guid Id
-        +Guid UserId
-        +Guid PromotionId
-        +DateTime AddedAt
-        +bool IsUsed
-    }
-
-    class EStationStatus {
-        Available
-        InUse
-        Maintenance
-    }
-
-    class EReservationStatus {
-        Active
-        Cancelled
-        Expired
-        Started
-    }
-
-    class EMaintenanceStatus {
-        Reported
-        InProgress
-        Resolved
-    }
-
-    class ECompanyRole {
-        Employee
-        Manager
-        Owner
-    }
-
-    IBaseEntity <|-- BaseEntity
-    BaseEntity <|-- AppRefreshToken
-    BaseEntity <|-- Company
-    BaseEntity <|-- AuditLog
-    BaseEntity <|-- ChargingStation
-    BaseEntity <|-- Connector
-    BaseEntity <|-- Vehicle
-    BaseEntity <|-- Reservation
-    BaseEntity <|-- ChargingSession
-    BaseEntity <|-- Maintenance
-    BaseEntity <|-- Promotion
-    BaseEntity <|-- AppUserCompany
-    BaseEntity <|-- AppUserRole
-    BaseEntity <|-- ChargingStationConnector
-    BaseEntity <|-- VehicleConnector
-    BaseEntity <|-- UserPromotion
-    IBaseEntity <|.. AppUser
-    IBaseEntity <|.. AppRole
-
-    Company --> AuditLog : has
-    Company --> ChargingStation : owns
-    Company --> Promotion : offers
-    Company --> AppUserCompany : has members
-
-    AppUser --> AppRefreshToken : has
-    AppUser --> Vehicle : owns
-    AppUser --> Reservation : makes
-    AppUser --> ChargingSession : starts
-    AppUser --> Maintenance : reports
-    AppUser --> Maintenance : assigned to
-    AppUser --> AppUserCompany : linked through
-    AppUser --> AppUserRole : has roles
-    AppUser --> UserPromotion : has
-
-    AppRole --> AppUserRole : assigned to users
-
-    ChargingStation --> Reservation : accepts
-    ChargingStation --> ChargingSession : hosts
-    ChargingStation --> Maintenance : has issues
-    ChargingStation --> ChargingStationConnector : has connectors
-
-    Connector --> ChargingStationConnector : station mapping
-    Connector --> VehicleConnector : vehicle mapping
-    Vehicle --> VehicleConnector : supports connectors
-
-    Promotion --> UserPromotion : assigned to users
-    Promotion --> Reservation : applied to
-    Promotion --> ChargingSession : applied to
-
-    Reservation --> ChargingSession : source for
-
-    Company --> LangStr : Name
-    ChargingStation --> LangStr : Name
-    Connector --> LangStr : Name
-
-    ChargingStation --> EStationStatus : status
-    Reservation --> EReservationStatus : status
-    Maintenance --> EMaintenanceStatus : status
-    AppUserCompany --> ECompanyRole : role
+    class Browser,Client,Backend host
+    class Controllers,AppDto,Swagger,Resources,Tenant web
+    class SharedContracts,BoundaryRule,AuditEvent shared
+    class Users,Companies,Charging module
+    class UsersTables,CompaniesTables,ChargingTables data

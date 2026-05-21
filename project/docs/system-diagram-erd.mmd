@@ -1,17 +1,25 @@
 erDiagram
-    AppUser {
+    %% Modular monolith physical persistence model.
+    %% Each module owns its DbContext and migrations. Cross-module references are scalar IDs unless noted.
+
+    AspNetUsers {
         Guid Id PK
         string UserName
         string Email
         string PhoneNumber
     }
 
-    AppRole {
+    AspNetRoles {
         Guid Id PK
         string Name
     }
 
-    AppRefreshToken {
+    AspNetUserRoles {
+        Guid UserId FK
+        Guid RoleId FK
+    }
+
+    RefreshTokens {
         Guid Id PK
         string RefreshToken
         DateTime Expiration
@@ -20,16 +28,63 @@ erDiagram
         Guid UserId FK
     }
 
-    Company {
+    Vehicles {
         Guid Id PK
-        LangStr Name
+        Guid UserId "logical user id"
+        string Make
+        string Model
+        decimal BatteryCapacity
+    }
+
+    VehicleConnectors {
+        Guid Id PK
+        Guid VehicleId FK
+        Guid ConnectorId "logical connector id"
+    }
+
+    DataProtectionKeys {
+        int Id PK
+        string FriendlyName
+        string Xml
+    }
+
+    Companies {
+        Guid Id PK
+        jsonb Name
         string ContactEmail
         string ContactPhone
-        string Slug
+        string Slug UK
         bool IsActive
     }
 
-    AuditLog {
+    AppUserCompanies {
+        Guid Id PK
+        Guid AppUserId "logical user id"
+        Guid CompanyId FK
+        ECompanyRole Role
+        bool IsActive
+        DateTime JoinedAtUtc
+    }
+
+    Promotions {
+        Guid Id PK
+        string Code
+        decimal DiscountValue
+        DateTime ValidFrom
+        DateTime ValidTo
+        bool IsActive
+        Guid CompanyId FK "nullable for system promotions"
+    }
+
+    UserPromotions {
+        Guid Id PK
+        Guid UserId "logical user id"
+        Guid PromotionId FK
+        DateTime AddedAt
+        bool IsUsed
+    }
+
+    AuditLogs {
         Guid Id PK
         Guid CompanyId FK
         string UserName
@@ -40,34 +95,32 @@ erDiagram
         string ChangesJson
     }
 
-    ChargingStation {
+    ChargingStations {
         Guid Id PK
-        LangStr Name
+        jsonb Name
         string Location
         EStationStatus Status
-        decimal PricePerKwh
+        decimal PricePerHour "domain property PricePerKwh"
         decimal MaxPower
         bool IsActive
-        Guid CompanyId FK
+        Guid CompanyId "logical company id, nullable"
     }
 
-    Connector {
+    Connectors {
         Guid Id PK
-        LangStr Name
+        jsonb Name
         bool IsActive
     }
 
-    Vehicle {
+    ChargingStationConnectors {
         Guid Id PK
-        Guid UserId FK
-        string Make
-        string Model
-        decimal BatteryCapacity
+        Guid ChargingStationId FK
+        Guid ConnectorId FK
     }
 
-    Reservation {
+    Reservations {
         Guid Id PK
-        Guid UserId FK
+        Guid UserId "logical user id"
         Guid ChargingStationId FK
         DateTime StartTime
         DateTime EndTime
@@ -75,106 +128,58 @@ erDiagram
         DateTime CancelledAtUtc
         decimal EstimatedCost
         EReservationStatus Status
-        Guid PromotionId FK
+        Guid PromotionId "logical promotion id, nullable"
     }
 
-    ChargingSession {
+    ChargingSessions {
         Guid Id PK
-        Guid UserId FK
+        Guid UserId "logical user id"
         Guid ChargingStationId FK
-        Guid ReservationId FK
-        Guid PromotionId FK
+        Guid ReservationId FK "nullable"
+        Guid PromotionId "logical promotion id, nullable"
         DateTime StartTime
         DateTime EndTime
         decimal EnergyConsumed
         decimal Cost
     }
 
-    Maintenance {
+    Maintenances {
         Guid Id PK
         Guid ChargingStationId FK
-        Guid ReportedByUserId FK
+        Guid ReportedByUserId "logical user id, nullable"
         string IssueDescription
         EMaintenanceStatus Status
         DateTime ReportedAt
         DateTime ResolvedAt
-        Guid AssignedToUserId FK
+        Guid AssignedToUserId "logical user id, nullable"
         string Notes
     }
 
-    Promotion {
-        Guid Id PK
-        string Code
-        decimal DiscountValue
-        DateTime ValidFrom
-        DateTime ValidTo
-        bool IsActive
-        Guid CompanyId FK
-    }
+    AspNetUsers ||--o{ RefreshTokens : owns
+    AspNetUsers ||--o{ AspNetUserRoles : has
+    AspNetRoles ||--o{ AspNetUserRoles : assigned
+    AspNetUsers ||..o{ Vehicles : logical_owner
 
-    AppUserCompany {
-        Guid Id PK
-        Guid AppUserId FK
-        Guid CompanyId FK
-        ECompanyRole Role
-        bool IsActive
-        DateTime JoinedAtUtc
-    }
+    Vehicles ||--o{ VehicleConnectors : has
+    VehicleConnectors }o..|| Connectors : logical_connector
 
-    AppUserRole {
-        Guid Id PK
-        Guid AppUserId FK
-        Guid AppRoleId FK
-    }
+    Companies ||--o{ AppUserCompanies : has_members
+    AspNetUsers ||..o{ AppUserCompanies : logical_user
+    Companies ||--o{ Promotions : offers
+    Promotions ||--o{ UserPromotions : assigned_to_users
+    AspNetUsers ||..o{ UserPromotions : logical_user
+    Companies ||--o{ AuditLogs : records
 
-    ChargingStationConnector {
-        Guid Id PK
-        Guid ChargingStationId FK
-        Guid ConnectorId FK
-    }
+    Companies ||..o{ ChargingStations : logical_owner
+    ChargingStations ||--o{ ChargingStationConnectors : has
+    Connectors ||--o{ ChargingStationConnectors : supports
+    ChargingStations ||--o{ Reservations : accepts
+    ChargingStations ||--o{ ChargingSessions : hosts
+    ChargingStations ||--o{ Maintenances : has_issues
+    Reservations ||--o{ ChargingSessions : source_for
 
-    VehicleConnector {
-        Guid Id PK
-        Guid VehicleId FK
-        Guid ConnectorId FK
-    }
-
-    UserPromotion {
-        Guid Id PK
-        Guid UserId FK
-        Guid PromotionId FK
-        DateTime AddedAt
-        bool IsUsed
-    }
-
-    AppUser ||--o{ AppRefreshToken : has
-    AppUser ||--o{ Vehicle : owns
-    AppUser ||--o{ Reservation : makes
-    AppUser ||--o{ ChargingSession : starts
-    AppUser o|--o{ Maintenance : reports
-    AppUser o|--o{ Maintenance : assigned_to
-    AppUser ||--o{ AppUserCompany : linked_to
-    AppUser ||--o{ AppUserRole : has_roles
-    AppUser ||--o{ UserPromotion : has
-
-    AppRole ||--o{ AppUserRole : assigned_to_users
-
-    Company o|--o{ ChargingStation : owns
-    Company o|--o{ Promotion : offers
-    Company ||--o{ AppUserCompany : has_members
-    Company ||--o{ AuditLog : has_audit_entries
-
-    ChargingStation ||--o{ Reservation : accepts
-    ChargingStation ||--o{ ChargingSession : hosts
-    ChargingStation ||--o{ Maintenance : has_issues
-    ChargingStation ||--o{ ChargingStationConnector : has
-
-    Connector ||--o{ ChargingStationConnector : station_compatibility
-    Connector ||--o{ VehicleConnector : vehicle_compatibility
-    Vehicle ||--o{ VehicleConnector : has
-
-    Promotion o|--o{ Reservation : applies_to
-    Promotion o|--o{ ChargingSession : applies_to
-    Promotion ||--o{ UserPromotion : assigned_to_users
-
-    Reservation o|--o{ ChargingSession : source_for
+    AspNetUsers ||..o{ Reservations : logical_user
+    AspNetUsers ||..o{ ChargingSessions : logical_user
+    AspNetUsers ||..o{ Maintenances : logical_reporter_or_assignee
+    Promotions ||..o{ Reservations : logical_discount
+    Promotions ||..o{ ChargingSessions : logical_discount
