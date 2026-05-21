@@ -11,9 +11,18 @@ internal sealed class ChargingStationConnectorRepository : IChargingStationConne
         _dbContext = dbContext;
     }
 
-    public IQueryable<ChargingStationConnector> Query() => _dbContext.ChargingStationConnectors;
+    public IQueryable<ChargingStationConnector> Query()
+    {
+        return _dbContext.ChargingStationConnectors;
+    }
 
-    public void Add(ChargingStationConnector entity) => _dbContext.ChargingStationConnectors.Add(entity);
+    public void Add(ChargingStationConnector entity)
+    {
+        _dbContext.ChargingStationConnectors.Add(entity);
+    }
 
-    public void RemoveRange(IEnumerable<ChargingStationConnector> entities) => _dbContext.ChargingStationConnectors.RemoveRange(entities);
+    public void RemoveRange(IEnumerable<ChargingStationConnector> entities)
+    {
+        _dbContext.ChargingStationConnectors.RemoveRange(entities);
+    }
 }

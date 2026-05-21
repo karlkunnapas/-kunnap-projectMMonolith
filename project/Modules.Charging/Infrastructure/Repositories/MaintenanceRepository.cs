@@ -11,7 +11,13 @@ internal sealed class MaintenanceRepository : IMaintenanceRepository
         _dbContext = dbContext;
     }
 
-    public IQueryable<Maintenance> Query() => _dbContext.Maintenances;
+    public IQueryable<Maintenance> Query()
+    {
+        return _dbContext.Maintenances;
+    }
 
-    public void Add(Maintenance maintenance) => _dbContext.Maintenances.Add(maintenance);
+    public void Add(Maintenance maintenance)
+    {
+        _dbContext.Maintenances.Add(maintenance);
+    }
 }

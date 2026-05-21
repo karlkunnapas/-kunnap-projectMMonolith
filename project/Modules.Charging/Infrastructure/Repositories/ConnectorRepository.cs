@@ -11,9 +11,18 @@ internal sealed class ConnectorRepository : IConnectorRepository
         _dbContext = dbContext;
     }
 
-    public IQueryable<Connector> Query() => _dbContext.Connectors;
+    public IQueryable<Connector> Query()
+    {
+        return _dbContext.Connectors;
+    }
 
-    public void Add(Connector connector) => _dbContext.Connectors.Add(connector);
+    public void Add(Connector connector)
+    {
+        _dbContext.Connectors.Add(connector);
+    }
 
-    public void Remove(Connector connector) => _dbContext.Connectors.Remove(connector);
+    public void Remove(Connector connector)
+    {
+        _dbContext.Connectors.Remove(connector);
+    }
 }

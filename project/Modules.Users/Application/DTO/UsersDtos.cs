@@ -48,8 +48,23 @@ internal sealed class ChangePasswordResultDto
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public static ChangePasswordResultDto Ok() => new() { Success = true };
-    public static ChangePasswordResultDto Fail(string code, string message) => new() { Success = false, ErrorCode = code, ErrorMessage = message };
+    public static ChangePasswordResultDto Ok()
+    {
+        return new()
+        {
+            Success = true
+        };
+    }
+
+    public static ChangePasswordResultDto Fail(string code, string message)
+    {
+        return new()
+        {
+            Success = false,
+            ErrorCode = code,
+            ErrorMessage = message
+        };
+    }
 }
 
 internal sealed class IssueRefreshTokenDto
@@ -65,8 +80,24 @@ internal sealed class RenewRefreshTokenResultDto
     public string? ErrorMessage { get; set; }
     public string? RefreshToken { get; set; }
 
-    public static RenewRefreshTokenResultDto Ok(string refreshToken) => new() { Success = true, RefreshToken = refreshToken };
-    public static RenewRefreshTokenResultDto Fail(string code, string message) => new() { Success = false, ErrorCode = code, ErrorMessage = message };
+    public static RenewRefreshTokenResultDto Ok(string refreshToken)
+    {
+        return new()
+        {
+            Success = true,
+            RefreshToken = refreshToken
+        };
+    }
+
+    public static RenewRefreshTokenResultDto Fail(string code, string message)
+    {
+        return new()
+        {
+            Success = false,
+            ErrorCode = code,
+            ErrorMessage = message
+        };
+    }
 }
 
 internal sealed class RegisterCustomerDto
@@ -85,8 +116,24 @@ internal sealed class RegisterCustomerResultDto
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public static RegisterCustomerResultDto Ok(Guid userId) => new() { Success = true, UserId = userId };
-    public static RegisterCustomerResultDto Fail(string code, string message) => new() { Success = false, ErrorCode = code, ErrorMessage = message };
+    public static RegisterCustomerResultDto Ok(Guid userId)
+    {
+        return new()
+        {
+            Success = true,
+            UserId = userId
+        };
+    }
+
+    public static RegisterCustomerResultDto Fail(string code, string message)
+    {
+        return new()
+        {
+            Success = false,
+            ErrorCode = code,
+            ErrorMessage = message
+        };
+    }
 }
 
 internal sealed class TwoFactorStatusDto
@@ -120,8 +167,23 @@ internal sealed class DeleteAccountResultDto
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public static DeleteAccountResultDto Ok() => new() { Success = true };
-    public static DeleteAccountResultDto Fail(string code, string message) => new() { Success = false, ErrorCode = code, ErrorMessage = message };
+    public static DeleteAccountResultDto Ok()
+    {
+        return new()
+        {
+            Success = true
+        };
+    }
+
+    public static DeleteAccountResultDto Fail(string code, string message)
+    {
+        return new()
+        {
+            Success = false,
+            ErrorCode = code,
+            ErrorMessage = message
+        };
+    }
 }
 
 internal sealed class AuthenticateUserResultDto
@@ -131,8 +193,24 @@ internal sealed class AuthenticateUserResultDto
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public static AuthenticateUserResultDto Ok(Guid userId) => new() { Success = true, UserId = userId };
-    public static AuthenticateUserResultDto Fail(string code, string message) => new() { Success = false, ErrorCode = code, ErrorMessage = message };
+    public static AuthenticateUserResultDto Ok(Guid userId)
+    {
+        return new()
+        {
+            Success = true,
+            UserId = userId
+        };
+    }
+
+    public static AuthenticateUserResultDto Fail(string code, string message)
+    {
+        return new()
+        {
+            Success = false,
+            ErrorCode = code,
+            ErrorMessage = message
+        };
+    }
 }
 
 internal sealed class RegisterBasicUserDto

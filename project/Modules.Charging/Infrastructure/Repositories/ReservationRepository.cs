@@ -11,7 +11,13 @@ internal sealed class ReservationRepository : IReservationRepository
         _dbContext = dbContext;
     }
 
-    public IQueryable<Reservation> Query() => _dbContext.Reservations;
+    public IQueryable<Reservation> Query()
+    {
+        return _dbContext.Reservations;
+    }
 
-    public void Add(Reservation reservation) => _dbContext.Reservations.Add(reservation);
+    public void Add(Reservation reservation)
+    {
+        _dbContext.Reservations.Add(reservation);
+    }
 }

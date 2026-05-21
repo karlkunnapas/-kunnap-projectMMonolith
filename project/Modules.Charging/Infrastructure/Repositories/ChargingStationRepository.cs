@@ -11,9 +11,18 @@ internal sealed class ChargingStationRepository : IChargingStationRepository
         _dbContext = dbContext;
     }
 
-    public IQueryable<ChargingStation> Query() => _dbContext.ChargingStations;
+    public IQueryable<ChargingStation> Query()
+    {
+        return _dbContext.ChargingStations;
+    }
 
-    public void Add(ChargingStation station) => _dbContext.ChargingStations.Add(station);
+    public void Add(ChargingStation station)
+    {
+        _dbContext.ChargingStations.Add(station);
+    }
 
-    public void Remove(ChargingStation station) => _dbContext.ChargingStations.Remove(station);
+    public void Remove(ChargingStation station)
+    {
+        _dbContext.ChargingStations.Remove(station);
+    }
 }

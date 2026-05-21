@@ -14,19 +14,73 @@ internal static class CompaniesContractMapper
         return JsonSerializer.Deserialize<TTarget>(json, JsonOptions)!;
     }
 
-    public static UpsertCompanyMembershipDto ToDto(UpsertCompanyMembershipContract c) => Map<UpsertCompanyMembershipDto>(c);
-    public static UpsertCompanyPromotionDto ToDto(UpsertCompanyPromotionContract c) => Map<UpsertCompanyPromotionDto>(c);
-    public static CreateCompanyWithOwnerMembershipDto ToDto(CreateCompanyWithOwnerMembershipContract c) => Map<CreateCompanyWithOwnerMembershipDto>(c);
+    public static UpsertCompanyMembershipDto ToDto(UpsertCompanyMembershipContract c)
+    {
+        return Map<UpsertCompanyMembershipDto>(c);
+    }
 
-    public static AdminCompanyContract ToContract(AdminCompanyDto d) => Map<AdminCompanyContract>(d);
-    public static CompanyTenantContract ToContract(CompanyTenantDto d) => Map<CompanyTenantContract>(d);
-    public static UserCompanyMembershipContract ToContract(UserCompanyMembershipDto d) => Map<UserCompanyMembershipContract>(d);
-    public static CompanyMembershipContract ToContract(CompanyMembershipDto d) => Map<CompanyMembershipContract>(d);
-    public static UpsertCompanyMembershipResultContract ToContract(UpsertCompanyMembershipResultDto d) => Map<UpsertCompanyMembershipResultContract>(d);
-    public static CompanyPromotionContract ToContract(CompanyPromotionDto d) => Map<CompanyPromotionContract>(d);
-    public static PromotionOperationResultContract ToContract(PromotionOperationResultDto d) => Map<PromotionOperationResultContract>(d);
-    public static UserPromotionContract ToContract(UserPromotionDto d) => Map<UserPromotionContract>(d);
-    public static CompanyAuditEntryContract ToContract(CompanyAuditEntryDto d) => Map<CompanyAuditEntryContract>(d);
-    public static CompanyAuditTrailContract ToContract(CompanyAuditTrailDto d) => Map<CompanyAuditTrailContract>(d);
-    public static CreateCompanyWithOwnerMembershipResultContract ToContract(CreateCompanyWithOwnerMembershipResultDto d) => Map<CreateCompanyWithOwnerMembershipResultContract>(d);
+    public static UpsertCompanyPromotionDto ToDto(UpsertCompanyPromotionContract c)
+    {
+        return Map<UpsertCompanyPromotionDto>(c);
+    }
+
+    public static CreateCompanyWithOwnerMembershipDto ToDto(CreateCompanyWithOwnerMembershipContract c)
+    {
+        return Map<CreateCompanyWithOwnerMembershipDto>(c);
+    }
+
+    public static AdminCompanyContract ToContract(AdminCompanyDto d)
+    {
+        return Map<AdminCompanyContract>(d);
+    }
+
+    public static CompanyTenantContract ToContract(CompanyTenantDto d)
+    {
+        return Map<CompanyTenantContract>(d);
+    }
+
+    public static UserCompanyMembershipContract ToContract(UserCompanyMembershipDto d)
+    {
+        return Map<UserCompanyMembershipContract>(d);
+    }
+
+    public static CompanyMembershipContract ToContract(CompanyMembershipDto d)
+    {
+        return Map<CompanyMembershipContract>(d);
+    }
+
+    public static UpsertCompanyMembershipResultContract ToContract(UpsertCompanyMembershipResultDto d)
+    {
+        return Map<UpsertCompanyMembershipResultContract>(d);
+    }
+
+    public static CompanyPromotionContract ToContract(CompanyPromotionDto d)
+    {
+        return Map<CompanyPromotionContract>(d);
+    }
+
+    public static PromotionOperationResultContract ToContract(PromotionOperationResultDto d)
+    {
+        return Map<PromotionOperationResultContract>(d);
+    }
+
+    public static UserPromotionContract ToContract(UserPromotionDto d)
+    {
+        return Map<UserPromotionContract>(d);
+    }
+
+    public static CompanyAuditEntryContract ToContract(CompanyAuditEntryDto d)
+    {
+        return Map<CompanyAuditEntryContract>(d);
+    }
+
+    public static CompanyAuditTrailContract ToContract(CompanyAuditTrailDto d)
+    {
+        return Map<CompanyAuditTrailContract>(d);
+    }
+
+    public static CreateCompanyWithOwnerMembershipResultContract ToContract(CreateCompanyWithOwnerMembershipResultDto d)
+    {
+        return Map<CreateCompanyWithOwnerMembershipResultContract>(d);
+    }
 }

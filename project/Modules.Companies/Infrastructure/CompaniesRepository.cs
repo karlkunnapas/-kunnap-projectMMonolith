@@ -844,16 +844,19 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         return raw?.Translate() ?? string.Empty;
     }
 
-    private static CompanyPromotionDto ToPromotionDto(Domain.Promotion x) => new()
+    private static CompanyPromotionDto ToPromotionDto(Domain.Promotion x)
     {
-        Id = x.Id,
-        Code = x.Code,
-        DiscountValue = x.DiscountValue,
-        ValidFromUtc = x.ValidFrom,
-        ValidToUtc = x.ValidTo,
-        IsActive = x.IsActive,
-        CompanyId = x.CompanyId
-    };
+        return new()
+        {
+            Id = x.Id,
+            Code = x.Code,
+            DiscountValue = x.DiscountValue,
+            ValidFromUtc = x.ValidFrom,
+            ValidToUtc = x.ValidTo,
+            IsActive = x.IsActive,
+            CompanyId = x.CompanyId
+        };
+    }
 
     private async Task SetCanDeleteAsync(List<CompanyPromotionDto> promotions, CancellationToken ct)
     {
@@ -982,25 +985,31 @@ internal sealed class CompaniesRepository : ICompaniesRepository
         };
     }
 
-    private static CompanyAuditEntryDto ToAuditEntryDto(Domain.AuditLog x) => new()
+    private static CompanyAuditEntryDto ToAuditEntryDto(Domain.AuditLog x)
     {
-        Id = x.Id,
-        CompanyId = x.CompanyId,
-        UserName = x.UserName,
-        EntityName = x.EntityName,
-        EntityId = x.EntityId,
-        Action = x.Action,
-        AtUtc = x.AtUtc,
-        ChangesJson = x.ChangesJson
-    };
+        return new()
+        {
+            Id = x.Id,
+            CompanyId = x.CompanyId,
+            UserName = x.UserName,
+            EntityName = x.EntityName,
+            EntityId = x.EntityId,
+            Action = x.Action,
+            AtUtc = x.AtUtc,
+            ChangesJson = x.ChangesJson
+        };
+    }
 
-    private static CompanyMembershipDto ToMembershipDto(Domain.AppUserCompany x) => new()
+    private static CompanyMembershipDto ToMembershipDto(Domain.AppUserCompany x)
     {
-        MembershipId = x.Id,
-        CompanyId = x.CompanyId,
-        UserId = x.AppUserId,
-        Role = x.Role.ToString(),
-        IsActive = x.IsActive,
-        JoinedAtUtc = x.JoinedAtUtc
-    };
+        return new()
+        {
+            MembershipId = x.Id,
+            CompanyId = x.CompanyId,
+            UserId = x.AppUserId,
+            Role = x.Role.ToString(),
+            IsActive = x.IsActive,
+            JoinedAtUtc = x.JoinedAtUtc
+        };
+    }
 }

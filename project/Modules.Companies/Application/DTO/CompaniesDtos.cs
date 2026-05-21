@@ -102,18 +102,24 @@ internal sealed class PromotionOperationResultDto
     public string? ErrorMessage { get; set; }
     public CompanyPromotionDto? Promotion { get; set; }
 
-    public static PromotionOperationResultDto Ok(CompanyPromotionDto promotion) => new()
+    public static PromotionOperationResultDto Ok(CompanyPromotionDto promotion)
     {
-        Success = true,
-        Promotion = promotion
-    };
+        return new()
+        {
+            Success = true,
+            Promotion = promotion
+        };
+    }
 
-    public static PromotionOperationResultDto Fail(string code, string message) => new()
+    public static PromotionOperationResultDto Fail(string code, string message)
     {
-        Success = false,
-        ErrorCode = code,
-        ErrorMessage = message
-    };
+        return new()
+        {
+            Success = false,
+            ErrorCode = code,
+            ErrorMessage = message
+        };
+    }
 }
 
 internal sealed class CreateCompanyWithOwnerMembershipDto
@@ -132,16 +138,22 @@ internal sealed class CreateCompanyWithOwnerMembershipResultDto
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public static CreateCompanyWithOwnerMembershipResultDto Ok(Guid companyId) => new()
+    public static CreateCompanyWithOwnerMembershipResultDto Ok(Guid companyId)
     {
-        Success = true,
-        CompanyId = companyId
-    };
+        return new()
+        {
+            Success = true,
+            CompanyId = companyId
+        };
+    }
 
-    public static CreateCompanyWithOwnerMembershipResultDto Fail(string errorCode, string errorMessage) => new()
+    public static CreateCompanyWithOwnerMembershipResultDto Fail(string errorCode, string errorMessage)
     {
-        Success = false,
-        ErrorCode = errorCode,
-        ErrorMessage = errorMessage
-    };
+        return new()
+        {
+            Success = false,
+            ErrorCode = errorCode,
+            ErrorMessage = errorMessage
+        };
+    }
 }

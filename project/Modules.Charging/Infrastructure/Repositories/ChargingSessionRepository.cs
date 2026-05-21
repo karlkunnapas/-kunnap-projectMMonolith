@@ -11,7 +11,13 @@ internal sealed class ChargingSessionRepository : IChargingSessionRepository
         _dbContext = dbContext;
     }
 
-    public IQueryable<ChargingSession> Query() => _dbContext.ChargingSessions;
+    public IQueryable<ChargingSession> Query()
+    {
+        return _dbContext.ChargingSessions;
+    }
 
-    public void Add(ChargingSession session) => _dbContext.ChargingSessions.Add(session);
+    public void Add(ChargingSession session)
+    {
+        _dbContext.ChargingSessions.Add(session);
+    }
 }
