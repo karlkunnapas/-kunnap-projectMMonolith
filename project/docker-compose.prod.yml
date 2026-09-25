@@ -1,0 +1,57 @@
+name: chargepanel-modular-monolith
+
+services:
+  chargepanel-modular-monolith-webapp:
+    container_name: chargepanel-modular-monolith-webapp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      chargepanel-modular-monolith-postgres:
+        condition: service_healthy
+    expose:
+      - "8083"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:8083"
+      ConnectionStrings__DefaultConnection: "Host=chargepanel-modular-monolith-postgres;Port=5432;Database=monolith-project;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      JWT__Key: "${JWT_KEY}"
+
+  chargepanel-modular-monolith-postgres:
+    container_name: chargepanel-modular-monolith-postgres
+    pull_policy: always
+    # https://github.com/baosystems/docker-postgis/pkgs/container/postgis
+    image: ghcr.io/baosystems/postgis:18
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=monolith-project
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${POSTGRES_USER} -d monolith-project"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    volumes:
+      - chargepanel-modular-monolith-postgres-data:/var/lib/postgresql
+
+  caddy:
+    container_name: chargepanel-modular-monolith-caddy
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - chargepanel-modular-monolith-webapp
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  chargepanel-modular-monolith-postgres-data:
+  caddy-data:
+  caddy-config:

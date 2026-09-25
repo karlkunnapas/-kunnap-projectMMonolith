@@ -1,0 +1,3 @@
+{$DOMAIN} {
+	reverse_proxy chargepanel-modular-monolith-webapp:8083
+}

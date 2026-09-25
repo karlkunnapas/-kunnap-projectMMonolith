@@ -31,6 +31,10 @@ out/
 # User secrets
 secrets.json
 
+# Environment files with real secrets (deployment)
+.env
+project/.env
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
